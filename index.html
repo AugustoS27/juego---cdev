@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>El Ladrón Torpe</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <!-- Acá Three.js mete el <canvas> del juego -->
+    <div id="app"></div>
+
+    <!-- Lo que se ve desde el escondite (rendijas del placard o la parte de abajo de la cama).
+         Va primero para que los carteles de ayuda queden por encima. -->
+    <div id="vista-escondite" class="oculto"></div>
+
+    <!-- Borde rojo que late mientras el dueño te persigue -->
+    <div id="alerta-persecucion" class="oculto"></div>
+
+    <!-- Mira en el centro de la pantalla -->
+    <div id="mira">+</div>
+
+    <!-- Cartel de ayuda para interactuar (ej: "[E] Abrir puerta") -->
+    <div id="ayuda" class="oculto"></div>
+
+    <!-- Avisos que aparecen un par de segundos (ej: "¡El dueño trabó una puerta!") -->
+    <div id="avisos"></div>
+
+    <!-- Indicador de ruido mientras se corre -->
+    <div id="indicador-ruido" class="oculto">🔊 Corriendo: ¡hacés ruido!</div>
+
+    <!-- ============ HUD ============ -->
+    <div id="hud" class="oculto">
+      <!-- Pista del objeto, arriba al centro -->
+      <div id="hud-pista">
+        <span class="etiqueta">🔎 Pista</span>
+        <span id="texto-pista"></span>
+      </div>
+      <!-- Tiempo y enojo del dueño, abajo a la izquierda -->
+      <div id="hud-estado">
+        <div>⏱ <span id="texto-tiempo">0:00</span></div>
+        <div>😠 Enojo <span id="barra-enojo"><span id="relleno-enojo"></span></span></div>
+      </div>
+      <!-- Sonido, abajo a la derecha -->
+      <div id="hud-sonido">🔊 [M] Sonido</div>
+    </div>
+
+    <!-- ============ PANTALLAS ============ -->
+    <!-- Menú principal -->
+    <div id="pantalla-menu" class="pantalla">
+      <h1>El Ladrón Torpe</h1>
+      <p class="subtitulo">Entraste a robar a una casa... pero sos bastante torpe.</p>
+
+      <div class="columnas">
+        <div class="tarjeta">
+          <h2>🎯 Objetivo</h2>
+          <p>
+            Cada partida te toca encontrar <b>un objeto</b>. Leé la pista (es un acertijo),
+            encontralo en la casa y agarralo con <b>E</b> antes de que el dueño te atrape.
+          </p>
+        </div>
+        <div class="tarjeta">
+          <h2>🎮 Controles</h2>
+          <ul>
+            <li><b>WASD</b> moverse · <b>Mouse</b> mirar</li>
+            <li><b>Shift</b> correr (¡hace ruido!)</li>
+            <li><b>E</b> puertas, esconderse y agarrar</li>
+            <li><b>M</b> sonido · <b>B</b> bordes · <b>Esc</b> pausa</li>
+          </ul>
+        </div>
+        <div class="tarjeta">
+          <h2>💡 Consejos</h2>
+          <ul>
+            <li>Empezás afuera: hay varias formas de entrar. ¡Mirá bien el jardín!</li>
+            <li>Correr, abrir puertas y chocar cosas hace ruido.</li>
+            <li>Escondete en placards y debajo de las camas... pero si te ve entrar, te encuentra.</li>
+            <li>Cada 30 s el dueño se enoja más y camina más rápido.</li>
+            <li>Puerta roja = el dueño la trabó. Se abre sola en 20 s.</li>
+          </ul>
+        </div>
+      </div>
+
+      <button data-accion="jugar">¡A robar!</button>
+      <p class="creditos">Modelos 3D de muebles y naturaleza: Kenney.nl (CC0) · El resto hecho con código</p>
+    </div>
+
+    <!-- Pausa -->
+    <div id="pantalla-pausa" class="pantalla oculto">
+      <h1>Pausa</h1>
+      <p>El dueño también se tomó un descanso... por ahora.</p>
+      <div class="botones">
+        <button data-accion="continuar">Continuar</button>
+        <button data-accion="reiniciar" class="secundario">Reiniciar</button>
+        <button data-accion="menu" class="secundario">Menú</button>
+      </div>
+    </div>
+
+    <!-- Victoria -->
+    <div id="pantalla-victoria" class="pantalla oculto">
+      <h1>¡Lo lograste!</h1>
+      <p id="texto-victoria"></p>
+      <p id="estadisticas-victoria" class="estadisticas"></p>
+      <div class="botones">
+        <button data-accion="reiniciar">Jugar de nuevo</button>
+        <button data-accion="menu" class="secundario">Menú</button>
+      </div>
+    </div>
+
+    <!-- Derrota -->
+    <div id="pantalla-derrota" class="pantalla oculto">
+      <h1>¡Te atraparon!</h1>
+      <p id="texto-derrota"></p>
+      <p id="estadisticas-derrota" class="estadisticas"></p>
+      <div class="botones">
+        <button data-accion="reiniciar">Reintentar</button>
+        <button data-accion="menu" class="secundario">Menú</button>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

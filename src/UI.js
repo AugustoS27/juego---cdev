@@ -1,0 +1,153 @@
+// UI: todo lo que se muestra "encima" del juego (HUD, avisos y pantallas en HTML).
+// Game le dice QUÉ mostrar; UI sabe CÓMO mostrarlo.
+
+const NIVEL_MAXIMO_ENOJO = 6;
+
+export class UI {
+  constructor() {
+    const $ = (id) => document.getElementById(id);
+
+    // Pantallas (una sola visible a la vez)
+    this.pantallas = {
+      menu: $('pantalla-menu'),
+      pausa: $('pantalla-pausa'),
+      victoria: $('pantalla-victoria'),
+      derrota: $('pantalla-derrota'),
+    };
+    this.textoVictoria = $('texto-victoria');
+    this.estadisticasVictoria = $('estadisticas-victoria');
+    this.textoDerrota = $('texto-derrota');
+    this.estadisticasDerrota = $('estadisticas-derrota');
+
+    // HUD
+    this.hud = $('hud');
+    this.textoPista = $('texto-pista');
+    this.textoTiempo = $('texto-tiempo');
+    this.rellenoEnojo = $('relleno-enojo');
+    this.hudSonido = $('hud-sonido');
+
+    // Cosas que aparecen encima del juego
+    this.mira = $('mira');
+    this.ayuda = $('ayuda');
+    this.avisos = $('avisos');
+    this.indicadorRuido = $('indicador-ruido');
+    this.vistaEscondite = $('vista-escondite');
+    this.alertaPersecucion = $('alerta-persecucion');
+
+    this.textoAyuda = null; // lo guardamos para no tocar el HTML si no cambió
+  }
+
+  // Conecta cada botón con data-accion="..." a una función: acciones = { jugar: fn, menu: fn, ... }
+  conectarBotones(acciones) {
+    for (const boton of document.querySelectorAll('[data-accion]')) {
+      boton.addEventListener('click', () => acciones[boton.dataset.accion]?.());
+    }
+  }
+
+  // Muestra una pantalla ('menu', 'pausa', 'victoria', 'derrota') o ninguna (null)
+  mostrarPantalla(nombre) {
+    for (const [clave, pantalla] of Object.entries(this.pantallas)) {
+      pantalla.classList.toggle('oculto', clave !== nombre);
+    }
+  }
+
+  // ------------------------------------------------------------
+  //  HUD
+  // ------------------------------------------------------------
+  mostrarHUD(visible) {
+    this.hud.classList.toggle('oculto', !visible);
+  }
+
+  mostrarPista(pista) {
+    this.textoPista.textContent = pista;
+  }
+
+  // Tiempo de la partida y barra de enojo del dueño (se llena de 0% a 100%)
+  actualizarHUD(segundos, nivelEnojo) {
+    this.textoTiempo.textContent = formatearTiempo(segundos);
+    this.rellenoEnojo.style.width = `${(nivelEnojo / NIVEL_MAXIMO_ENOJO) * 100}%`;
+  }
+
+  mostrarSilencio(silenciado) {
+    this.hudSonido.textContent = silenciado ? '🔇 [M] Sonido' : '🔊 [M] Sonido';
+  }
+
+  // Muestra un texto abajo de la mira (ej: "[E] Abrir puerta"). Con null se oculta.
+  mostrarAyuda(texto) {
+    if (texto === this.textoAyuda) return;
+    this.textoAyuda = texto;
+    this.ayuda.textContent = texto || '';
+    this.ayuda.classList.toggle('oculto', !texto);
+  }
+
+  // Aviso que aparece unos segundos y desaparece solo
+  mostrarAviso(texto, segundos = 3) {
+    const aviso = document.createElement('div');
+    aviso.className = 'aviso';
+    aviso.textContent = texto;
+    this.avisos.appendChild(aviso);
+    setTimeout(() => aviso.remove(), segundos * 1000);
+  }
+
+  borrarAvisos() {
+    this.avisos.innerHTML = '';
+  }
+
+  mostrarIndicadorRuido(visible) {
+    this.indicadorRuido.classList.toggle('oculto', !visible);
+  }
+
+  mostrarAlertaPersecucion(visible) {
+    this.alertaPersecucion.classList.toggle('oculto', !visible);
+  }
+
+  // tipo: 'placard', 'cama' o null (no está escondido)
+  mostrarEscondite(tipo) {
+    this.vistaEscondite.className = tipo || 'oculto';
+    this.mira.classList.toggle('oculto', !!tipo);
+  }
+
+  // Saca todo lo que se muestra encima del juego (al pausar o terminar la partida)
+  ocultarCosasDelJuego() {
+    this.mostrarAyuda(null);
+    this.mostrarEscondite(null);
+    this.mostrarIndicadorRuido(false);
+    this.mostrarAlertaPersecucion(false);
+    this.borrarAvisos();
+  }
+
+  // ------------------------------------------------------------
+  //  PANTALLAS DE FIN DE PARTIDA
+  // ------------------------------------------------------------
+  mostrarVictoria(nombreObjeto, segundos, nivelEnojo) {
+    this.textoVictoria.textContent = `Encontraste ${nombreObjeto}. ¡Qué ladrón tan profesional (y torpe)!`;
+    this.estadisticasVictoria.textContent = `⏱ Tiempo: ${formatearTiempo(segundos)} · 😠 Enojo del dueño: ${nivelEnojo}/${NIVEL_MAXIMO_ENOJO}`;
+    this.terminarPartida('victoria');
+  }
+
+  // Si no se pasa un texto, elige una frase cómica al azar
+  mostrarDerrota(texto, segundos, nivelEnojo) {
+    const frases = [
+      'El dueño te dio un palazo con el palo de amasar. Mañana vas a tener un chichón.',
+      'Te agarró en pijama y todo. Qué vergüenza profesional.',
+      'Y pensar que solo querías llevarte una cosita...',
+      'El dueño llamó a la policía. Y a su mamá. Y a la tuya.',
+    ];
+    this.textoDerrota.textContent = texto || frases[Math.floor(Math.random() * frases.length)];
+    this.estadisticasDerrota.textContent = `⏱ Duraste: ${formatearTiempo(segundos)} · 😠 Enojo del dueño: ${nivelEnojo}/${NIVEL_MAXIMO_ENOJO}`;
+    this.terminarPartida('derrota');
+  }
+
+  terminarPartida(pantalla) {
+    this.ocultarCosasDelJuego();
+    this.mostrarHUD(false);
+    this.mostrarPantalla(pantalla);
+  }
+}
+
+// 83.4 segundos -> "1:23"
+function formatearTiempo(segundos) {
+  const min = Math.floor(segundos / 60);
+  const seg = String(Math.floor(segundos % 60)).padStart(2, '0');
+  return `${min}:${seg}`;
+}

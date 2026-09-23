@@ -1,0 +1,210 @@
+// Sonidos del juego generados con la Web Audio API (no hace falta ningún archivo de audio).
+//
+// Todo se arma con dos "ladrillos":
+//   - tono():  un oscilador (una onda) que puede cambiar de frecuencia -> pitidos, melodías
+//   - ruido(): ruido blanco pasado por un filtro -> pasos, golpes, chirridos
+// y cada efecto (paso, puerta, alerta...) es una combinación de esos ladrillos.
+//
+// Los navegadores no dejan sonar nada hasta que el usuario hace click,
+// por eso el audio arranca recién con iniciar() (al tocar "¡A robar!").
+
+// Melodías de fondo: listas de frecuencias (Hz). 0 = silencio.
+const MUSICA_SIGILO = [110, 0, 131, 0, 147, 131, 110, 0, 98, 0, 110, 0, 131, 147, 165, 0];
+const MUSICA_PERSECUCION = [196, 277, 196, 277, 185, 262, 185, 262];
+
+export class Audio {
+  constructor() {
+    this.ctx = null; // AudioContext (se crea en iniciar)
+    this.silenciado = false;
+    this.notaMusica = 0;
+    this.tiempoProximaNota = 0;
+  }
+
+  iniciar() {
+    if (this.ctx) {
+      this.ctx.resume();
+      return;
+    }
+    this.ctx = new AudioContext();
+
+    // Volumen general: todo pasa por acá (así M silencia todo de una)
+    this.salida = this.ctx.createGain();
+    this.salida.gain.value = 0.6;
+    this.salida.connect(this.ctx.destination);
+
+    // Un segundo de ruido blanco (valores al azar), que reutilizamos para todos los ruidos
+    const muestras = this.ctx.sampleRate;
+    this.bufferRuido = this.ctx.createBuffer(1, muestras, muestras);
+    const datos = this.bufferRuido.getChannelData(0);
+    for (let i = 0; i < muestras; i++) datos[i] = Math.random() * 2 - 1;
+  }
+
+  alternarSilencio() {
+    this.silenciado = !this.silenciado;
+    if (this.salida) this.salida.gain.value = this.silenciado ? 0 : 0.6;
+    return this.silenciado;
+  }
+
+  // ------------------------------------------------------------
+  //  LADRILLOS
+  // ------------------------------------------------------------
+  // Un tono con "envolvente": sube rápido y se apaga de a poco (suena como un golpe de nota)
+  tono({ frecuencia, frecuenciaFinal = frecuencia, duracion, tipo = 'sine', volumen = 0.3, retraso = 0 }) {
+    if (!this.ctx || volumen <= 0) return;
+    const inicio = this.ctx.currentTime + retraso;
+    const osc = this.ctx.createOscillator();
+    const vol = this.ctx.createGain();
+    osc.type = tipo;
+    osc.frequency.setValueAtTime(frecuencia, inicio);
+    osc.frequency.exponentialRampToValueAtTime(frecuenciaFinal, inicio + duracion);
+    vol.gain.setValueAtTime(0.0001, inicio);
+    vol.gain.exponentialRampToValueAtTime(volumen, inicio + 0.01);
+    vol.gain.exponentialRampToValueAtTime(0.0001, inicio + duracion);
+    osc.connect(vol).connect(this.salida);
+    osc.start(inicio);
+    osc.stop(inicio + duracion + 0.05);
+  }
+
+  // Ruido blanco filtrado: con filtro bajo suena "sordo" (pasos), alto suena "áspero" (golpes)
+  ruido({ duracion, volumen = 0.3, filtro = 1000, retraso = 0 }) {
+    if (!this.ctx || volumen <= 0) return;
+    const inicio = this.ctx.currentTime + retraso;
+    const fuente = this.ctx.createBufferSource();
+    fuente.buffer = this.bufferRuido;
+    const pasaBajos = this.ctx.createBiquadFilter();
+    pasaBajos.type = 'lowpass';
+    pasaBajos.frequency.value = filtro;
+    const vol = this.ctx.createGain();
+    vol.gain.setValueAtTime(volumen, inicio);
+    vol.gain.exponentialRampToValueAtTime(0.0001, inicio + duracion);
+    fuente.connect(pasaBajos).connect(vol).connect(this.salida);
+    fuente.start(inicio, Math.random() * 0.5); // arranca en un punto al azar del buffer
+    fuente.stop(inicio + duracion + 0.05);
+  }
+
+  // ------------------------------------------------------------
+  //  EFECTOS
+  // ------------------------------------------------------------
+  paso(corriendo) {
+    this.ruido({ duracion: 0.07, volumen: corriendo ? 0.35 : 0.12, filtro: corriendo ? 900 : 500 });
+  }
+
+  // Pasos del dueño: más graves. "volumen" va de 0 (lejos) a 1 (al lado)
+  pasoDueno(volumen) {
+    this.ruido({ duracion: 0.12, volumen: 0.6 * volumen, filtro: 250 });
+    this.tono({ frecuencia: 80, frecuenciaFinal: 50, duracion: 0.1, volumen: 0.35 * volumen });
+  }
+
+  // Chirrido de bisagra + golpecito
+  puerta(volumen = 1) {
+    this.tono({ frecuencia: 320, frecuenciaFinal: 560, duracion: 0.3, tipo: 'sawtooth', volumen: 0.05 * volumen });
+    this.ruido({ duracion: 0.1, volumen: 0.3 * volumen, filtro: 400, retraso: 0.25 });
+  }
+
+  choque() {
+    this.tono({ frecuencia: 140, frecuenciaFinal: 40, duracion: 0.25, tipo: 'square', volumen: 0.2 });
+    this.ruido({ duracion: 0.2, volumen: 0.45, filtro: 1500 });
+  }
+
+  // "¡!" cuando el dueño te ve
+  alerta() {
+    this.tono({ frecuencia: 880, duracion: 0.1, tipo: 'square', volumen: 0.15 });
+    this.tono({ frecuencia: 1320, duracion: 0.2, tipo: 'square', volumen: 0.15, retraso: 0.1 });
+  }
+
+  // "¿?" cuando el dueño escucha algo
+  duda() {
+    this.tono({ frecuencia: 350, frecuenciaFinal: 650, duracion: 0.35, tipo: 'triangle', volumen: 0.25 });
+  }
+
+  // Click-clack de cerradura
+  traba(volumen = 1) {
+    this.ruido({ duracion: 0.04, volumen: 0.5 * volumen, filtro: 4000 });
+    this.ruido({ duracion: 0.05, volumen: 0.5 * volumen, filtro: 3000, retraso: 0.12 });
+  }
+
+  // --- Entradas ---
+  // Vidrio roto: un golpe áspero + tintineos agudos al azar
+  vidrio() {
+    this.ruido({ duracion: 0.4, volumen: 0.6, filtro: 6000 });
+    for (let i = 0; i < 6; i++) {
+      this.tono({ frecuencia: 2500 + Math.random() * 2500, duracion: 0.15, tipo: 'triangle', volumen: 0.08, retraso: 0.05 + i * 0.06 });
+    }
+  }
+
+  // Trepar / subir: roce de ropa
+  trepar() {
+    this.ruido({ duracion: 0.3, volumen: 0.15, filtro: 700 });
+    this.ruido({ duracion: 0.3, volumen: 0.15, filtro: 700, retraso: 0.4 });
+  }
+
+  // Escalera de metal golpeando la pared: "¡clanc!"
+  escalera() {
+    this.tono({ frecuencia: 620, frecuenciaFinal: 580, duracion: 0.35, tipo: 'square', volumen: 0.08 });
+    this.tono({ frecuencia: 470, duracion: 0.4, tipo: 'square', volumen: 0.06, retraso: 0.05 });
+  }
+
+  // Un tirón al portón: golpe metálico grave
+  forcejeo() {
+    this.tono({ frecuencia: 160, frecuenciaFinal: 110, duracion: 0.25, tipo: 'sawtooth', volumen: 0.12 });
+    this.ruido({ duracion: 0.15, volumen: 0.3, filtro: 2000 });
+  }
+
+  // El portón se abre: chirrido largo
+  porton() {
+    this.tono({ frecuencia: 180, frecuenciaFinal: 320, duracion: 1, tipo: 'sawtooth', volumen: 0.07 });
+  }
+
+  // Llave encontrada: tintineo alegre
+  llave() {
+    [1568, 2093, 2637].forEach((f, i) => this.tono({ frecuencia: f, duracion: 0.2, tipo: 'triangle', volumen: 0.15, retraso: i * 0.08 }));
+  }
+
+  // Mover una maceta: raspón de cerámica
+  maceta() {
+    this.ruido({ duracion: 0.25, volumen: 0.2, filtro: 1200 });
+  }
+
+  // Gruñido del dueño cuando se enoja más
+  enojo() {
+    this.tono({ frecuencia: 110, frecuenciaFinal: 70, duracion: 0.6, tipo: 'sawtooth', volumen: 0.12 });
+  }
+
+  // Arpegio alegre (Do - Mi - Sol - Do)
+  victoria() {
+    [523, 659, 784, 1047].forEach((f, i) => {
+      this.tono({ frecuencia: f, duracion: i === 3 ? 0.8 : 0.2, tipo: 'triangle', volumen: 0.25, retraso: i * 0.13 });
+    });
+  }
+
+  // "Wah wah wah waaaah" de trompeta triste
+  derrota() {
+    [392, 370, 349, 330].forEach((f, i) => {
+      this.tono({ frecuencia: f, frecuenciaFinal: f * 0.97, duracion: i === 3 ? 1.2 : 0.4, tipo: 'sawtooth', volumen: 0.1, retraso: i * 0.45 });
+    });
+  }
+
+  // ------------------------------------------------------------
+  //  MÚSICA DE FONDO
+  // ------------------------------------------------------------
+  // Se llama en cada frame: cuando pasa el tiempo de una nota, toca la siguiente.
+  // Tranquila y "de puntillas" normalmente; rápida y tensa si el dueño te persigue.
+  actualizarMusica(dt, persiguiendo) {
+    if (!this.ctx) return;
+    this.tiempoProximaNota -= dt;
+    if (this.tiempoProximaNota > 0) return;
+
+    const melodia = persiguiendo ? MUSICA_PERSECUCION : MUSICA_SIGILO;
+    const frecuencia = melodia[this.notaMusica % melodia.length];
+    this.notaMusica++;
+    this.tiempoProximaNota = persiguiendo ? 0.13 : 0.28;
+
+    if (frecuencia === 0) return; // silencio
+    this.tono({
+      frecuencia,
+      duracion: persiguiendo ? 0.12 : 0.22,
+      tipo: persiguiendo ? 'square' : 'triangle',
+      volumen: persiguiendo ? 0.05 : 0.1,
+    });
+  }
+}
