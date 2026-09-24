@@ -4,8 +4,9 @@ Juego 3D cómico en primera persona hecho con **Three.js** y **Vite** (proyecto 
 
 Sos un ladrón torpe que tiene que meterse en una casa de dos pisos. Empezás afuera y hay varias
 formas de entrar: romper una ventana, la puerta trasera que quedó abierta, una escalera al balcón,
-forzar el portón del garaje o buscar la llave escondida en una maceta. Adentro, una pista (un acertijo)
-te dice qué objeto tenés que encontrar. Si lo agarrás, ganás. Si el dueño te atrapa, perdés.
+forzar el portón del garaje o buscar la llave escondida en una maceta. Adentro tenés que robar **5 objetos**
+(sorteados entre 18): de cada uno solo sabés una pista (un acertijo). Con los cinco en la bolsa, escapás en la
+**van negra** de tu cómplice, que te espera en el frente. Si el dueño te atrapa, perdés.
 
 > 📋 El plan de las próximas mejoras (etapas 9 a 14) está en [PLAN.md](PLAN.md).
 
@@ -29,7 +30,7 @@ Para generar la versión final: `npm run build` (queda en `dist/`).
 | Shift | Correr (hace ruido) |
 | Espacio | Saltar (se puede subir arriba de los muebles) |
 | C (mantener) | Agacharse: más lento pero casi sin ruido |
-| E | Abrir/cerrar puertas, esconderse, agarrar el objeto |
+| E | Abrir/cerrar puertas, esconderse, agarrar objetos |
 | M | Activar/desactivar sonido |
 | B | Activar/desactivar los bordes de dibujo animado |
 | Esc | Pausa |
@@ -47,7 +48,8 @@ Para generar la versión final: `npm run build` (queda en `dist/`).
 | `src/Exterior.js` | Jardín, cerca, techos, balcón, ventanas de afuera, árboles y barrio |
 | `src/Entradas.js` | Las formas de entrar: ventana rompible, escalera, portón y macetas con la llave |
 | `src/Door.js` | Puertas con bisagra (abrir, cerrar, trabar) |
-| `src/Items.js` | Los objetos a encontrar, sus pistas y ubicaciones posibles |
+| `src/Items.js` | Los 18 objetos, sus pistas y ubicaciones; sorteo de los 5 de cada partida |
+| `src/Escape.js` | La van negra y la zona de escape (se prende con los 5 objetos) |
 | `src/Noise.js` | Sistema de ruido con radio de alcance |
 | `src/Audio.js` | Sonidos generados con la Web Audio API (sin archivos) |
 | `src/UI.js` | HUD, avisos y pantallas (menú, pausa, victoria, derrota) |
@@ -67,6 +69,8 @@ Para generar la versión final: `npm run build` (queda en `dist/`).
 - **Tensión creciente:** cada 30 s el dueño camina un 10% más rápido, y a veces traba puertas por 20 s.
 - **Entradas con precio:** cada forma de entrar tiene su costo (ruido, distancia, riesgo). Cada entrada devuelve un "resultado" (sonido, ruido, aviso, animación) y Game lo aplica.
 - **El dueño no sale:** si el ruido o el jugador están afuera, va al punto de adentro más cercano.
+- **Botín sorteado:** se mezclan los 18 objetos, se toman 5 y a cada uno se le elige una ubicación que no esté
+  pegada a la de otro. Así cada partida es distinta.
 
 ## Gráficos: assets + creaciones propias
 
@@ -74,7 +78,7 @@ Para generar la versión final: `npm run build` (queda en `dist/`).
 (dominio público). Están en `public/models/muebles` y `public/models/naturaleza`, con su licencia.
 
 **Hecho por nosotros (con código):**
-- La casa (paredes, techo a dos aguas, balcón, garaje), el dueño, los objetos, el auto y las entradas.
+- La casa (paredes, techo a dos aguas, balcón, garaje), el dueño, los objetos, el auto, la van y las entradas.
 - Las texturas de madera, cerámica, baldosas, pasto y tejas, dibujadas en un `<canvas>` (`Texturas.js`).
 - El look de dibujo animado: materiales toon de 3 tonos + bordes negros (`OutlineEffect`, tecla **B**).
 - El cielo con degradé, las nubes y el barrio de fondo.

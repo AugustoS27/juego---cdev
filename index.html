@@ -29,10 +29,10 @@
 
     <!-- ============ HUD ============ -->
     <div id="hud" class="oculto">
-      <!-- Pista del objeto, arriba al centro -->
-      <div id="hud-pista">
-        <span class="etiqueta">🔎 Pista</span>
-        <span id="texto-pista"></span>
+      <!-- Botín: las pistas de los 5 objetos (se tildan al encontrarlos), arriba a la izquierda -->
+      <div id="hud-botin">
+        <div id="titulo-botin">🎒 Botín 0/5</div>
+        <ul id="lista-pistas"></ul>
       </div>
       <!-- Tiempo y enojo del dueño, abajo a la izquierda -->
       <div id="hud-estado">
@@ -58,8 +58,9 @@
         <div class="tarjeta">
           <h2>🎯 Objetivo</h2>
           <p>
-            Cada partida te toca encontrar <b>un objeto</b>. Leé la pista (es un acertijo),
-            encontralo en la casa y agarralo con <b>E</b> antes de que el dueño te atrape.
+            Cada partida te toca robar <b>5 objetos</b>. Leé las pistas (son acertijos),
+            encontralos en la casa y agarralos con <b>E</b>. Con los cinco en la bolsa,
+            <b>escapá en la van negra</b> que te espera en el frente.
           </p>
         </div>
         <div class="tarjeta">

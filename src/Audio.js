@@ -178,6 +178,27 @@ export class Audio {
     this.ruido({ duracion: 0.25, volumen: 0.2, filtro: 1200 });
   }
 
+  // --- Botín ---
+  // Guardar un objeto en la bolsa: "¡bling!" de dos notas + roce de la bolsa
+  guardar() {
+    this.ruido({ duracion: 0.15, volumen: 0.12, filtro: 900 });
+    this.tono({ frecuencia: 988, duracion: 0.1, tipo: 'square', volumen: 0.08, retraso: 0.05 });
+    this.tono({ frecuencia: 1319, duracion: 0.25, tipo: 'square', volumen: 0.08, retraso: 0.13 });
+  }
+
+  // ¡Tenés los cinco! Fanfarria cortita que sube
+  todoListo() {
+    [523, 659, 784, 1047, 784, 1047].forEach((f, i) => {
+      this.tono({ frecuencia: f, duracion: i === 5 ? 0.5 : 0.12, tipo: 'triangle', volumen: 0.22, retraso: i * 0.1 });
+    });
+  }
+
+  // El motor de la van arrancando: "brrrum" que sube
+  motor() {
+    this.tono({ frecuencia: 55, frecuenciaFinal: 140, duracion: 1.4, tipo: 'sawtooth', volumen: 0.15 });
+    this.ruido({ duracion: 1.2, volumen: 0.25, filtro: 250 });
+  }
+
   // Gruñido del dueño cuando se enoja más
   enojo() {
     this.tono({ frecuencia: 110, frecuenciaFinal: 70, duracion: 0.6, tipo: 'sawtooth', volumen: 0.12 });

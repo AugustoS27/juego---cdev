@@ -3,8 +3,8 @@
 Este documento detalla las etapas para las mejoras nuevas del juego: qué se va a hacer en cada una,
 en qué orden, qué archivos se tocan, cómo se prueba y qué decisiones quedan pendientes.
 
-> **Estado actual:** etapas 1 a 8 terminadas (juego base + exterior + gráficos) y **etapa 9 terminada**.
-> Próxima: **etapa 10**.
+> **Estado actual:** etapas 1 a 8 terminadas (juego base + exterior + gráficos), **etapas 9 y 10 terminadas**.
+> Próxima: **etapa 11**.
 
 ---
 
@@ -14,14 +14,14 @@ en qué orden, qué archivos se tocan, cómo se prueba y qué decisiones quedan 
 2. [Resumen de las etapas](#resumen-de-las-etapas)
 3. [Orden y dependencias](#orden-y-dependencias)
 4. [Etapa 9 — Saltar y agacharse ✅](#etapa-9--saltar-y-agacharse-)
-5. [Etapa 10 — Cinco objetos y escapar](#etapa-10--cinco-objetos-y-escapar)
+5. [Etapa 10 — Cinco objetos y escapar ✅](#etapa-10--cinco-objetos-y-escapar-)
 6. [Etapa 11 — La casa gigante](#etapa-11--la-casa-gigante)
 7. [Etapa 12 — Enemigos nuevos: perros y abuela](#etapa-12--enemigos-nuevos-perros-y-abuela)
 8. [Etapa 13 — Objetos de habilidad](#etapa-13--objetos-de-habilidad)
 9. [Etapa 14 — Pulido: animaciones, entradas y escondites](#etapa-14--pulido-animaciones-entradas-y-escondites)
 10. [Riesgos y cómo los manejamos](#riesgos-y-cómo-los-manejamos)
 11. [Decisiones pendientes](#decisiones-pendientes)
-12. [Historial (etapas 1 a 8)](#historial-etapas-1-a-8)
+12. [Historial (etapas 1 a 10)](#historial-etapas-1-a-10)
 
 ---
 
@@ -48,8 +48,8 @@ Son los mismos que usamos desde el principio, porque el proyecto tiene que ser f
 | Etapa | Contenido | Tamaño | Estado |
 |---|---|---|---|
 | **9** | Saltar y agacharse | Mediana | ✅ Terminada |
-| **10** | Cinco objetos para robar + zona de escape | Mediana | ⏳ Próxima |
-| **11** | Casa gigante: pisos, sótano, ático, puentes, túneles, ventilaciones | Muy grande (se divide en 11A y 11B) | Pendiente |
+| **10** | Cinco objetos para robar + zona de escape | Mediana | ✅ Terminada |
+| **11** | Casa gigante: pisos, sótano, ático, puentes, túneles, ventilaciones | Muy grande (se divide en 11A y 11B) | ⏳ Próxima |
 | **12** | Enemigos nuevos: dos perros y la abuela con escopeta | Grande | Pendiente |
 | **13** | Objetos de habilidad: zanahoria, botas de lana, bebida energética | Mediana | Pendiente |
 | **14** | Pulido: animaciones, más entradas, más escondites | Grande | Pendiente |
@@ -112,7 +112,29 @@ Etapa 14 (pulido)           ← animaciones, entradas y escondites sobre el mapa
 
 ---
 
-## Etapa 10 — Cinco objetos y escapar
+## Etapa 10 — Cinco objetos y escapar ✅
+
+### Qué se hizo
+- **18 objetos** (los 6 de antes + dentadura postiza, reloj de oro, anteojos, billetera, alcancía chanchito,
+  trofeo, mate, peluca, teléfono antiguo, gnomo de porcelana, pava y cepillo de dientes), cada uno con su
+  acertijo y 3 o 4 ubicaciones (71 en total, dos afuera: la mesa del jardín y la cucha).
+- **Sorteo:** se mezclan los objetos y se toman 5; a cada uno se le elige una ubicación que no esté a menos
+  de 80 cm de otro objetivo del mismo piso.
+- **Van negra** "NO SOMOS LADRONES S.A." estacionada en la entrada de autos, con las puertas traseras abiertas.
+  Atrás tiene la **zona de escape**: un círculo gris que se pone verde, late y muestra una flecha cuando tenés
+  los cinco. Si llegás antes, el cómplice te avisa cuántos te faltan.
+- **HUD:** lista del botín arriba a la izquierda (cada pista se tilda al encontrar su objeto) y contador 🎒 3/5.
+- Sonidos nuevos: guardar en la bolsa, "¡tenés todo!" y el motor de la van al escapar.
+- Cada ubicación puede tener `rot` para girar el objeto hacia donde viene el jugador (ej: el disco del teléfono).
+
+### Pruebas que se corrieron
+- 2000 sorteos: siempre 5 objetos distintos y en lugares distintos; los 18 salen con frecuencia pareja.
+- Las 71 ubicaciones se pueden ver y agarrar parado desde al menos 5 posiciones cercanas (arriba de la heladera
+  es la más difícil: conviene saltar para verla).
+- Entrar a la zona con 0 y con 4 objetos no gana (un solo aviso al entrar); con 5, caminando, gana.
+- Reiniciar vuelve todo a cero; la van y sus puertas tienen colisión; partida de 20 s sin errores; build OK.
+
+### Plan original
 
 **Objetivo:** en vez de un objeto, hay que robar **cinco** y después **escapar** para ganar.
 
@@ -359,15 +381,15 @@ Todos usan el mismo sistema de escondites de ahora (y la misma regla de sospecha
 
 | Decisión | Propuesta | Se decide en |
 |---|---|---|
-| ¿Dónde está la zona de escape? | La tranquera del frente | Etapa 10 |
-| ¿Cuántos objetos en total? | ~18 tipos, se sortean 5 | Etapa 10 |
+| ~~¿Dónde está la zona de escape?~~ | ✅ Decidido: atrás de una van negra en el frente de la casa | Etapa 10 |
+| ~~¿Cuántos objetos en total?~~ | ✅ Decidido: 18 tipos, se sortean 5 | Etapa 10 |
 | ¿Los perros pueden entrar por la puerta trasera? | No, se quedan en el patio | Etapa 12 |
 | ¿Linterna para el sótano? | Sí, si el sótano queda muy oscuro | Etapa 11 |
 | ¿Habilidades con inventario o al agarrar? | Al agarrar (más simple) | Etapa 13 |
 
 ---
 
-## Historial (etapas 1 a 8)
+## Historial (etapas 1 a 10)
 
 | Etapa | Qué se hizo |
 |---|---|
@@ -380,3 +402,4 @@ Todos usan el mismo sistema de escondites de ahora (y la misma regla de sospecha
 | 7 | Exterior (jardín, garaje, balcón, techo) y 5 formas de entrar |
 | 8 | Gráficos: modelos de Kenney (CC0) + bordes de dibujo animado + texturas propias |
 | 9 | Saltar y agacharse, ruido de pasos según el movimiento, ruidómetro |
+| 10 | 18 objetos (se sortean 5), lista del botín en el HUD y escape en la van negra del frente |

@@ -11,6 +11,7 @@ import { SistemaDeRuido, RADIO_RUIDO } from './Noise.js';
 import { Audio } from './Audio.js';
 import { Exterior } from './Exterior.js';
 import { Entradas } from './Entradas.js';
+import { ZonaDeEscape } from './Escape.js';
 import { ALTURA_PISO, INICIO_JUGADOR } from './HouseData.js';
 
 // Estados posibles de la partida
@@ -57,6 +58,7 @@ export class Game {
     this.entradas = new Entradas(this.scene, this.house);
     this.player = new Player(this.camera, document.body, this.house);
     this.items = new Items(this.scene);
+    this.zonaEscape = new ZonaDeEscape(this.scene, this.house);
     this.owner = new Owner(this.scene, this.house, this.player);
     this.ruido = new SistemaDeRuido(this.scene, this.owner);
     this.audio = new Audio();
@@ -67,6 +69,7 @@ export class Game {
     this.nivelEnojo = 0;
     this.tiempoParaEnojo = SEGUNDOS_POR_NIVEL;
     this.tiempoDesdeAvisoRuido = 99; // para no llenar la pantalla de avisos
+    this.estabaEnLaZona = false; // para avisar "te faltan objetos" solo al entrar a la zona
 
     this.conectarEventos();
     this.configurarPantallas();
@@ -257,7 +260,9 @@ export class Game {
     this.ruido.limpiar();
     this.player.setPosition(INICIO_JUGADOR.x, INICIO_JUGADOR.y, INICIO_JUGADOR.z);
     this.camera.rotation.set(0, 0, 0); // mirando hacia adentro de la casa
-    this.items.elegirObjetoAlAzar();
+    this.items.sortearObjetivos();
+    this.zonaEscape.activar(false);
+    this.estabaEnLaZona = false;
     this.owner.reiniciar();
 
     this.tiempoPartida = 0;
@@ -265,7 +270,7 @@ export class Game {
     this.tiempoParaEnojo = SEGUNDOS_POR_NIVEL;
 
     this.ui.ocultarCosasDelJuego();
-    this.ui.mostrarPista(this.items.objeto.pista);
+    this.ui.mostrarBotin(this.items.objetivos);
     this.ui.actualizarHUD(0, 0);
   }
 
@@ -282,7 +287,8 @@ export class Game {
     this.timer.update();
     const dt = Math.min(this.timer.getDelta(), 0.05);
 
-    this.items.update(dt); // el objeto flota aunque estemos en pausa
+    this.items.update(dt); // los objetos flotan aunque estemos en pausa
+    this.zonaEscape.update(dt);
 
     if (this.estado === ESTADO.JUGANDO) {
       this.tiempoPartida += dt;
@@ -303,6 +309,7 @@ export class Game {
       this.ui.mostrarRuido(paso ? RADIO_RUIDO[paso] : 0, this.player.agachado);
 
       if (this.owner.atrapoAlJugador()) this.perder();
+      else this.revisarZonaDeEscape();
     }
 
     // Sombras: se recalculan 20 veces por segundo en vez de 60 (no se nota y ahorra mucho)
@@ -327,12 +334,44 @@ export class Game {
     this.ui.mostrarAviso(`😠 El dueño está cada vez más enojado: ¡ahora camina más rápido! (nivel ${this.nivelEnojo})`, 3);
   }
 
-  // El jugador agarró el objeto
+  // El jugador agarró uno de los objetos: va a la bolsa
+  agarrarObjeto(objetivo) {
+    this.items.agarrar(objetivo);
+    this.audio.guardar();
+    this.ui.mostrarBotin(this.items.objetivos);
+
+    if (this.items.todosEncontrados) {
+      // ¡Tenés los cinco! Se prende la zona de escape
+      this.zonaEscape.activar(true);
+      this.audio.todoListo();
+      this.ui.mostrarAviso('🚐 ¡Tenés todo! Corré a la van negra del frente para escapar', 5);
+    } else {
+      const faltan = this.items.objetivos.length - this.items.cantidadEncontrados;
+      this.ui.mostrarAviso(`🎒 ¡Agarraste ${objetivo.objeto.nombre}! Te ${faltan === 1 ? 'falta 1' : `faltan ${faltan}`}`, 2.5);
+    }
+  }
+
+  // ¿El jugador llegó a la zona de escape (atrás de la van)?
+  revisarZonaDeEscape() {
+    const adentro = this.zonaEscape.contiene(this.player.position);
+    if (adentro && this.items.todosEncontrados) {
+      this.ganar();
+    } else if (adentro && !this.estabaEnLaZona) {
+      // Llegó antes de tiempo: avisamos una vez (al entrar), no en cada frame
+      const faltan = this.items.objetivos.length - this.items.cantidadEncontrados;
+      this.ui.mostrarAviso(`🚐 Tu cómplice no arranca sin el botín completo: te ${faltan === 1 ? 'falta 1 objeto' : `faltan ${faltan} objetos`}`, 3);
+    }
+    this.estabaEnLaZona = adentro;
+  }
+
+  // El jugador escapó en la van con los cinco objetos
   ganar() {
     this.estado = ESTADO.VICTORIA; // primero el estado, así "unlock" no muestra la pausa
     this.player.controls.unlock();
+    this.audio.motor();
     this.audio.victoria();
-    this.ui.mostrarVictoria(this.items.objeto.nombre, this.tiempoPartida, this.nivelEnojo);
+    const nombres = this.items.objetivos.map((o) => o.objeto.nombre);
+    this.ui.mostrarVictoria(nombres, this.tiempoPartida, this.nivelEnojo);
   }
 
   // El dueño atrapó al jugador
@@ -353,7 +392,7 @@ export class Game {
     return this.house.puertaCercana(this.player.position, this.direccionMirada);
   }
 
-  // Prioridad: salir del escondite > agarrar el objeto > entradas > esconderse > puerta
+  // Prioridad: salir del escondite > agarrar un objeto > entradas > esconderse > puerta
   interactuar() {
     if (this.player.animacion) return; // trepando no se puede hacer otra cosa
 
@@ -362,8 +401,9 @@ export class Game {
       return;
     }
 
-    if (this.items.estaMirandoElObjeto(this.camera)) {
-      this.ganar();
+    const objetivo = this.items.objetivoMirado(this.camera);
+    if (objetivo) {
+      this.agarrarObjeto(objetivo);
       return;
     }
 
@@ -438,8 +478,9 @@ export class Game {
       return;
     }
 
-    if (this.items.estaMirandoElObjeto(this.camera)) {
-      this.ui.mostrarAyuda(`[E] Agarrar ${this.items.objeto.nombre}`);
+    const objetivo = this.items.objetivoMirado(this.camera);
+    if (objetivo) {
+      this.ui.mostrarAyuda(`[E] Agarrar ${objetivo.objeto.nombre}`);
       return;
     }
 

@@ -22,7 +22,8 @@ export class UI {
 
     // HUD
     this.hud = $('hud');
-    this.textoPista = $('texto-pista');
+    this.tituloBotin = $('titulo-botin');
+    this.listaPistas = $('lista-pistas');
     this.textoTiempo = $('texto-tiempo');
     this.rellenoEnojo = $('relleno-enojo');
     this.hudSonido = $('hud-sonido');
@@ -60,8 +61,23 @@ export class UI {
     this.hud.classList.toggle('oculto', !visible);
   }
 
-  mostrarPista(pista) {
-    this.textoPista.textContent = pista;
+  // Lista del botín: una línea por objeto. Si ya lo agarraste se tilda y muestra su nombre;
+  // si no, muestra la pista (el acertijo). Arriba, el contador "🎒 Botín 2/5".
+  mostrarBotin(objetivos) {
+    const encontrados = objetivos.filter((o) => o.encontrado).length;
+    const todos = encontrados === objetivos.length;
+    this.tituloBotin.textContent = todos
+      ? '🚐 ¡Tenés todo! Escapá en la van negra del frente'
+      : `🎒 Botín ${encontrados}/${objetivos.length}`;
+    this.tituloBotin.classList.toggle('listo', todos);
+
+    this.listaPistas.innerHTML = '';
+    for (const o of objetivos) {
+      const linea = document.createElement('li');
+      linea.classList.toggle('encontrado', o.encontrado);
+      linea.textContent = o.encontrado ? `✅ ${mayuscula(o.objeto.nombre)}` : `⬜ ${o.objeto.pista}`;
+      this.listaPistas.appendChild(linea);
+    }
   }
 
   // Tiempo de la partida y barra de enojo del dueño (se llena de 0% a 100%)
@@ -139,8 +155,10 @@ export class UI {
   // ------------------------------------------------------------
   //  PANTALLAS DE FIN DE PARTIDA
   // ------------------------------------------------------------
-  mostrarVictoria(nombreObjeto, segundos, nivelEnojo) {
-    this.textoVictoria.textContent = `Encontraste ${nombreObjeto}. ¡Qué ladrón tan profesional (y torpe)!`;
+  // nombres: lo que te llevaste (ej: ['las llaves', 'el mate', ...])
+  mostrarVictoria(nombres, segundos, nivelEnojo) {
+    const lista = `${nombres.slice(0, -1).join(', ')} y ${nombres.at(-1)}`;
+    this.textoVictoria.textContent = `Te escapaste en la van con ${lista}. ¡Qué ladrón tan profesional (y torpe)!`;
     this.estadisticasVictoria.textContent = `⏱ Tiempo: ${formatearTiempo(segundos)} · 😠 Enojo del dueño: ${nivelEnojo}/${NIVEL_MAXIMO_ENOJO}`;
     this.terminarPartida('victoria');
   }
@@ -163,6 +181,11 @@ export class UI {
     this.mostrarHUD(false);
     this.mostrarPantalla(pantalla);
   }
+}
+
+// "el mate" -> "El mate"
+function mayuscula(texto) {
+  return texto[0].toUpperCase() + texto.slice(1);
 }
 
 // 83.4 segundos -> "1:23"
