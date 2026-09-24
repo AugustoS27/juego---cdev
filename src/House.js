@@ -44,6 +44,10 @@ const ANCHO_CONDUCTO = 1; // por fuera
 const ALTO_CONDUCTO = 1.25; // por fuera (el techo del conducto empieza en 1.15)
 const PUERTITA = { ancho: 0.8, alto: 1.1 }; // la rejilla o la tabla que tapa cada punta
 
+// Zócalos (abajo) y molduras (arriba) de las paredes de adentro
+const ZOCALO = { alto: 0.12, grosor: 0.025 };
+const MOLDURA = { alto: 0.08, grosor: 0.04 };
+
 // Poné esto en true para ver los waypoints (esferas rojas) y sus conexiones
 const MOSTRAR_WAYPOINTS = false;
 
@@ -60,6 +64,7 @@ export class House {
     this.conductos = []; // rectángulos de adentro de los conductos (para el ruido metálico)
     this.tuneles = []; // rectángulos de adentro del túnel
     this.trampilla = null; // la escalera plegable del ático (ver Especiales.js)
+    this.materialesDePared = new Map(); // empapelados ya creados (uno por dibujo y color)
     this.cargas = []; // promesas de los modelos que se están cargando (Game espera a que terminen)
     this.juntadosPorPiso = {}; // mallas juntadas de los muebles de cada piso (ver Optimizar.js)
 
@@ -197,25 +202,33 @@ export class House {
   }
 
   // Un tramo de pared entre dos coordenadas (desde, hasta) a lo largo de la pared.
-  // Cada cara toma el color de la habitación a la que da (o el color de afuera).
+  // Cada cara toma el color (y el empapelado) de la habitación a la que da, o el color de afuera.
+  // Del lado de adentro, además, lleva zócalo abajo y moldura arriba.
   agregarTramo(piso, vaEnX, fijo, desde, hasta, y, alto) {
     const largo = hasta - desde;
     if (largo <= 0.01) return;
     const centro = (desde + hasta) / 2;
+    const base = this.alturaDePiso(piso);
+    // Si llega hasta arriba, la bajamos 1 cm: si no, su cara de arriba queda justo a la altura del
+    // piso de arriba y las dos "titilan" (se ve una raya del color de la pared en el piso)
+    if (y + alto >= base + ALTURA_PISO - 0.001) alto -= 0.01;
 
     // Miramos 30 cm hacia cada lado de la pared: ¿qué habitación hay ahí?
-    const colorDelLado = (x, z) => {
+    // Devuelve el material de esa cara (con el empapelado del cuarto, si tiene).
+    const ladoDe = (x, z) => {
       const hab = this.habitacionEn(x, z, piso);
-      if (hab) return hab.colorParedes || COLORES_PAREDES[piso];
+      if (hab) return { adentro: true, material: this.materialDePared(hab.colorParedes || COLORES_PAREDES[piso], hab.pared) };
       // Sin habitación pero adentro de la casa (el hueco de la escalera): color de adentro
       const { x1, z1, x2, z2 } = LIMITES_CASA;
-      return x > x1 && x < x2 && z > z1 && z < z2 ? COLORES_PAREDES[piso] : COLOR_EXTERIOR;
+      const adentro = x > x1 && x < x2 && z > z1 && z < z2;
+      return { adentro, material: materialToon(adentro ? COLORES_PAREDES[piso] : COLOR_EXTERIOR) };
     };
+    const colorDelLado = (x, z) => ladoDe(x, z).material;
 
     // Las puntas del tramo también: si del otro lado de la punta es afuera, van del color
     // exterior (si no, una pared interior "asoma" con su color en la fachada); si es el
     // marco de una puerta, van del color de la habitación.
-    let medidas, colores;
+    let medidas, colores, lados;
     if (vaEnX) {
       medidas = { x: centro, z: fijo, ancho: largo, prof: GROSOR_PARED };
       const sur = colorDelLado(centro, fijo + 0.3);
@@ -223,6 +236,7 @@ export class House {
       const puntaEste = colorDelLado(hasta + 0.3, fijo);
       const puntaOeste = colorDelLado(desde - 0.3, fijo);
       colores = [puntaEste, puntaOeste, sur, sur, sur, norte]; // orden: +x, -x, +y, -y, +z, -z
+      lados = [[0, 1, ladoDe(centro, fijo + 0.3)], [0, -1, ladoDe(centro, fijo - 0.3)]];
     } else {
       medidas = { x: fijo, z: centro, ancho: GROSOR_PARED, prof: largo };
       const este = colorDelLado(fijo + 0.3, centro);
@@ -230,8 +244,54 @@ export class House {
       const puntaSur = colorDelLado(fijo, hasta + 0.3);
       const puntaNorte = colorDelLado(fijo, desde - 0.3);
       colores = [este, oeste, este, este, puntaSur, puntaNorte];
+      lados = [[1, 0, ladoDe(fijo + 0.3, centro)], [-1, 0, ladoDe(fijo - 0.3, centro)]];
     }
-    this.agregarCaja({ ...medidas, y, alto, colores, solido: true });
+    const pared = this.agregarCaja({ ...medidas, y, alto, material: colores, solido: true });
+    this.uvEnMetros(pared);
+
+    // Zócalo (si el tramo arranca en el piso) y moldura (si llega al techo), de cada lado de adentro
+    const techo = base + ALTURA_PISO - GROSOR_PISO - 0.02;
+    for (const [dx, dz, lado] of lados) {
+      if (!lado.adentro) continue;
+      const pegado = (grosor) => ({
+        x: vaEnX ? centro : fijo + dx * (GROSOR_PARED / 2 + grosor / 2),
+        z: vaEnX ? fijo + dz * (GROSOR_PARED / 2 + grosor / 2) : centro,
+        ancho: vaEnX ? largo : grosor,
+        prof: vaEnX ? grosor : largo,
+      });
+      const colorZocalo = piso < 0 ? '#3d3a45' : '#fffaf0';
+      if (y <= base + 0.01) this.agregarCaja({ ...pegado(ZOCALO.grosor), y: base, alto: ZOCALO.alto, color: colorZocalo, sombra: false });
+      if (y + alto >= techo) this.agregarCaja({ ...pegado(MOLDURA.grosor), y: techo - MOLDURA.alto, alto: MOLDURA.alto, color: colorZocalo, sombra: false });
+    }
+  }
+
+  // Material de una cara de pared de adentro: el color del cuarto, con su empapelado si tiene
+  // ('rayas', 'flores', 'azulejos', 'ladrillos'...: ver Texturas.js). Se crea uno solo por
+  // dibujo y color, y todas las paredes lo comparten (por eso las coordenadas van en metros).
+  materialDePared(color, dibujo) {
+    if (!dibujo) return materialToon(color);
+    const clave = `${dibujo}|${color}`;
+    if (!this.materialesDePared.has(clave)) this.materialesDePared.set(clave, materialConTextura(color, textura(dibujo, 1, 1)));
+    return this.materialesDePared.get(clave);
+  }
+
+  // Coordenadas de textura "en metros": cada vértice toma su posición en el mundo. Así el dibujo
+  // del empapelado mide siempre 1 m, sin importar el largo del tramo (y todos los tramos comparten
+  // el mismo material). Según hacia dónde mira cada cara, usamos dos de las tres coordenadas.
+  uvEnMetros(malla) {
+    const posicion = malla.geometry.attributes.position;
+    const normal = malla.geometry.attributes.normal;
+    const uv = malla.geometry.attributes.uv;
+    const p = malla.position;
+    for (let i = 0; i < posicion.count; i++) {
+      const x = posicion.getX(i) + p.x;
+      const y = posicion.getY(i) + p.y;
+      const z = posicion.getZ(i) + p.z;
+      if (Math.abs(normal.getY(i)) > 0.5) uv.setXY(i, x, z); // arriba y abajo
+      else if (Math.abs(normal.getX(i)) > 0.5) uv.setXY(i, z, y); // caras que miran a ±X
+      else uv.setXY(i, x, y); // caras que miran a ±Z
+    }
+    uv.needsUpdate = true;
   }
 
   // La habitación que ocupa el punto (x, z) en ese piso, o null si es afuera
@@ -517,12 +577,16 @@ export class House {
   // Un mueble es un grupo de formas básicas (sus "partes" en el catálogo).
   //   alReves: el mueble cuelga del techo, dado vuelta (el cuarto al revés). No se choca.
   //   patasArriba: dado vuelta pero apoyado en el piso.
-  agregarMueble({ tipo, piso, x, z, rot = 0, alReves = false, patasArriba = false }) {
+  //   y: altura extra (para apoyarlo arriba de otro mueble, o colgarlo en la pared)
+  //   escala: [x, y, z] para estirarlo (ej: una alfombra larga)
+  //   colores: { nombre: color } para las partes cuyo color es '$nombre' (ej: la tela de las cortinas)
+  agregarMueble({ tipo, piso, x, z, rot = 0, alReves = false, patasArriba = false, y = 0, escala = null, colores = {} }) {
     const def = MUEBLES[tipo];
     const grupo = new THREE.Group();
+    const colorDe = (color) => (color.startsWith('$') ? colores[color.slice(1)] ?? def.colores?.[color.slice(1)] ?? '#ffffff' : color);
 
     for (const [px, py, pz, ancho, alto, prof, color, forma] of def.partes) {
-      const parte = new THREE.Mesh(geometriaDeParte(forma, ancho, alto, prof), materialToon(color));
+      const parte = new THREE.Mesh(geometriaDeParte(forma, ancho, alto, prof), materialToon(colorDe(color)));
       parte.position.set(px, py + alto / 2, pz);
       parte.castShadow = def.sombra !== false;
       parte.receiveShadow = true;
@@ -534,9 +598,10 @@ export class House {
     const centro = cajaLocal.getCenter(new THREE.Vector3());
     const tamaño = cajaLocal.getSize(new THREE.Vector3());
 
-    const base = this.alturaDePiso(piso);
+    const base = this.alturaDePiso(piso) + y;
     grupo.position.set(x, base, z);
     grupo.rotation.y = THREE.MathUtils.degToRad(rot);
+    if (escala) grupo.scale.set(...escala);
     if (alReves || patasArriba) {
       // Dado vuelta: media vuelta sobre X. Las partes quedan "colgando" hacia abajo del origen,
       // así que el origen va al techo (alReves) o a la altura del mueble (patasArriba)
@@ -732,9 +797,10 @@ export class House {
   }
 
   // ¿La caja dada choca con una pared, un mueble o una puerta cerrada?
-  chocaCon(caja) {
+  // ignorar (opcional): un collider que no cuenta (la abuela atraviesa su propia mecedora)
+  chocaCon(caja, ignorar = null) {
     for (const collider of this.colliders) {
-      if (caja.intersectsBox(collider)) return true;
+      if (collider !== ignorar && caja.intersectsBox(collider)) return true;
     }
     for (const puerta of this.puertas) {
       if (puerta.bloquea && caja.intersectsBox(puerta.collider)) return true;
@@ -763,7 +829,7 @@ export class House {
   // ¿Se puede caminar en línea recta de "desde" a "hasta" sin chocar nada?
   // Probamos la caja del caminante en varios puntos de la recta. Las puertas no cuentan
   // (el dueño las abre), pero sí que haya suelo a la altura esperada en cada punto.
-  sePuedeCaminar(desde, hasta, radio) {
+  sePuedeCaminar(desde, hasta, radio, ignorar = null) {
     const distancia = Math.hypot(hasta.x - desde.x, hasta.z - desde.z);
     // Más empinado que la escalera más empinada (la del ático: 3 m de alto en 4 m) no se puede
     // caminar. Sin esto, dos puntos uno encima del otro en pisos distintos "parecen" conectados.
@@ -779,7 +845,7 @@ export class House {
 
       caja.min.set(punto.x - radio, suelo + 0.35, punto.z - radio);
       caja.max.set(punto.x + radio, suelo + 1.8, punto.z + radio);
-      if (this.colliders.some((collider) => caja.intersectsBox(collider))) return false;
+      if (this.colliders.some((collider) => collider !== ignorar && caja.intersectsBox(collider))) return false;
     }
     return true;
   }

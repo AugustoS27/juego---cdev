@@ -3,8 +3,8 @@
 Este documento detalla las etapas para las mejoras nuevas del juego: qué se va a hacer en cada una,
 en qué orden, qué archivos se tocan, cómo se prueba y qué decisiones quedan pendientes.
 
-> **Estado actual:** etapas 1 a 10 terminadas, **11A y 11B terminadas** (estructura y zonas especiales).
-> Próxima: **etapa 11C** (interiores refinados y más decoración).
+> **Estado actual:** etapas 1 a 12 terminadas (la 12 sumó los perros y la abuela).
+> Próxima: **etapa 13** (objetos de habilidad).
 
 ---
 
@@ -21,7 +21,7 @@ en qué orden, qué archivos se tocan, cómo se prueba y qué decisiones quedan 
 9. [Etapa 14 — Pulido: animaciones, entradas y escondites](#etapa-14--pulido-animaciones-entradas-y-escondites)
 10. [Riesgos y cómo los manejamos](#riesgos-y-cómo-los-manejamos)
 11. [Decisiones pendientes](#decisiones-pendientes)
-12. [Historial (etapas 1 a 11B)](#historial-etapas-1-a-11b)
+12. [Historial (etapas 1 a 12)](#historial-etapas-1-a-12)
 
 ---
 
@@ -49,9 +49,9 @@ Son los mismos que usamos desde el principio, porque el proyecto tiene que ser f
 |---|---|---|---|
 | **9** | Saltar y agacharse | Mediana | ✅ Terminada |
 | **10** | Cinco objetos para robar + zona de escape | Mediana | ✅ Terminada |
-| **11** | Casa gigante: pisos, sótano, ático, puentes, túneles, ventilaciones, decoración | Muy grande (se divide en 11A, 11B y 11C) | 🟡 11A y 11B terminadas · 11C próxima |
-| **12** | Enemigos nuevos: dos perros y la abuela con escopeta | Grande | Pendiente |
-| **13** | Objetos de habilidad: zanahoria, botas de lana, bebida energética | Mediana | Pendiente |
+| **11** | Casa gigante: pisos, sótano, ático, puentes, túneles, ventilaciones, decoración | Muy grande (se divide en 11A, 11B y 11C) | ✅ Terminada (11A, 11B y 11C) |
+| **12** | Enemigos nuevos: dos perros y la abuela con escopeta | Grande | ✅ Terminada |
+| **13** | Objetos de habilidad: zanahoria, botas de lana, bebida energética | Mediana | ⏳ Próxima |
 | **14** | Pulido: animaciones, más entradas, más escondites | Grande | Pendiente |
 
 ---
@@ -329,8 +329,39 @@ para meterse) y el puente cruza un **vacío en el ático** sobre el cuarto de ju
 | **Ático** | Se entra por una trampilla (E) con escalera plegable. |
 | **Pasadizo secreto** | Un estante de la biblioteca que gira (E). |
 
-### 11C — Refinar los interiores y aumentar la decoración
+### 11C — Refinar los interiores y aumentar la decoración ✅
 
+#### Qué se hizo
+- **Empapelados** en cada cuarto (rayas, flores, azulejos, ladrillos, tablas, rombos, lunares, estrellas),
+  dibujados en `Texturas.js` y teñidos con el color del cuarto. Las paredes usan coordenadas de textura
+  **en metros** (`House.uvEnMetros`): así un solo material por dibujo sirve para todos los tramos.
+- **Zócalos y molduras** en todas las paredes de adentro, y **marcos blancos** en las puertas.
+- **Cortinas** en todas las ventanas (la ventana del catálogo ahora las trae).
+- **36 cuadros** y 4 manchas de humedad (`Cuadros.js`): retratos del dueño, la abuela y el abuelo, paisajes, el perro, un barco,
+  arte "moderno", mapas, dibujos del hijo, relojes, espejos, un mapa del tesoro en el cuarto secreto,
+  cuadros cabeza abajo en el cuarto al revés y, en el sótano, **un retrato que te sigue con la mirada**.
+  Los 16 dibujos están en una sola imagen (un "atlas"), así todos comparten material.
+- **Lámparas de techo** en cada cuarto (colgante, plafón o tubo en el garaje), según los datos.
+- **Detalles:** almohadón, velador, estante con frascos en la cocina, alfombras largas en los pasillos y el
+  comedor, toalleros y alfombritas en los baños, neumáticos en el garaje, tocador, juguetes, puffs, canasta
+  con ovillos, globo terráqueo, pila de libros, trofeos, lingotes de oro.
+- **Sótano:** telarañas en las esquinas del techo, manchas de humedad, cadenas colgando y **goteras** (una
+  gota cae sobre un charco cada tanto, con su "plic").
+- **Ático:** muebles tapados con sábanas (con ojitos: parecen fantasmas), cajas abiertas y polvo flotando.
+- Los muebles ahora aceptan `y` (apoyarlos arriba de otro), `escala` (estirar, ej. una alfombra) y colores
+  variables (`$tela`, ej. la tela de un almohadón).
+- **Rendimiento:** los materiales de los modelos de Kenney ahora se comparten por color, así se juntan más
+  mallas. Resultado: la casa decorada dibuja **menos** que antes de la 11C (de frente 583 llamadas contra
+  617; en planta baja 404 contra 409).
+
+#### Pruebas que se corrieron
+- Ningún detalle nuevo está encima de un lugar del botín; los 85 objetos se siguen viendo y agarrando.
+- Las 78 conexiones del dueño se caminan; el recorrido automático llega a todos los objetos y puntos.
+- Partida simulada de 73 s sin errores (las goteras suenan solo en el sótano); build OK.
+- Se encontró y arregló una raya que "titilaba" en el piso del ático (la cara de arriba de las paredes
+  coincidía con el piso de arriba).
+
+#### Plan original
 **Objetivo:** que cada cuarto se vea "vivido" y distinto de los demás, con muchos más detalles, sin perder
 rendimiento ni romper lo que ya funciona (caminos del dueño, escondites, ubicaciones de objetos).
 
@@ -372,8 +403,45 @@ grande, entrada del túnel), `Entradas.js`.
 
 ---
 
-## Etapa 12 — Enemigos nuevos: perros y abuela
+## Etapa 12 — Enemigos nuevos: perros y abuela ✅
 
+### Qué se hizo
+- **`Owner.js` se separó** en `Enemigo.js` (el esqueleto: estados, visión, oído, waypoints, zona) y
+  `Dueno.js`, `Perro.js`, `Abuela.js`. Cada enemigo le pasa sus números al esqueleto y sobrescribe lo suyo.
+- **Zonas:** cada enemigo tiene una zona de la que no sale. El dueño, la casa; los perros, el patio
+  (`datos/patio.js`); la abuela, su cuarto y el pasillo del primer piso.
+- **El patio de los perros** quedó cercado, con dos tranqueras abiertas y carteles ("están entrenados": no las
+  cruzan). Adentro están la puerta trasera, el pozo, la mesa, la cucha y el tendedero. El HUD avisa cuando entrás.
+- **Perros (Firulais y Manchita):** 3 m/s patrullando y **7 m/s** persiguiendo, ven 5 m, **oyen el doble**
+  (caminando parado te escuchan a 6 m; agachado, a 2 m). Al verte **ladran** cada 1,4 s: el ladrido es un
+  ruido de 14 m que escuchan el dueño, la abuela y el otro perro. No saben saltar: **arriba de la mesa del
+  patio** (o del pozo) no te alcanzan; a los 5 s se aburren y vuelven a la cucha (8 s sin hacerte caso).
+  Si te alcanzan: "te mordió el pantalón".
+- **Abuela:** se hamaca en su propia mecedora (armada con formas básicas) mirando la tele, y cada 18 a 28 s
+  da una vuelta lenta por el pasillo (0,8 m/s). Ve 14 m y oye la mitad. Cuando te ve **apunta 1 segundo**
+  (rayito rojo, "clic", mira roja en la pantalla), **dispara** (¡BANG!, humo y un agujero donde pega) y tarda
+  **2,5 s en recargar**. Puntería: 60% a 3 m quieto, 9% a 12 m corriendo; si justo al disparar no te ve, erra.
+  Cada tiro es un ruido de 30 m: el dueño y los perros van a ver.
+- **Ruido para todos:** `Noise.js` ahora avisa a todos los enemigos (cada uno con su oído) y sabe quién hizo
+  el ruido (un perro no se escucha a sí mismo).
+- La música de persecución y el borde rojo se prenden con cualquier enemigo que te esté cazando.
+
+### Pruebas que se corrieron
+- Grafos: las 17 conexiones de los perros y las 8 de la abuela se caminan, y están todas unidas. Las 78 del
+  dueño siguen bien (la del ático se camina con la escalera desplegada, como antes).
+- 2 minutos de patrulla: los perros **nunca** salieron del patio y la abuela **nunca** salió de su zona.
+- 1000 disparos por caso (5 casos, con la abuela y el jugador en el pasillo): el porcentaje de aciertos cae
+  dentro de lo esperado (ej: 3 m quieto 59,5% esperado → 61,4%; 10 m corriendo 15% → 14,3%).
+- Si te escondés detrás de una pared mientras apunta, el tiro erra (probabilidad 0).
+- Un ladrido y un disparo mandan al dueño a investigar (y el disparo, también a los perros).
+- Arriba de la mesa del patio, los perros no te alcanzan y se aburren a los 5 s.
+- Recorrido automático: desde el frente se llega por las tranqueras a la puerta trasera, el pozo y el fondo;
+  en el cuarto de la abuela se llega a la tele, la mesa de luz y la rejilla del conducto.
+- Simulación de 90 s con el jugador recorriendo patio y casa: sin errores (la IA de los 4 enemigos cuesta
+  ~2 ms por frame). Build OK.
+- **Rendimiento:** de frente 653 llamadas (antes 583); patio 232; cuarto de la abuela 303.
+
+### Plan original
 **Objetivo:** tres enemigos nuevos con comportamientos distintos.
 
 ### Cambio de estructura
@@ -509,13 +577,13 @@ Todos usan el mismo sistema de escondites de ahora (y la misma regla de sospecha
 |---|---|---|
 | ~~¿Dónde está la zona de escape?~~ | ✅ Decidido: atrás de una van negra en el frente de la casa | Etapa 10 |
 | ~~¿Cuántos objetos en total?~~ | ✅ Decidido: 18 tipos, se sortean 5 | Etapa 10 |
-| ¿Los perros pueden entrar por la puerta trasera? | No, se quedan en el patio | Etapa 12 |
+| ~~¿Los perros pueden entrar por la puerta trasera?~~ | ✅ Decidido: no, se quedan en el patio (cercado) | Etapa 12 |
 | ¿Linterna para el sótano? | Por ahora no hace falta: las lamparitas alcanzan para ver. Se revisa al jugar | Etapa 11 |
 | ¿Habilidades con inventario o al agarrar? | Al agarrar (más simple) | Etapa 13 |
 
 ---
 
-## Historial (etapas 1 a 11B)
+## Historial (etapas 1 a 12)
 
 | Etapa | Qué se hizo |
 |---|---|
@@ -531,3 +599,5 @@ Todos usan el mismo sistema de escondites de ahora (y la misma regla de sospecha
 | 10 | 18 objetos (se sortean 5), lista del botín en el HUD y escape en la van negra del frente |
 | 11A | Casa de 5 niveles (sótano, 3 pisos y ático), escalera apilada, cuartos raros, luz que sigue al jugador, mallas juntadas |
 | 11B | Conductos de ventilación, túnel secreto desde un pozo, puente en el ático, escalera plegable (trampilla) y pasadizo secreto en la biblioteca |
+| 11C | Empapelados, zócalos, molduras, marcos, cortinas, 36 cuadros (uno te sigue con la mirada), lámparas, detalles, telarañas, goteras, sábanas fantasma y polvo |
+| 12 | Enemigos en su propio archivo sobre un esqueleto común (`Enemigo.js`); dos perros en el patio cercado (ladran, se aburren) y la abuela con escopeta (apunta, dispara, recarga) |

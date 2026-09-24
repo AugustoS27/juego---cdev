@@ -37,6 +37,8 @@ export class UI {
     this.rellenoRuido = $('relleno-ruido');
     this.vistaEscondite = $('vista-escondite');
     this.alertaPersecucion = $('alerta-persecucion');
+    this.apuntado = $('apuntado');
+    this.bang = $('bang');
 
     this.textoAyuda = null; // lo guardamos para no tocar el HTML si no cambió
   }
@@ -148,6 +150,19 @@ export class UI {
     this.alertaPersecucion.classList.toggle('oculto', !visible);
   }
 
+  // Mira roja en el medio de la pantalla mientras la abuela te apunta
+  mostrarApuntado(visible) {
+    this.apuntado.classList.toggle('oculto', !visible);
+  }
+
+  // "¡BANG!" de historieta. Para repetir la animación de CSS hay que sacar la clase,
+  // forzar que el navegador lo note (leer offsetWidth) y volver a ponerla.
+  mostrarBang() {
+    this.bang.classList.remove('oculto', 'mostrar');
+    void this.bang.offsetWidth;
+    this.bang.classList.add('mostrar');
+  }
+
   // tipo: 'placard', 'cama' o null (no está escondido)
   mostrarEscondite(tipo) {
     this.vistaEscondite.className = tipo || 'oculto';
@@ -160,6 +175,7 @@ export class UI {
     this.mostrarEscondite(null);
     this.mostrarRuido(0);
     this.mostrarAlertaPersecucion(false);
+    this.mostrarApuntado(false);
     this.borrarAvisos();
   }
 

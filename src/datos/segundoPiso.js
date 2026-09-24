@@ -21,13 +21,13 @@ export const SEGUNDO_PISO = {
   colorParedes: '#d8f3dc',
 
   habitaciones: [
-    { nombre: 'biblioteca', rects: [[-9, -3.5, -3, 6], [-6.5, -6, -3, -3.5]], colorPiso: '#c9a27e', textura: 'madera', colorParedes: '#f1dca7' },
-    { nombre: 'cuarto secreto', rects: [[-9, -6, -6.5, -3.5]], colorPiso: '#5c3d2e', textura: 'madera', colorParedes: '#7b2d26' },
-    { nombre: 'sala de trofeos', rects: [[-3, -6, 3, 2]], colorPiso: '#b08968', textura: 'madera', colorParedes: '#e9c46a' },
+    { nombre: 'biblioteca', rects: [[-9, -3.5, -3, 6], [-6.5, -6, -3, -3.5]], colorPiso: '#c9a27e', textura: 'madera', colorParedes: '#f1dca7', pared: 'tablas', colorLampara: '#588157' },
+    { nombre: 'cuarto secreto', rects: [[-9, -6, -6.5, -3.5]], colorPiso: '#5c3d2e', textura: 'madera', colorParedes: '#7b2d26', pared: 'ladrillos', lampara: false },
+    { nombre: 'sala de trofeos', rects: [[-3, -6, 3, 2]], colorPiso: '#b08968', textura: 'madera', colorParedes: '#e9c46a', pared: 'tablas', lamparaEn: [-1.8, -4.3], colorLampara: '#6d4c41' },
     // En el cuarto al revés los muebles están pegados al techo (y una lámpara sale del piso)
-    { nombre: 'cuarto al revés', rects: [[3, -6, 9, -2]], colorPiso: '#ffffff', textura: 'baldosas', colorParedes: '#c77dff' },
-    { nombre: 'cuarto de juegos', rects: [[3, -2, 9, 2]], colorPiso: '#90e0ef', textura: 'madera', colorParedes: '#ffc8dd' },
-    { nombre: 'pasillo del segundo piso', rects: PASILLO_CON_HUECO, colorPiso: '#cdb4db', textura: 'madera' },
+    { nombre: 'cuarto al revés', rects: [[3, -6, 9, -2]], colorPiso: '#ffffff', textura: 'baldosas', colorParedes: '#c77dff', pared: 'rombos', lampara: false },
+    { nombre: 'cuarto de juegos', rects: [[3, -2, 9, 2]], colorPiso: '#90e0ef', textura: 'madera', colorParedes: '#ffc8dd', pared: 'lunares', lampara: false },
+    { nombre: 'pasillo del segundo piso', rects: PASILLO_CON_HUECO, colorPiso: '#cdb4db', textura: 'madera', pared: 'rayas', lampara: 'plafon' },
   ],
 
   paredes: [
@@ -95,6 +95,28 @@ export const SEGUNDO_PISO = {
     // Pasillo
     { tipo: 'planta', x: -2.5, z: 5.4 },
     { tipo: 'ventana', x: -1, z: 5.87, rot: 180 },
+    // Detalles (etapa 11C)
+    { tipo: 'globoTerraqueo', x: -6.4, z: -1.9 },
+    { tipo: 'pilaLibros', x: -3.5, z: 1.9 },
+    { tipo: 'lingotes', x: -6.9, z: -4.3 },
+    { tipo: 'trofeoChico', x: 2.6, z: -1.3, y: 2 },
+    { tipo: 'trofeoChico', x: 2.6, z: -0.7, y: 2 },
+    { tipo: 'puff', x: 8.2, z: 0.7, colores: { tela: '#ffd23f' } },
+    { tipo: 'puff', x: 4, z: -1.5, colores: { tela: '#4cc9f0' } },
+    { tipo: 'alfombraLarga', x: 3, z: 3, escala: [5, 1, 0.7], colores: { borde: '#bc4749', tela: '#f2e8cf' } },
+  ],
+
+  cuadros: [
+    { dibujo: 'mapa', x: -3.11, z: 0.2, rot: -90, y: 1.9, ancho: 1, alto: 0.7 },
+    { dibujo: 'mapaTesoro', x: -8.89, z: -4.7, rot: 90, ancho: 0.7, alto: 0.7 }, // en el cuarto secreto
+    { dibujo: 'abuelo', x: -2.89, z: -0.5, rot: 90, y: 1.7, ancho: 0.7, alto: 0.9 }, // el abuelo cazador
+    { dibujo: 'dinosaurio', x: 8.89, z: -1.3, rot: -90, y: 2.2, ancho: 0.6, alto: 0.45, marco: false }, // póster
+    { dibujo: 'abstracto', x: 4, z: -1.89, rot: 0 },
+    { dibujo: 'paisaje', x: 4.2, z: -5.89, rot: 0, alReves: true }, // cuarto al revés
+    { dibujo: 'reloj', x: 8, z: -5.89, rot: 0, y: 1.8, ancho: 0.45, alto: 0.45, marco: false, alReves: true },
+    { dibujo: 'barco', x: 2, z: 2.11, rot: 0 },
+    { dibujo: 'flores', x: 2.4, z: 5.89, rot: 180, y: 2, ancho: 0.5, alto: 0.6 },
+    { dibujo: 'perro', x: 4.6, z: 5.89, rot: 180, y: 2.45, ancho: 0.6, alto: 0.45 },
   ],
 
   // Una luz dorada en el cuarto secreto

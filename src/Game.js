@@ -6,17 +6,21 @@ import { House } from './House.js';
 import { Player } from './Player.js';
 import { UI } from './UI.js';
 import { Items } from './Items.js';
-import { Owner, ESTADO_DUENO } from './Owner.js';
+import { Dueno } from './Dueno.js';
+import { Perro, PERROS } from './Perro.js';
+import { Abuela, ESTADO_ABUELA } from './Abuela.js';
+import { ESTADO } from './Enemigo.js';
 import { SistemaDeRuido, RADIO_RUIDO } from './Noise.js';
 import { Audio } from './Audio.js';
 import { Exterior } from './Exterior.js';
 import { Entradas } from './Entradas.js';
 import { ZonaDeEscape } from './Escape.js';
 import { juntarMallasEstaticas } from './Optimizar.js';
-import { ALTURA_PISO, INICIO_JUGADOR, TECHO, PISO_MINIMO, NOMBRES_PISOS, pisoDeAltura } from './HouseData.js';
+import { Decoracion } from './Decoracion.js';
+import { ALTURA_PISO, INICIO_JUGADOR, TECHO, PISO_MINIMO, NOMBRES_PISOS, ZONA_PATIO, pisoDeAltura } from './HouseData.js';
 
 // Estados posibles de la partida
-const ESTADO = {
+const PARTIDA = {
   MENU: 'menu', // menú principal
   JUGANDO: 'jugando',
   PAUSA: 'pausa', // se apretó Esc
@@ -67,8 +71,13 @@ export class Game {
     this.player = new Player(this.camera, document.body, this.house);
     this.items = new Items(this.scene);
     this.zonaEscape = new ZonaDeEscape(this.scene, this.house);
-    this.owner = new Owner(this.scene, this.house, this.player);
-    this.ruido = new SistemaDeRuido(this.scene, this.owner);
+    this.decoracion = new Decoracion(this.scene, this.house);
+    // Los enemigos: el dueño (toda la casa), dos perros (el patio) y la abuela (su piso)
+    this.dueno = new Dueno(this.scene, this.house, this.player);
+    this.perros = PERROS.map((datos) => new Perro(this.scene, this.house, this.player, datos));
+    this.abuela = new Abuela(this.scene, this.house, this.player);
+    this.enemigos = [this.dueno, ...this.perros, this.abuela];
+    this.ruido = new SistemaDeRuido(this.scene, this.enemigos);
     this.audio = new Audio();
     this.ui = new UI();
 
@@ -84,7 +93,7 @@ export class Game {
       if (import.meta.env.DEV) console.log(`[debug] Modelos: ${modelos.antes} mallas juntadas en ${modelos.despues}`);
     });
 
-    this.estado = ESTADO.MENU;
+    this.estado = PARTIDA.MENU;
     this.tiempoPartida = 0; // segundos jugados en esta partida
     this.nivelEnojo = 0;
     this.tiempoParaEnojo = SEGUNDOS_POR_NIVEL;
@@ -185,28 +194,65 @@ export class Game {
       this.hacerRuido(this.player.position, RADIO_RUIDO[tipo]);
     };
 
-    // Pasos y puertas del dueño: suenan más fuerte cuanto más cerca está
-    this.owner.alDarPaso = () => this.audio.pasoDueno(this.volumenPorDistancia(this.owner.position));
-    this.owner.alAbrirPuerta = (puerta) => this.audio.puerta(this.volumenPorDistancia(puerta.centro));
+    // Pasos y puertas del dueño y la abuela: suenan más fuerte cuanto más cerca están
+    this.dueno.alDarPaso = () => this.audio.pasoDueno(this.volumenPorDistancia(this.dueno.position));
+    this.abuela.alDarPaso = () => this.audio.pasoDueno(0.4 * this.volumenPorDistancia(this.abuela.position));
+    for (const enemigo of [this.dueno, this.abuela]) {
+      enemigo.alAbrirPuerta = (puerta) => this.audio.puerta(this.volumenPorDistancia(puerta.centro));
+    }
+
+    // Goteras del sótano: "plic" (solo si estás en el sótano, y más fuerte cuanto más cerca)
+    this.decoracion.alCaerGota = (posicion) => {
+      if (this.estado !== PARTIDA.JUGANDO || pisoDeAltura(this.player.position.y) !== -1) return;
+      this.audio.gota(this.volumenPorDistancia(posicion));
+    };
 
     // El dueño trabó una puerta
-    this.owner.alTrabarPuerta = (puerta) => {
+    this.dueno.alTrabarPuerta = (puerta) => {
       this.audio.traba(Math.max(0.3, this.volumenPorDistancia(puerta.centro)));
       const donde = NOMBRES_PISOS[puerta.piso].toLowerCase();
       this.ui.mostrarAviso(`🔒 ¡El dueño trabó una puerta (${donde})! Se destraba en 20 s`, 4);
     };
 
     // El dueño cambió de estado: alerta si te vio, "¿?" si escuchó algo
-    this.owner.alCambiarEstado = (nuevo, anterior) => {
-      if (this.estado !== ESTADO.JUGANDO) return;
-      if (nuevo === ESTADO_DUENO.PERSEGUIR) {
+    this.dueno.alCambiarEstado = (nuevo, anterior) => {
+      if (this.estado !== PARTIDA.JUGANDO) return;
+      if (nuevo === ESTADO.PERSEGUIR) {
         this.audio.alerta();
         this.ui.mostrarAviso('❗ ¡TE VIO! ¡Corré o escondete!', 2);
-      } else if (nuevo === ESTADO_DUENO.INVESTIGAR && anterior === ESTADO_DUENO.PATRULLA) {
+      } else if (nuevo === ESTADO.INVESTIGAR && anterior === ESTADO.PATRULLA) {
         this.audio.duda();
       }
-      this.ui.mostrarAlertaPersecucion(nuevo === ESTADO_DUENO.PERSEGUIR);
     };
+
+    // Perros: cada ladrido suena y es un ruido que alerta a los demás (sobre todo al dueño)
+    for (const perro of this.perros) {
+      perro.alLadrar = () => {
+        this.audio.ladrido(this.volumenPorDistancia(perro.position));
+        this.hacerRuido(perro.position, RADIO_RUIDO.ladrido, perro);
+      };
+      perro.alCambiarEstado = (nuevo) => {
+        if (this.estado === PARTIDA.JUGANDO && nuevo === ESTADO.PERSEGUIR) {
+          this.ui.mostrarAviso(`🐕 ¡${perro.v.nombre} te vio! Metete en la casa o subite a algo alto`, 3);
+        }
+      };
+      perro.alAburrirse = () => this.ui.mostrarAviso(`🥱 ${perro.v.nombre} se aburrió de ladrarte y vuelve a la cucha`, 3);
+    }
+
+    // Abuela: "clic" al apuntar, ¡BANG! al disparar (ruido enorme) y ruiditos al recargar
+    this.abuela.alApuntar = () => {
+      this.audio.clic(Math.max(0.5, this.volumenPorDistancia(this.abuela.position)));
+      this.ui.mostrarAviso('🎯 ¡La abuela te está apuntando con la escopeta! ¡Cubrite!', 2);
+    };
+    this.abuela.alDisparar = ({ acerto }) => {
+      this.audio.disparo(Math.max(0.4, this.volumenPorDistancia(this.abuela.position)));
+      this.ui.mostrarBang();
+      // El ruido sale de donde te vio (a la altura de tus pies): el dueño va a ir a ver ahí
+      this.hacerRuido(this.abuela.ultimaPosicionVista, RADIO_RUIDO.disparo, this.abuela);
+      if (acerto) this.perder(this.abuela);
+      else this.ui.mostrarAviso('💨 ¡Le erró! Tarda en recargar: ¡aprovechá!', 2.5);
+    };
+    this.abuela.alRecargar = () => this.audio.recarga(this.volumenPorDistancia(this.abuela.position));
   }
 
   // Pone el sol de adentro debajo del techo del piso dado (en el ático, debajo de la cumbrera)
@@ -232,6 +278,7 @@ export class Game {
     const p = this.player.position;
     const enLaCasa = p.x > -15.5 && p.x < 9 && p.z > -6 && p.z < 6; // (casa + garaje)
     let donde = enLaCasa ? NOMBRES_PISOS[piso] : 'Afuera';
+    if (!enLaCasa && this.enElPatio(p)) donde = '🐕 Patio de los perros';
     if (this.house.enTunel(p)) donde = 'Túnel secreto';
     else if (this.house.enConducto(p)) donde = 'Conducto de ventilación';
     this.ui.mostrarPiso(donde);
@@ -244,17 +291,32 @@ export class Game {
     this.luzAmbiente.intensity += (objetivo.ambiente - this.luzAmbiente.intensity) * t;
   }
 
+  // ¿El punto está en el patio de los perros? (con un poco de margen: los perros no llegan al borde)
+  enElPatio({ x, z }) {
+    return ZONA_PATIO.some(([x1, z1, x2, z2]) => x > x1 - 0.5 && x < x2 + 0.5 && z > z1 - 0.5 && z < z2 + 0.5);
+  }
+
   // De 1 (al lado de la cámara) a 0 (a 15 m o más)
   volumenPorDistancia(posicion) {
     const distancia = this.camera.position.distanceTo(posicion);
     return THREE.MathUtils.clamp(1 - distancia / 15, 0, 1);
   }
 
-  // Genera un ruido. Si el dueño lo escucha, avisamos (como mucho cada 3 segundos)
-  hacerRuido(posicion, radio) {
-    const loEscucho = this.ruido.hacerRuido(posicion, radio);
-    if (loEscucho && this.tiempoDesdeAvisoRuido > 3) {
-      this.ui.mostrarAviso('👂 El dueño escuchó algo y viene a ver...', 2.5);
+  // Genera un ruido. fuente: el enemigo que lo hizo (o null si fue el jugador).
+  // Si el dueño o los perros lo escuchan, avisamos (como mucho cada 3 segundos)
+  hacerRuido(posicion, radio, fuente = null) {
+    const oyeron = this.ruido.hacerRuido(posicion, radio, fuente);
+    if (this.tiempoDesdeAvisoRuido <= 3 || this.estado !== PARTIDA.JUGANDO) return;
+    let aviso = null;
+    if (oyeron.includes(this.dueno)) {
+      if (fuente === this.abuela) aviso = '💥 ¡El escopetazo despertó a todos! El dueño viene a ver...';
+      else if (fuente) aviso = '🐕 ¡Los ladridos alertaron al dueño! Viene a ver...';
+      else aviso = '👂 El dueño escuchó algo y viene a ver...';
+    } else if (!fuente && this.perros.some((perro) => oyeron.includes(perro))) {
+      aviso = '🐕 Los perros escucharon algo... ¡andá agachado por el patio!';
+    }
+    if (aviso) {
+      this.ui.mostrarAviso(aviso, 2.5);
       this.tiempoDesdeAvisoRuido = 0;
     }
   }
@@ -271,7 +333,7 @@ export class Game {
     const controls = this.player.controls;
 
     controls.addEventListener('lock', () => {
-      this.estado = ESTADO.JUGANDO;
+      this.estado = PARTIDA.JUGANDO;
       this.ui.mostrarPantalla(null);
       this.ui.mostrarHUD(true);
       if (this.tiempoPartida === 0) this.ui.mostrarAviso('🏠 Estás afuera. Buscá una forma de entrar... ¡hay varias!', 4);
@@ -279,8 +341,8 @@ export class Game {
 
     controls.addEventListener('unlock', () => {
       // Si se liberó el mouse porque terminó la partida, no mostramos la pausa
-      if (this.estado === ESTADO.JUGANDO) {
-        this.estado = ESTADO.PAUSA;
+      if (this.estado === PARTIDA.JUGANDO) {
+        this.estado = PARTIDA.PAUSA;
         this.ui.mostrarPantalla('pausa');
         this.ui.mostrarRuido(0);
       }
@@ -298,7 +360,7 @@ export class Game {
       continuar: () => controls.lock(),
       menu: () => {
         this.reiniciar();
-        this.estado = ESTADO.MENU;
+        this.estado = PARTIDA.MENU;
         this.ui.mostrarHUD(false);
         this.ui.mostrarPantalla('menu');
       },
@@ -307,7 +369,7 @@ export class Game {
 
   configurarTeclado() {
     window.addEventListener('keydown', (e) => {
-      if (e.code === 'KeyE' && this.estado === ESTADO.JUGANDO) this.interactuar();
+      if (e.code === 'KeyE' && this.estado === PARTIDA.JUGANDO) this.interactuar();
       if (e.code === 'KeyM') this.ui.mostrarSilencio(this.audio.alternarSilencio());
       if (e.code === 'KeyB') this.conBordes = !this.conBordes; // bordes de dibujo animado sí/no
     });
@@ -325,7 +387,7 @@ export class Game {
     this.items.sortearObjetivos();
     this.zonaEscape.activar(false);
     this.estabaEnLaZona = false;
-    this.owner.reiniciar();
+    for (const enemigo of this.enemigos) enemigo.reiniciar();
 
     this.tiempoPartida = 0;
     this.nivelEnojo = 0;
@@ -351,9 +413,10 @@ export class Game {
 
     this.items.update(dt); // los objetos flotan aunque estemos en pausa
     this.zonaEscape.update(dt);
+    this.decoracion.update(dt, this.camera);
     this.actualizarLuces(dt);
 
-    if (this.estado === ESTADO.JUGANDO) {
+    if (this.estado === PARTIDA.JUGANDO) {
       this.tiempoPartida += dt;
       this.tiempoDesdeAvisoRuido += dt;
       this.actualizarDificultad(dt);
@@ -362,10 +425,17 @@ export class Game {
       this.entradas.update(dt);
       this.forzarSiMantieneE(dt);
       this.player.update(dt);
-      this.owner.update(dt);
+      for (const enemigo of this.enemigos) enemigo.update(dt);
       this.ruido.update(dt);
+    }
 
-      this.audio.actualizarMusica(dt, this.owner.estado === ESTADO_DUENO.PERSEGUIR);
+    // (Si la abuela te dio en su update, la partida ya terminó: por eso preguntamos de nuevo)
+    if (this.estado === PARTIDA.JUGANDO) {
+      // Si algún enemigo te está cazando (o la abuela te apunta): música tensa y borde rojo
+      const alerta = this.enemigos.some((enemigo) => enemigo.estaAlerta);
+      this.audio.actualizarMusica(dt, alerta);
+      this.ui.mostrarAlertaPersecucion(alerta);
+      this.ui.mostrarApuntado(this.abuela.estado === ESTADO_ABUELA.APUNTAR);
       this.actualizarAyuda();
       this.ui.actualizarHUD(this.tiempoPartida, this.nivelEnojo);
       const paso = this.player.tipoDePaso;
@@ -373,7 +443,9 @@ export class Game {
       const radio = paso ? RADIO_RUIDO[enConducto ? 'conducto' : paso] : 0;
       this.ui.mostrarRuido(radio, this.player.agachado, enConducto);
 
-      if (this.owner.atrapoAlJugador()) this.perder();
+      // ¿Te atrapó alguien?
+      const atrapo = this.enemigos.find((enemigo) => enemigo.atrapoAlJugador());
+      if (atrapo) this.perder(atrapo);
       else this.revisarZonaDeEscape();
     }
 
@@ -394,7 +466,7 @@ export class Game {
 
     this.tiempoParaEnojo = SEGUNDOS_POR_NIVEL;
     this.nivelEnojo++;
-    this.owner.multiplicadorVelocidad = 1 + this.nivelEnojo * AUMENTO_POR_NIVEL;
+    this.dueno.multiplicadorVelocidad = 1 + this.nivelEnojo * AUMENTO_POR_NIVEL;
     this.audio.enojo();
     this.ui.mostrarAviso(`😠 El dueño está cada vez más enojado: ¡ahora camina más rápido! (nivel ${this.nivelEnojo})`, 3);
   }
@@ -431,7 +503,7 @@ export class Game {
 
   // El jugador escapó en la van con los cinco objetos
   ganar() {
-    this.estado = ESTADO.VICTORIA; // primero el estado, así "unlock" no muestra la pausa
+    this.estado = PARTIDA.VICTORIA; // primero el estado, así "unlock" no muestra la pausa
     this.player.controls.unlock();
     this.audio.motor();
     this.audio.victoria();
@@ -439,10 +511,18 @@ export class Game {
     this.ui.mostrarVictoria(nombres, this.tiempoPartida, this.nivelEnojo);
   }
 
-  // El dueño atrapó al jugador
-  perder() {
-    const texto = this.owner.encontroAlJugador ? '¡Te encontró escondido! Resulta que no eras tan invisible...' : null;
-    this.estado = ESTADO.DERROTA;
+  // Te atrapó un enemigo (o la abuela te dio): cada uno tiene su frase
+  perder(enemigo) {
+    let texto = null; // (null = una frase del dueño al azar, ver UI.mostrarDerrota)
+    if (enemigo === this.dueno && this.dueno.encontroAlJugador) {
+      texto = '¡Te encontró escondido! Resulta que no eras tan invisible...';
+    } else if (enemigo === this.abuela) {
+      texto = '¡PUM! La abuela te dio con un perdigón de sal. Arde, pero más arde el orgullo.';
+    } else if (this.perros.includes(enemigo)) {
+      texto = `${enemigo.v.nombre} te mordió el pantalón y no lo suelta. Te fuiste en calzoncillos.`;
+      this.audio.ladrido(1);
+    }
+    this.estado = PARTIDA.DERROTA;
     this.player.controls.unlock();
     this.audio.derrota();
     this.ui.mostrarDerrota(texto, this.tiempoPartida, this.nivelEnojo);
@@ -526,7 +606,7 @@ export class Game {
 
   esconderse(escondite) {
     this.player.esconderse(escondite);
-    this.owner.alEsconderseElJugador(escondite);
+    this.dueno.alEsconderseElJugador(escondite);
     this.ui.mostrarEscondite(escondite.escondite);
     this.audio.puerta(0.4);
   }

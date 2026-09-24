@@ -1,5 +1,7 @@
 // Sistema de ruido: cada ruido tiene una posición y un RADIO de alcance.
-// Si el dueño está dentro del radio, lo escucha y va a investigar.
+// Lo escuchan TODOS los enemigos que estén dentro del radio (cada uno con su oído: los perros
+// escuchan al doble de distancia y la abuela a la mitad) y van a investigar.
+// Los enemigos también hacen ruido: un ladrido o un disparo alertan a los demás.
 // También dibuja una onda en el piso que crece hasta el radio (así se "ve" el alcance).
 import * as THREE from 'three';
 
@@ -12,6 +14,8 @@ export const RADIO_RUIDO = {
   aterrizaje: 5, // caer desde alto hace ¡pum!
   puerta: 6,
   choque: 5, conducto: 4, rejilla: 3, trampilla: 6,
+  ladrido: 14, // un perro que ladra alerta al dueño (y al otro perro)
+  disparo: 30, // ¡BANG! lo escucha todo el barrio
 };
 
 export const RADIO_MAXIMO_PASOS = RADIO_RUIDO.pasosCorriendo; // para el "ruidómetro" de la pantalla
@@ -19,19 +23,20 @@ export const RADIO_MAXIMO_PASOS = RADIO_RUIDO.pasosCorriendo; // para el "ruidó
 const DURACION_ONDA = 0.6; // segundos que tarda la onda en llegar al radio
 
 export class SistemaDeRuido {
-  constructor(scene, owner) {
+  constructor(scene, enemigos) {
     this.scene = scene;
-    this.owner = owner;
+    this.enemigos = enemigos;
     this.ondas = []; // ondas visuales activas: { malla, radio, tiempo }
     this.geometriaOnda = new THREE.RingGeometry(0.9, 1, 48);
     this.geometriaOnda.rotateX(-Math.PI / 2); // acostada en el piso
   }
 
   // Hace un ruido en "posicion" (pies) con alcance "radio".
-  // Devuelve true si el dueño lo escuchó.
-  hacerRuido(posicion, radio) {
-    this.crearOnda(posicion, radio);
-    return this.owner.oirRuido(posicion, radio);
+  // fuente: el enemigo que lo hizo (no se escucha a sí mismo), o null si fue el jugador.
+  // Devuelve la lista de enemigos que lo escucharon.
+  hacerRuido(posicion, radio, fuente = null) {
+    this.crearOnda(posicion, Math.min(radio, 15)); // (la onda de un disparo sería gigante)
+    return this.enemigos.filter((enemigo) => enemigo !== fuente && enemigo.oirRuido(posicion, radio));
   }
 
   crearOnda(posicion, radio) {

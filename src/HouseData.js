@@ -22,6 +22,7 @@ import { ATICO } from './datos/atico.js';
 
 export { ALTURA_PISO };
 export { MUEBLES } from './datos/muebles.js';
+export { ZONA_PATIO, CERCOS_PATIO, CUCHA, WAYPOINTS_PATIO, CONEXIONES_PATIO } from './datos/patio.js';
 
 // Los pisos, de abajo hacia arriba
 export const PISOS = [SOTANO, PLANTA_BAJA, PRIMER_PISO, SEGUNDO_PISO, ATICO];
@@ -110,9 +111,14 @@ export const PAREDES = PISOS.flatMap((p) => p.paredes.map(([x1, z1, x2, z2]) => 
 export const BARANDAS = PISOS.flatMap((p) => p.barandas.map(([x1, z1, x2, z2]) => ({ piso: p.piso, x1, z1, x2, z2 })));
 export const PUENTES = PISOS.flatMap((p) => (p.puentes || []).map(([x1, z1, x2, z2]) => ({ piso: p.piso, x1, z1, x2, z2 })));
 export const CONDUCTOS = conPiso('conductos');
+export const CUADROS = conPiso('cuadros');
+export const GOTAS = conPiso('gotas');
 
 // Color de las paredes por dentro de cada piso (si la habitación no tiene su propio colorParedes)
 export const COLORES_PAREDES = Object.fromEntries(PISOS.map((p) => [p.piso, p.colorParedes]));
+
+// La abuela: su mecedora y la parte del primer piso por donde camina (ver primerPiso.js)
+export const ABUELA = { ...PRIMER_PISO.abuela, piso: PRIMER_PISO.piso };
 
 // Waypoints con su altura: pos [x, z] -> [x, y, z]
 export const WAYPOINTS = PISOS.flatMap((p) =>

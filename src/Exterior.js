@@ -1,5 +1,5 @@
 // El exterior de la casa: cielo, jardín, cerca, techos, balcón, ventanas de afuera,
-// árboles, cucha, tendedero y el barrio de fondo.
+// árboles, cucha, tendedero, el cerco del patio de los perros y el barrio de fondo.
 //
 // Casi todo está hecho con formas básicas. Los árboles, arbustos, flores, piedras y pasto
 // se arman primero con formas básicas y después se reemplazan por modelos de Kenney
@@ -13,7 +13,7 @@ import { materialToon, materialConTextura } from './Materials.js';
 import { textura } from './Texturas.js';
 import { cargarPiezas } from './Models.js';
 import { crearTechoDosAguas } from './House.js';
-import { UBICACION_MUEBLES, BALCON, COLOR_EXTERIOR, TECHO, LIMITES_CASA } from './HouseData.js';
+import { UBICACION_MUEBLES, BALCON, COLOR_EXTERIOR, TECHO, LIMITES_CASA, CERCOS_PATIO, CUCHA } from './HouseData.js';
 
 // Ruta de un modelo de naturaleza de Kenney (en public/models/naturaleza)
 const N = (nombre) => `/models/naturaleza/${nombre}.glb`;
@@ -61,6 +61,7 @@ export class Exterior {
     this.crearCielo();
     this.crearSuelo();
     this.crearCerca();
+    this.crearCercoDelPatio();
     this.crearTechos();
     this.crearBalcon();
     this.crearAleroDeLaPuerta();
@@ -257,6 +258,56 @@ export class Exterior {
     this.colision(x2 - g, z1, x2 + g, z2);
   }
 
+  // Cerco del patio de los perros (ver datos/patio.js): palitos más bajos que la cerca del terreno,
+  // con una tranquera abierta en cada cerco y un cartel. Los perros no cruzan: "están entrenados".
+  crearCercoDelPatio() {
+    const puntos = [];
+    for (const { desde: [ax, az], hasta: [bx, bz], tranquera } of CERCOS_PATIO) {
+      const enX = az === bz; // ¿el cerco va a lo largo de X?
+      // Todo se mide sobre el eje del cerco ("u"): de dónde a dónde va y dónde está la tranquera
+      const [u1, u2] = enX ? [Math.min(ax, bx), Math.max(ax, bx)] : [Math.min(az, bz), Math.max(az, bz)];
+      const [t1, t2] = [Math.min(...tranquera), Math.max(...tranquera)];
+      const fijo = enX ? az : ax;
+      const punto = (u) => (enX ? [u, fijo] : [fijo, u]);
+
+      for (let u = u1; u <= u2; u += 0.3) {
+        if (u > t1 && u < t2) continue;
+        puntos.push([...punto(u), !enX]);
+      }
+      // Travesaños y colisión: un tramo de cada lado de la tranquera
+      for (const [desde, hasta] of [[u1, t1], [t2, u2]]) {
+        const largo = hasta - desde;
+        const [cx, cz] = punto((desde + hasta) / 2);
+        for (const y of [0.3, 0.7]) this.cajaDecor(cx, y, cz, enX ? largo : 0.04, 0.07, enX ? 0.04 : largo, '#e9d8a6');
+        const g = 0.15;
+        if (enX) this.colision(desde, fijo - g, hasta, fijo + g, 2);
+        else this.colision(fijo - g, desde, fijo + g, hasta, 2);
+      }
+      // Postes de la tranquera y la hoja abierta (girada hacia afuera del patio, pegada al cerco)
+      for (const u of [t1, t2]) {
+        const [px, pz] = punto(u);
+        this.cajaDecor(px, 0, pz, 0.14, 1.25, 0.14, '#b08968');
+      }
+      const largoHoja = t2 - t1 - 0.1;
+      const [hx, hz] = punto(t2);
+      if (enX) this.cajaDecor(hx + 0.07, 0.1, hz + largoHoja / 2 + 0.1, 0.06, 0.8, largoHoja, '#b08968');
+      else this.cajaDecor(hx - largoHoja / 2 - 0.1, 0.1, hz + 0.07, largoHoja, 0.8, 0.06, '#b08968');
+      // Cartel al lado de la tranquera, mirando hacia afuera del patio
+      const [sx, sz] = punto(t1 - 0.8);
+      if (enX) this.cartel(sx, sz + 0.2, ['PATIO DE', 'LOS PERROS', '(están entrenados)']);
+      else this.cartel(sx - 0.2, sz, ['PATIO DE', 'LOS PERROS', '(están entrenados)'], -Math.PI / 2);
+    }
+
+    const palitos = new THREE.InstancedMesh(new THREE.BoxGeometry(0.08, 0.9, 0.04), materialToon('#e9d8a6'), puntos.length);
+    const matriz = new THREE.Matrix4();
+    puntos.forEach(([x, z, lateral], i) => {
+      matriz.makeRotationY(lateral ? Math.PI / 2 : 0).setPosition(x, 0.45, z);
+      palitos.setMatrixAt(i, matriz);
+    });
+    palitos.castShadow = true;
+    this.scene.add(palitos);
+  }
+
   // ------------------------------------------------------------
   //  CASA POR FUERA
   // ------------------------------------------------------------
@@ -413,7 +464,7 @@ export class Exterior {
     }
 
     this.buzon(0.9, 21.2);
-    this.cucha(15, -9);
+    this.cucha(CUCHA.x, CUCHA.z);
     this.tendedero(1, -11, 8, -11);
     this.mesaDeJardin(12.5, -0.5);
     this.enanito(2.9, 8.3);
@@ -503,7 +554,7 @@ export class Exterior {
     this.colision(x - 0.2, z - 0.3, x + 0.2, z + 0.3, 1.5);
   }
 
-  // Cucha del perro... que está de vacaciones
+  // Cucha de los perros (volvieron de vacaciones: ver Perro.js)
   cucha(x, z) {
     this.cajaDecor(x, 0, z, 1.4, 1, 1.6, '#bc6c25');
     const techo1 = this.cajaDecor(x - 0.4, 1, z, 0.95, 0.08, 1.8, COLOR_TECHO);
@@ -513,12 +564,12 @@ export class Exterior {
     techo2.rotation.z = -0.6;
     techo2.position.y = 1.25;
     this.cajaDecor(x, 0, z + 0.81, 0.6, 0.7, 0.02, '#3a2c20'); // la "puertita"
-    this.cartel(x + 1.3, z + 0.6, ['CUIDADO', 'CON EL PERRO', '(está de vacaciones)']);
+    this.cartel(x + 1.3, z + 0.6, ['CUIDADO', 'CON LOS PERROS', '(volvieron de vacaciones)']);
     this.colision(x - 0.8, z - 0.9, x + 0.8, z + 0.9, 1.5);
   }
 
-  // Cartel de madera con texto dibujado en un canvas
-  cartel(x, z, lineas) {
+  // Cartel de madera con texto dibujado en un canvas. rot: hacia dónde mira (0 = hacia +Z)
+  cartel(x, z, lineas, rot = 0) {
     this.cajaDecor(x, 0, z, 0.08, 1, 0.08, '#6c584c');
     const canvas = document.createElement('canvas');
     canvas.width = 256;
@@ -539,7 +590,8 @@ export class Exterior {
       materialToon('#c9a27e'), materialToon('#c9a27e'), materialToon('#c9a27e'), materialToon('#c9a27e'),
       new THREE.MeshToonMaterial({ map: textura }), materialToon('#c9a27e'),
     ]);
-    placa.position.set(x, 1.1, z + 0.05);
+    placa.position.set(x + Math.sin(rot) * 0.05, 1.1, z + Math.cos(rot) * 0.05);
+    placa.rotation.y = rot;
     placa.castShadow = true;
     this.scene.add(placa);
   }
@@ -562,7 +614,8 @@ export class Exterior {
     this.decor(new THREE.CylinderGeometry(0.06, 0.06, 0.75, 8), '#ffffff', x, 0.37, z);
     this.decor(new THREE.CylinderGeometry(0.03, 0.03, 2.2, 6), '#adb5bd', x, 1.1, z, false); // palo de la sombrilla
     this.decor(new THREE.ConeGeometry(1.5, 0.5, 12), '#ff595e', x, 2.3, z); // sombrilla
-    this.colision(x - 0.75, z - 0.75, x + 0.75, z + 0.75, 1);
+    // (Tan alta como la tapa: así se puede saltar arriba... y salvarse de los perros)
+    this.colision(x - 0.75, z - 0.75, x + 0.75, z + 0.75, 0.78);
   }
 
   // Enanito de jardín (mira fijo a la casa... sospechoso)

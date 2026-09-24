@@ -20,14 +20,16 @@ export const PLANTA_BAJA = {
 
   // Habitaciones: nombre y rectángulos [x1, z1, x2, z2] que forman su piso.
   // textura: dibujo del piso ('madera', 'ceramica', 'baldosas'), teñido con colorPiso (ver Texturas.js)
+  // pared: empapelado ('rayas', 'flores', 'azulejos', 'ladrillos', 'tablas', 'rombos', 'lunares', 'estrellas')
+  // lampara: 'colgante' (si no se pone nada), 'plafon', 'tubo' o false; lamparaEn: [x, z] (si no, al centro)
   habitaciones: [
-    { nombre: 'living', rects: [[-9, -6, -3, 6]], colorPiso: '#f4a261', textura: 'madera' },
-    { nombre: 'cocina', rects: [[-3, -6, 3, 2]], colorPiso: '#b5e48c', textura: 'ceramica' },
-    { nombre: 'comedor', rects: [[3, -2, 9, 2]], colorPiso: '#ffd6a5', textura: 'madera' },
-    { nombre: 'baño', rects: [[3, -6, 9, -2]], colorPiso: '#a0e7e5', textura: 'ceramica' },
+    { nombre: 'living', rects: [[-9, -6, -3, 6]], colorPiso: '#f4a261', textura: 'madera', pared: 'rayas' },
+    { nombre: 'cocina', rects: [[-3, -6, 3, 2]], colorPiso: '#b5e48c', textura: 'ceramica', pared: 'azulejos', lampara: 'plafon' },
+    { nombre: 'comedor', rects: [[3, -2, 9, 2]], colorPiso: '#ffd6a5', textura: 'madera', pared: 'rombos', lamparaEn: [7, 0] },
+    { nombre: 'baño', rects: [[3, -6, 9, -2]], colorPiso: '#a0e7e5', textura: 'ceramica', pared: 'azulejos', lampara: 'plafon' },
     // La entrada deja el hueco de la escalera que baja al sótano
-    { nombre: 'entrada', rects: PASILLO_CON_HUECO, colorPiso: '#cdb4db', textura: 'madera' },
-    { nombre: 'garaje', rects: [[-15.5, -2, -9, 6]], colorPiso: '#b8c0c8', textura: 'baldosas', colorParedes: '#dfe4e8' },
+    { nombre: 'entrada', rects: PASILLO_CON_HUECO, colorPiso: '#cdb4db', textura: 'madera', pared: 'rayas', lampara: 'plafon' },
+    { nombre: 'garaje', rects: [[-15.5, -2, -9, 6]], colorPiso: '#b8c0c8', textura: 'baldosas', colorParedes: '#dfe4e8', lampara: 'tubo', lamparaEn: [-12.3, 1.5] },
   ],
 
   // Paredes: líneas rectas [x1, z1, x2, z2]. Los huecos (puertas, ventana, portón) se recortan solos.
@@ -100,6 +102,32 @@ export const PLANTA_BAJA = {
     { tipo: 'estanteria', x: -15.1, z: 1, rot: 90 },
     { tipo: 'mesaTrabajo', x: -12.3, z: -1.5 },
     { tipo: 'cajas', x: -14.6, z: 4.9 },
+    // Detalles (etapa 11C)
+    { tipo: 'almohadon', x: -8.5, z: -0.7, rot: 90, y: 0.45, colores: { tela: '#ffd23f' } },
+    { tipo: 'mesaConVelador', x: -8.55, z: -1.65 },
+    { tipo: 'estanteCocina', x: -2, z: -5.9 },
+    { tipo: 'alfombraLarga', x: 7, z: 0, escala: [2.6, 1, 1.8], colores: { borde: '#9d0208', tela: '#e9c46a' } },
+    { tipo: 'toallero', x: 3.1, z: -5, rot: 90, colores: { toalla: '#4cc9f0' } },
+    { tipo: 'alfombraBano', x: 4.2, z: -2.5, colores: { tela: '#4cc9f0' } },
+    { tipo: 'alfombraLarga', x: 1.8, z: 3.1, escala: [5.5, 1, 0.8], colores: { borde: '#6d597a', tela: '#b5838d' } },
+    { tipo: 'neumaticos', x: -10, z: -1.4 },
+  ],
+
+  // Cuadros (ver Cuadros.js): x, z sobre la pared; rot: hacia dónde mira; y: altura del centro
+  cuadros: [
+    { dibujo: 'retratoDueno', x: -8.89, z: 0, rot: 90, y: 1.75, ancho: 0.7, alto: 0.9 }, // sobre el sillón
+    { dibujo: 'paisaje', x: -8, z: -5.89, rot: 0, y: 1.7, ancho: 1, alto: 0.7 },
+    { dibujo: 'barco', x: -6.8, z: 5.89, rot: 180 },
+    { dibujo: 'reloj', x: -3.11, z: 0.8, rot: -90, y: 2.05, ancho: 0.5, alto: 0.5, marco: false }, // sobre la tele
+    { dibujo: 'flores', x: 2.89, z: -3.2, rot: -90 },
+    { dibujo: 'reloj', x: -1.8, z: 1.89, rot: 180, y: 2, ancho: 0.45, alto: 0.45, marco: false },
+    { dibujo: 'abstracto', x: 4.3, z: -1.89, rot: 0, ancho: 0.9, alto: 0.7 },
+    { dibujo: 'abuelo', x: 7.7, z: -1.89, rot: 0, ancho: 0.6, alto: 0.8 },
+    { dibujo: 'perro', x: -1.8, z: 2.11, rot: 0 },
+    { dibujo: 'retratoAbuela', x: 3.2, z: 2.11, rot: 0, ancho: 0.6, alto: 0.8 },
+    { dibujo: 'espejo', x: -2.4, z: 5.89, rot: 180, y: 1.6, ancho: 0.6, alto: 0.8 }, // sobre el mueble de la entrada
+    { dibujo: 'paisaje', x: 2.4, z: 5.89, rot: 180, y: 2, ancho: 0.7, alto: 0.5 }, // a lo largo de la escalera
+    { dibujo: 'barco', x: 4.6, z: 5.89, rot: 180, y: 2.45, ancho: 0.6, alto: 0.45 },
   ],
 
   luces: [],

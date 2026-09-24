@@ -136,6 +136,36 @@ export class Audio {
     this.tono({ frecuencia: 350, frecuenciaFinal: 650, duracion: 0.35, tipo: 'triangle', volumen: 0.25 });
   }
 
+  // ¡Guau guau! Dos ladridos cortitos (un tono que baja + un soplido)
+  ladrido(volumen = 1) {
+    for (const retraso of [0, 0.2]) {
+      this.tono({ frecuencia: 560, frecuenciaFinal: 260, duracion: 0.11, tipo: 'sawtooth', volumen: 0.18 * volumen, retraso });
+      this.ruido({ duracion: 0.08, volumen: 0.2 * volumen, filtro: 1200, retraso });
+    }
+  }
+
+  // "Clic-clac": la abuela amartilla la escopeta
+  clic(volumen = 1) {
+    this.tono({ frecuencia: 2200, duracion: 0.03, tipo: 'square', volumen: 0.12 * volumen });
+    this.ruido({ duracion: 0.03, volumen: 0.25 * volumen, filtro: 5000 });
+    this.tono({ frecuencia: 1500, duracion: 0.04, tipo: 'square', volumen: 0.12 * volumen, retraso: 0.12 });
+    this.ruido({ duracion: 0.04, volumen: 0.25 * volumen, filtro: 4000, retraso: 0.12 });
+  }
+
+  // ¡BANG! Un estallido de ruido y un golpe grave
+  disparo(volumen = 1) {
+    this.ruido({ duracion: 0.5, volumen: 0.9 * volumen, filtro: 1500 });
+    this.tono({ frecuencia: 140, frecuenciaFinal: 35, duracion: 0.45, tipo: 'square', volumen: 0.4 * volumen });
+  }
+
+  // Recargar: abrir la escopeta, meter los cartuchos y cerrarla (tres "clacs" en 2.5 s)
+  recarga(volumen = 1) {
+    for (const retraso of [0.3, 1.3, 2.1]) {
+      this.ruido({ duracion: 0.05, volumen: 0.3 * volumen, filtro: 3000, retraso });
+      this.tono({ frecuencia: 900, duracion: 0.04, tipo: 'square', volumen: 0.08 * volumen, retraso });
+    }
+  }
+
   // Click-clack de cerradura
   traba(volumen = 1) {
     this.ruido({ duracion: 0.04, volumen: 0.5 * volumen, filtro: 4000 });
@@ -182,6 +212,11 @@ export class Audio {
   // Mover una maceta: raspón de cerámica
   maceta() {
     this.ruido({ duracion: 0.25, volumen: 0.2, filtro: 1200 });
+  }
+
+  // Una gota que cae en un charco: "plic" agudo que baja
+  gota(volumen = 1) {
+    this.tono({ frecuencia: 1800, frecuenciaFinal: 700, duracion: 0.08, tipo: 'sine', volumen: 0.12 * volumen });
   }
 
   // --- Zonas especiales ---

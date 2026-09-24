@@ -119,6 +119,170 @@ function dibujarTejas(ctx, t) {
   }
 }
 
+// ------------------------------------------------------------
+//  EMPAPELADOS (etapa 11C). Cada dibujo es 1 metro de pared (ver House.uvEnMetros).
+// ------------------------------------------------------------
+// Rayas verticales anchas y finitas
+function dibujarRayas(ctx, t) {
+  ctx.fillStyle = '#f7f7f7';
+  ctx.fillRect(0, 0, t, t);
+  for (let i = 0; i < 4; i++) {
+    ctx.fillStyle = '#dcdcdc';
+    ctx.fillRect(i * (t / 4), 0, t / 8, t);
+    ctx.fillStyle = 'rgba(0,0,0,0.12)';
+    ctx.fillRect(i * (t / 4) + t / 8 + 6, 0, 3, t);
+  }
+}
+
+// Florcitas de 5 pétalos, en filas corridas
+function dibujarFlores(ctx, t) {
+  ctx.fillStyle = '#f8f8f8';
+  ctx.fillRect(0, 0, t, t);
+  const paso = t / 4;
+  for (let fila = 0; fila < 4; fila++) {
+    for (let col = 0; col < 4; col++) {
+      const cx = col * paso + (fila % 2 ? paso / 2 : paso / 4) + paso / 4;
+      const cy = fila * paso + paso / 2;
+      ctx.fillStyle = 'rgba(0,0,0,0.13)';
+      for (let p = 0; p < 5; p++) {
+        const a = (p / 5) * Math.PI * 2;
+        ctx.beginPath();
+        ctx.arc((cx + Math.cos(a) * 9) % t, cy + Math.sin(a) * 9, 7, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.fillStyle = 'rgba(0,0,0,0.25)';
+      ctx.beginPath();
+      ctx.arc(cx % t, cy, 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+}
+
+// Azulejos de 25 cm (baños y cocina)
+function dibujarAzulejos(ctx, t) {
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, t, t);
+  ctx.fillStyle = 'rgba(0,0,0,0.05)';
+  ctx.fillRect(0, 0, t / 2, t / 2);
+  ctx.fillRect(t / 2, t / 2, t / 2, t / 2);
+  ctx.fillStyle = 'rgba(0,0,0,0.22)';
+  for (let k = 0; k < 4; k++) {
+    ctx.fillRect(k * (t / 4), 0, 3, t);
+    ctx.fillRect(0, k * (t / 4), t, 3);
+  }
+}
+
+// Ladrillos (sótano): 8 hileras, cada una corrida medio ladrillo
+function dibujarLadrillos(ctx, t) {
+  const hileras = 8;
+  const alto = t / hileras;
+  const ancho = t / 4;
+  ctx.fillStyle = '#b8b8b8'; // la mezcla entre ladrillos
+  ctx.fillRect(0, 0, t, t);
+  for (let f = 0; f < hileras; f++) {
+    const corrido = f % 2 ? ancho / 2 : 0;
+    for (let x = -ancho; x < t; x += ancho) {
+      ctx.fillStyle = grisAlAzar(205, 245);
+      ctx.fillRect(x + corrido + 3, f * alto + 3, ancho - 6, alto - 6);
+    }
+  }
+}
+
+// Tablas verticales (madera de biblioteca, sala de trofeos)
+function dibujarTablas(ctx, t) {
+  const tablas = 5;
+  const ancho = t / tablas;
+  for (let i = 0; i < tablas; i++) {
+    ctx.fillStyle = grisAlAzar(225, 248);
+    ctx.fillRect(i * ancho, 0, ancho, t);
+    ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    ctx.fillRect(i * ancho, 0, 3, t);
+    ctx.strokeStyle = 'rgba(0,0,0,0.07)';
+    for (let v = 0; v < 3; v++) {
+      const x = i * ancho + 8 + Math.random() * (ancho - 16);
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      for (let y = 0; y <= t; y += 32) ctx.lineTo(x + Math.sin(y / 25 + v) * 2, y);
+      ctx.stroke();
+    }
+  }
+}
+
+// Rombos (líneas cruzadas en diagonal)
+function dibujarRombos(ctx, t) {
+  ctx.fillStyle = '#f6f6f6';
+  ctx.fillRect(0, 0, t, t);
+  ctx.strokeStyle = 'rgba(0,0,0,0.14)';
+  ctx.lineWidth = 4;
+  for (let k = -t; k <= t; k += t / 4) {
+    ctx.beginPath();
+    ctx.moveTo(k, 0);
+    ctx.lineTo(k + t, t);
+    ctx.moveTo(k + t, 0);
+    ctx.lineTo(k, t);
+    ctx.stroke();
+  }
+}
+
+// Lunares
+function dibujarLunares(ctx, t) {
+  ctx.fillStyle = '#f8f8f8';
+  ctx.fillRect(0, 0, t, t);
+  ctx.fillStyle = 'rgba(0,0,0,0.14)';
+  const paso = t / 4;
+  for (let f = 0; f < 4; f++) {
+    for (let c = 0; c < 4; c++) {
+      ctx.beginPath();
+      ctx.arc(c * paso + (f % 2 ? paso : paso / 2), f * paso + paso / 2, 10, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+}
+
+// Estrellitas (cuarto del hijo)
+function dibujarEstrellas(ctx, t) {
+  ctx.fillStyle = '#f8f8f8';
+  ctx.fillRect(0, 0, t, t);
+  ctx.fillStyle = 'rgba(0,0,0,0.16)';
+  const paso = t / 4;
+  for (let f = 0; f < 4; f++) {
+    for (let c = 0; c < 4; c++) {
+      const cx = c * paso + (f % 2 ? paso : paso / 2);
+      const cy = f * paso + paso / 2;
+      ctx.beginPath();
+      for (let p = 0; p < 10; p++) {
+        const r = p % 2 ? 5 : 13;
+        const a = (p / 10) * Math.PI * 2 - Math.PI / 2;
+        ctx.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r);
+      }
+      ctx.fill();
+    }
+  }
+}
+
+// Telaraña: rayos que salen del centro y vueltas en espiral (fondo transparente)
+function dibujarTelarana(ctx, t) {
+  const c = t / 2;
+  ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+  ctx.lineWidth = 2;
+  for (let r = 0; r < 10; r++) {
+    const a = (r / 10) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.moveTo(c, c);
+    ctx.lineTo(c + Math.cos(a) * c, c + Math.sin(a) * c);
+    ctx.stroke();
+  }
+  for (let vuelta = 1; vuelta <= 6; vuelta++) {
+    ctx.beginPath();
+    for (let r = 0; r <= 10; r++) {
+      const a = (r / 10) * Math.PI * 2;
+      const radio = vuelta * (c / 6.5) + Math.sin(r * 3) * 3;
+      ctx.lineTo(c + Math.cos(a) * radio, c + Math.sin(a) * radio);
+    }
+    ctx.stroke();
+  }
+}
+
 // Las texturas se dibujan una sola vez y después se reutilizan
 const DIBUJOS = {
   madera: dibujarMadera,
@@ -126,6 +290,15 @@ const DIBUJOS = {
   baldosas: dibujarBaldosas,
   pasto: dibujarPasto,
   tejas: dibujarTejas,
+  rayas: dibujarRayas,
+  flores: dibujarFlores,
+  azulejos: dibujarAzulejos,
+  ladrillos: dibujarLadrillos,
+  tablas: dibujarTablas,
+  rombos: dibujarRombos,
+  lunares: dibujarLunares,
+  estrellas: dibujarEstrellas,
+  telarana: dibujarTelarana,
 };
 const originales = {};
 

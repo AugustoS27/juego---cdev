@@ -20,12 +20,12 @@ export const SOTANO = {
   colorParedes: '#524a63', // paredes oscuras
 
   habitaciones: [
-    { nombre: 'sala de la caldera', rects: [[-9, -6, -3, 6]], colorPiso: '#6c6f7d', textura: 'baldosas', colorParedes: '#4a4e69' },
-    { nombre: 'depósito', rects: [[-3, -6, 3, 2]], colorPiso: '#77736b', textura: 'baldosas', colorParedes: '#5c5346' },
-    { nombre: 'bodega', rects: [[3, -6, 9, -2]], colorPiso: '#6b4f3a', textura: 'baldosas', colorParedes: '#5e3b2e' },
-    { nombre: 'cuarto de las muñecas', rects: [[3, -2, 9, 2]], colorPiso: '#9d6b8f', textura: 'madera', colorParedes: '#6d3b5e' },
+    { nombre: 'sala de la caldera', rects: [[-9, -6, -3, 6]], colorPiso: '#6c6f7d', textura: 'baldosas', colorParedes: '#4a4e69', pared: 'ladrillos' },
+    { nombre: 'depósito', rects: [[-3, -6, 3, 2]], colorPiso: '#77736b', textura: 'baldosas', colorParedes: '#5c5346', pared: 'ladrillos' },
+    { nombre: 'bodega', rects: [[3, -6, 9, -2]], colorPiso: '#6b4f3a', textura: 'baldosas', colorParedes: '#5e3b2e', pared: 'ladrillos' },
+    { nombre: 'cuarto de las muñecas', rects: [[3, -2, 9, 2]], colorPiso: '#9d6b8f', textura: 'madera', colorParedes: '#6d3b5e', pared: 'flores' },
     // El pasillo no tiene hueco: el tramo de escalera arranca acá y sube a la planta baja
-    { nombre: 'pasillo del sótano', rects: [[-3, 2, 9, 6]], colorPiso: '#5f5b6b', textura: 'baldosas' },
+    { nombre: 'pasillo del sótano', rects: [[-3, 2, 9, 6]], colorPiso: '#5f5b6b', textura: 'baldosas', pared: 'ladrillos' },
   ],
 
   paredes: PAREDES_TIPICAS,
@@ -74,6 +74,25 @@ export const SOTANO = {
     // Pasillo
     { tipo: 'cajas', x: 8.4, z: 5.3 },
     { tipo: 'barril', x: 8.5, z: 2.6 },
+    // Detalles (etapa 11C)
+    { tipo: 'cadenas', x: -6.3, z: -1 },
+    { tipo: 'cadenas', x: 1.8, z: -4.2 },
+  ],
+
+  // El cuadro que te sigue con la mirada, y manchas de humedad (cuadros sin marco)
+  cuadros: [
+    { dibujo: 'ojos', x: 3, z: 2.11, rot: 0, y: 1.6, ancho: 0.6, alto: 0.8 },
+    { dibujo: 'humedad', x: -8.89, z: -2.5, rot: 90, y: 1.3, ancho: 1.4, alto: 1, marco: false },
+    { dibujo: 'humedad', x: -3.11, z: 0.8, rot: -90, y: 1.9, ancho: 1.2, alto: 0.9, marco: false },
+    { dibujo: 'humedad', x: 6.5, z: -5.89, rot: 0, y: 2.1, ancho: 1.2, alto: 0.8, marco: false },
+    { dibujo: 'humedad', x: 8.89, z: 4.3, rot: -90, y: 1.2, ancho: 1, alto: 1, marco: false },
+  ],
+
+  // Goteras: de acá cae una gota cada tanto, sobre un charco
+  gotas: [
+    { x: -4.6, z: 2.4 },
+    { x: 1.4, z: -1 },
+    { x: 4.8, z: 3.4 },
   ],
 
   // Luces propias: lamparitas (algunas parpadean) y el resplandor naranja de la caldera.

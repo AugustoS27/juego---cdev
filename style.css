@@ -122,6 +122,61 @@ body {
 }
 
 /* Borde rojo que late mientras te persiguen */
+/* Mira roja en el centro: la abuela te está apuntando */
+#apuntado {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 64px;
+  pointer-events: none;
+  filter: drop-shadow(0 0 10px rgba(255, 0, 0, 0.9));
+  animation: apuntando 0.25s ease-in-out infinite alternate;
+}
+
+@keyframes apuntando {
+  from {
+    transform: translate(-50%, -50%) scale(1.4);
+    opacity: 0.25;
+  }
+  to {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.55;
+  }
+}
+
+/* "¡BANG!" de historieta: aparece grande y se achica */
+#bang {
+  position: fixed;
+  top: 32%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-8deg);
+  font-size: 96px;
+  font-weight: 900;
+  color: #ffd23f;
+  -webkit-text-stroke: 4px #1a1a1a;
+  text-shadow: 6px 6px 0 #e63946;
+  pointer-events: none;
+}
+
+#bang.mostrar {
+  animation: bang 0.8s ease-out forwards;
+}
+
+@keyframes bang {
+  0% {
+    transform: translate(-50%, -50%) rotate(-8deg) scale(0.3);
+    opacity: 1;
+  }
+  20% {
+    transform: translate(-50%, -50%) rotate(-8deg) scale(1.3);
+  }
+  100% {
+    transform: translate(-50%, -50%) rotate(-8deg) scale(1);
+    opacity: 0;
+  }
+}
+
 #alerta-persecucion {
   position: fixed;
   inset: 0;

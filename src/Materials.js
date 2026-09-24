@@ -41,6 +41,10 @@ const COLORES_REEMPLAZO = {
 // Reemplaza los materiales de un modelo GLTF por materiales toon.
 // Los colores de Kenney son pasteles: les subimos un poco la saturación para que
 // combinen con los colores vivos del resto del juego.
+// Los materiales convertidos se comparten por color: si dos modelos distintos tienen el mismo color,
+// usan el mismo material, y así Optimizar.js los puede juntar en una sola malla (menos dibujos).
+const cacheConvertidos = new Map();
+
 export function convertirAToon(objeto) {
   const convertir = (viejo) => {
     const color = COLORES_REEMPLAZO[viejo.name]
@@ -49,7 +53,9 @@ export function convertirAToon(objeto) {
     const hsl = {};
     color.getHSL(hsl);
     color.setHSL(hsl.h, Math.min(1, hsl.s * 1.35), hsl.l * 0.9);
-    return new THREE.MeshToonMaterial({ color, map: viejo.map || null, gradientMap: gradiente });
+    const clave = color.getHexString() + (viejo.map ? viejo.map.uuid : '');
+    if (!cacheConvertidos.has(clave)) cacheConvertidos.set(clave, new THREE.MeshToonMaterial({ color, map: viejo.map || null, gradientMap: gradiente }));
+    return cacheConvertidos.get(clave);
   };
   objeto.traverse((hijo) => {
     if (!hijo.isMesh) return;
