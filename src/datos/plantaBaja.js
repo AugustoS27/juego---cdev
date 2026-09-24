@@ -1,0 +1,150 @@
+// PLANTA BAJA (piso 0): living, cocina, comedor, baño, entrada y garaje.
+//
+//  x=-15.5   x=-9      x=-3        x=3          x=9
+//  z=-6       +--------+-----------+------------+
+//             |        |           |  baño      |
+//  z=-2 +-----+        |  cocina   |------------+
+//       |     | living |           |  comedor   |  <- puerta trasera (x=9)
+//       |gara-|        +-----------+------------+ z=2
+//       | je  |        |  entrada  [escalera]   |  (la escalera sube y, debajo, baja al sótano)
+//  z=6  +-----+--------+------------------------+
+//       portón  ventana    puerta de calle
+//
+// Todas las coordenadas son (x, z); la altura la pone el número de piso.
+import { PAREDES_TIPICAS, PASILLO_CON_HUECO, BARANDA_HUECO } from './comun.js';
+
+export const PLANTA_BAJA = {
+  piso: 0,
+  nombre: 'Planta baja',
+  colorParedes: '#ffe8a3',
+
+  // Habitaciones: nombre y rectángulos [x1, z1, x2, z2] que forman su piso.
+  // textura: dibujo del piso ('madera', 'ceramica', 'baldosas'), teñido con colorPiso (ver Texturas.js)
+  habitaciones: [
+    { nombre: 'living', rects: [[-9, -6, -3, 6]], colorPiso: '#f4a261', textura: 'madera' },
+    { nombre: 'cocina', rects: [[-3, -6, 3, 2]], colorPiso: '#b5e48c', textura: 'ceramica' },
+    { nombre: 'comedor', rects: [[3, -2, 9, 2]], colorPiso: '#ffd6a5', textura: 'madera' },
+    { nombre: 'baño', rects: [[3, -6, 9, -2]], colorPiso: '#a0e7e5', textura: 'ceramica' },
+    // La entrada deja el hueco de la escalera que baja al sótano
+    { nombre: 'entrada', rects: PASILLO_CON_HUECO, colorPiso: '#cdb4db', textura: 'madera' },
+    { nombre: 'garaje', rects: [[-15.5, -2, -9, 6]], colorPiso: '#b8c0c8', textura: 'baldosas', colorParedes: '#dfe4e8' },
+  ],
+
+  // Paredes: líneas rectas [x1, z1, x2, z2]. Los huecos (puertas, ventana, portón) se recortan solos.
+  paredes: [
+    ...PAREDES_TIPICAS,
+    // El garaje (su pared este es la pared oeste de la casa)
+    [-15.5, -2, -9, -2],
+    [-15.5, -2, -15.5, 6],
+    [-15.5, 6, -9, 6],
+  ],
+
+  // Puertas: centro (x, z) y "eje" = hacia dónde corre la pared donde está
+  //   eje 'x': pared que va de oeste a este (z fija) · eje 'z': pared que va de norte a sur (x fija)
+  //   conLlave: no se puede abrir (hasta encontrar la llave) · abierta: arranca abierta
+  puertas: [
+    { x: -3, z: 4, eje: 'z' }, // living ↔ entrada
+    { x: -3, z: -2, eje: 'z' }, // living ↔ cocina
+    { x: 0, z: 2, eje: 'x' }, // cocina ↔ entrada
+    { x: 3, z: 0, eje: 'z' }, // cocina ↔ comedor
+    { x: 6, z: 2, eje: 'x' }, // comedor ↔ entrada
+    { x: 6, z: -2, eje: 'x' }, // comedor ↔ baño
+    { x: -1, z: 6, eje: 'x', conLlave: true, deCalle: true }, // puerta de calle (hay una llave escondida)
+    { x: 9, z: 1.1, eje: 'z', abierta: true }, // puerta trasera del comedor (¡se la olvidaron abierta!)
+    { x: -9, z: 3.2, eje: 'z' }, // garaje ↔ living
+  ],
+
+  barandas: [BARANDA_HUECO],
+
+  // Muebles: tipo (ver muebles.js), posición (x, z) y rotación en grados.
+  // Rotación: 0 = el frente mira al sur (+Z), 90 = al este, -90 = al oeste, 180 = al norte.
+  // Solo usamos múltiplos de 90° para que las cajas de colisión (AABB) sean exactas.
+  muebles: [
+    // Living
+    { tipo: 'sillon', x: -8.4, z: 0, rot: 90 },
+    { tipo: 'mesaRatona', x: -7, z: 0, rot: 90 },
+    { tipo: 'alfombra', x: -6.8, z: 0, rot: 90 },
+    { tipo: 'tv', x: -3.45, z: 0.8, rot: -90 },
+    { tipo: 'biblioteca', x: -6, z: -5.7 },
+    { tipo: 'planta', x: -8.4, z: 5.4 },
+    { tipo: 'lamparaPie', x: -8.5, z: -5.4 },
+    { tipo: 'ventana', x: -8.87, z: -3, rot: 90 },
+    // Cocina
+    { tipo: 'mesada', x: -0.5, z: -5.55 },
+    { tipo: 'heladera', x: 2.4, z: -5.45 },
+    { tipo: 'mesa', x: -1, z: -3.8 },
+    { tipo: 'silla', x: -1.4, z: -3, rot: 180 },
+    { tipo: 'silla', x: -0.6, z: -3, rot: 180 },
+    { tipo: 'tacho', x: 2.6, z: -4.6 },
+    { tipo: 'ventana', x: -0.5, z: -5.87 },
+    // Comedor
+    { tipo: 'mesaComedor', x: 7, z: 0 },
+    { tipo: 'silla', x: 6.4, z: 0.8, rot: 180 },
+    { tipo: 'silla', x: 7.6, z: 0.8, rot: 180 },
+    { tipo: 'silla', x: 6.4, z: -0.8 },
+    { tipo: 'silla', x: 7.6, z: -0.8 },
+    { tipo: 'aparador', x: 8.6, z: -1, rot: -90 },
+    { tipo: 'ventana', x: 8.87, z: -1, rot: -90 },
+    // Baño
+    { tipo: 'banera', x: 4.2, z: -3.3, rot: 90 },
+    { tipo: 'inodoro', x: 8.5, z: -5.5 },
+    { tipo: 'lavamanos', x: 6, z: -5.65 },
+    { tipo: 'lavarropas', x: 8.55, z: -3.6, rot: -90 },
+    { tipo: 'ventana', x: 4.5, z: -5.87 },
+    // Entrada (el rincón de x 7..9, z 4..6 queda libre: ahí arranca la escalera al sótano)
+    { tipo: 'muebleEntrada', x: -2.4, z: 5.65, rot: 180 },
+    { tipo: 'perchero', x: -2.6, z: 2.5 },
+    { tipo: 'placard', x: 8.5, z: 3.2, rot: -90 },
+    // Garaje
+    { tipo: 'auto', x: -12.4, z: 1.6 },
+    { tipo: 'estanteria', x: -15.1, z: 1, rot: 90 },
+    { tipo: 'mesaTrabajo', x: -12.3, z: -1.5 },
+    { tipo: 'cajas', x: -14.6, z: 4.9 },
+  ],
+
+  luces: [],
+
+  // Waypoints: puntos por donde camina el dueño (x, z). Hay puntos en las habitaciones y uno en cada
+  // puerta (los "p-..."), ubicados para que entre dos puntos conectados se pueda ir en línea recta.
+  waypoints: [
+    { id: 'living', pos: [-5.5, 3] },
+    { id: 'living-norte', pos: [-5.5, -2] },
+    { id: 'p-living-entrada', pos: [-3, 4] },
+    { id: 'p-living-cocina', pos: [-3, -2] },
+    { id: 'cocina', pos: [1, -0.8] },
+    { id: 'p-cocina-entrada', pos: [0, 2] },
+    { id: 'p-cocina-comedor', pos: [3, 0] },
+    { id: 'comedor', pos: [4.5, 0] },
+    { id: 'p-comedor-entrada', pos: [6, 2] },
+    { id: 'p-comedor-baño', pos: [6, -2] },
+    { id: 'baño', pos: [6, -4] },
+    { id: 'entrada-oeste', pos: [-1.5, 3.2] },
+    { id: 'entrada-centro', pos: [0, 3.2] },
+    { id: 'entrada-este', pos: [6, 3.2] },
+    { id: 'entrada-fondo', pos: [7.5, 3.3] },
+    { id: 'escalera-abajo', pos: [0, 5.15] }, // donde arranca la escalera que sube
+    { id: 'rellano-pb', pos: [7.8, 5.2] }, // donde arranca la escalera que baja al sótano
+  ],
+
+  // Pares de waypoints conectados (se puede caminar en línea recta entre ellos)
+  conexiones: [
+    ['living', 'living-norte'],
+    ['living', 'p-living-entrada'],
+    ['living-norte', 'p-living-cocina'],
+    ['p-living-entrada', 'entrada-oeste'],
+    ['p-living-cocina', 'cocina'],
+    ['cocina', 'p-cocina-entrada'],
+    ['cocina', 'p-cocina-comedor'],
+    ['p-cocina-entrada', 'entrada-centro'],
+    ['p-cocina-comedor', 'comedor'],
+    ['comedor', 'p-comedor-entrada'],
+    ['comedor', 'p-comedor-baño'],
+    ['p-comedor-baño', 'baño'],
+    ['p-comedor-entrada', 'entrada-este'],
+    ['entrada-oeste', 'entrada-centro'],
+    ['entrada-centro', 'entrada-este'],
+    ['entrada-centro', 'escalera-abajo'],
+    ['entrada-este', 'entrada-fondo'],
+    ['entrada-fondo', 'rellano-pb'],
+  ],
+};

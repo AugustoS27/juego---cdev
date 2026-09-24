@@ -12,7 +12,8 @@ import { Audio } from './Audio.js';
 import { Exterior } from './Exterior.js';
 import { Entradas } from './Entradas.js';
 import { ZonaDeEscape } from './Escape.js';
-import { ALTURA_PISO, INICIO_JUGADOR } from './HouseData.js';
+import { juntarMallasEstaticas } from './Optimizar.js';
+import { ALTURA_PISO, INICIO_JUGADOR, TECHO, PISO_MINIMO, NOMBRES_PISOS, pisoDeAltura } from './HouseData.js';
 
 // Estados posibles de la partida
 const ESTADO = {
@@ -21,6 +22,13 @@ const ESTADO = {
   PAUSA: 'pausa', // se apretó Esc
   VICTORIA: 'victoria',
   DERROTA: 'derrota',
+};
+
+// Cuánta luz hay según el piso donde está el jugador (el sótano es oscuro, el ático un poco)
+const LUZ_NORMAL = { sol: 1.9, relleno: 0.7, cielo: 0.9, ambiente: 0.3 };
+const LUZ_POR_PISO = {
+  [-1]: { sol: 0.45, relleno: 0.15, cielo: 0.35, ambiente: 0.12 },
+  3: { sol: 1.3, relleno: 0.45, cielo: 0.75, ambiente: 0.25 },
 };
 
 // Dificultad creciente: cada 30 segundos el dueño se enoja más y camina un 10% más rápido
@@ -64,6 +72,18 @@ export class Game {
     this.audio = new Audio();
     this.ui = new UI();
 
+    // Rendimiento: todo lo que no se mueve (paredes, pisos, escalones, decoración) se junta en
+    // pocas mallas, una por material. Tiene que ir DESPUÉS de crear la casa, el exterior y la van.
+    const juntadas = juntarMallasEstaticas(this.scene);
+    if (import.meta.env.DEV) console.log(`[debug] Mallas estáticas: ${juntadas.antes} juntadas en ${juntadas.despues}`);
+    // Los muebles y las plantas del jardín cargan sus modelos de a poco: cuando terminan todos,
+    // juntamos también esas mallas (los muebles, por piso)
+    Promise.allSettled([...this.house.cargas, ...this.exterior.cargas]).then(() => {
+      const modelos = juntarMallasEstaticas(this.scene);
+      this.house.registrarJuntados(modelos.porCapa);
+      if (import.meta.env.DEV) console.log(`[debug] Modelos: ${modelos.antes} mallas juntadas en ${modelos.despues}`);
+    });
+
     this.estado = ESTADO.MENU;
     this.tiempoPartida = 0; // segundos jugados en esta partida
     this.nivelEnojo = 0;
@@ -86,34 +106,38 @@ export class Game {
 
   crearLuces() {
     // Luz ambiente de dos colores (cielo / suelo): da un look suave de dibujito
-    this.scene.add(new THREE.HemisphereLight('#ffffff', '#fff1e0', 0.9));
-    this.scene.add(new THREE.AmbientLight('#ffffff', 0.3));
+    this.luzCielo = new THREE.HemisphereLight('#ffffff', '#fff1e0', LUZ_NORMAL.cielo);
+    this.luzAmbiente = new THREE.AmbientLight('#ffffff', LUZ_NORMAL.ambiente);
+    this.scene.add(this.luzCielo, this.luzAmbiente);
 
-    // Un "sol" por piso, ubicado justo debajo del techo de ese piso y apuntando hacia abajo.
-    // Cada sol solo ve lo que tiene debajo hasta el piso (su cámara de sombras llega hasta ahí),
-    // así cada piso recibe solo las sombras de sus propios muebles.
-    for (let piso = 0; piso < 2; piso++) {
-      const techo = (piso + 1) * ALTURA_PISO - 0.25;
-      const sol = new THREE.DirectionalLight('#fff4d6', 1.3);
-      sol.position.set(0, techo, 0);
-      sol.target.position.set(0, techo - 10, 0); // apunta derecho hacia abajo
-      this.scene.add(sol, sol.target);
+    // "Sol" de adentro: está justo debajo del techo del piso donde está el jugador y apunta
+    // derecho hacia abajo. Hay UNO solo y se muda de piso con el jugador (ver actualizarLuces).
+    // ¿Por qué no uno por piso? Porque una luz direccional ilumina TODO, esté donde esté:
+    // con 5 soles, cada piso recibiría la luz de los 5 y quedaría todo quemado.
+    // Su cámara de sombras llega hasta el fondo del sótano: los pisos de abajo quedan a la
+    // sombra del piso donde estás (como si la luz entrara desde arriba).
+    this.solInterior = new THREE.DirectionalLight('#fff4d6', LUZ_NORMAL.sol);
+    this.solInterior.castShadow = true;
+    // Mapa de sombras chico + mucho desenfoque = sombras suaves tipo "mancha" bajo los muebles
+    this.solInterior.shadow.mapSize.set(1024, 1024);
+    this.solInterior.shadow.radius = 8;
+    this.solInterior.shadow.bias = -0.0005;
+    // Área que cubren las sombras: toda la casa con el garaje y el balcón
+    const cam = this.solInterior.shadow.camera;
+    cam.left = -16;
+    cam.right = 10;
+    cam.top = 7;
+    cam.bottom = -9;
+    cam.near = 0.05;
+    cam.up.set(0, 0, -1); // mirando derecho hacia abajo, "arriba" no puede ser +Y
+    this.scene.add(this.solInterior, this.solInterior.target);
+    this.pisoDeLaLuz = null;
+    this.moverSolInterior(0);
 
-      sol.castShadow = true;
-      // Mapa de sombras chico + mucho desenfoque = sombras suaves tipo "mancha" bajo los muebles
-      sol.shadow.mapSize.set(1024, 1024);
-      sol.shadow.radius = 8;
-      sol.shadow.bias = -0.0005;
-      // Área que cubren las sombras: toda la casa con el garaje y el balcón, y solo la altura de un piso
-      const cam = sol.shadow.camera;
-      cam.left = -16;
-      cam.right = 10;
-      cam.top = 7;
-      cam.bottom = -9;
-      cam.near = 0.05;
-      cam.far = ALTURA_PISO - 0.15; // llega justo hasta el piso, sin pasar al techo de abajo
-      cam.up.set(0, 0, -1); // mirando derecho hacia abajo, "arriba" no puede ser +Y
-    }
+    // Luz de relleno: vertical, suave y SIN sombras, para que los pisos de abajo no queden negros
+    this.luzRelleno = new THREE.DirectionalLight('#fff4d6', LUZ_NORMAL.relleno);
+    this.luzRelleno.position.set(0, 20, 0);
+    this.scene.add(this.luzRelleno);
 
     // Sol de afuera: inclinado, para las sombras del jardín (árboles, cerca, la casa).
     // Adentro no molesta: el techo y las paredes le hacen sombra a todo el interior.
@@ -140,8 +164,10 @@ export class Game {
   // ------------------------------------------------------------
   conectarEventos() {
     // Cada paso del jugador suena y hace ruido según cómo se mueve
-    // (agachado casi nada, caminando un poco, corriendo mucho: ver RADIO_RUIDO en Noise.js)
+    // (agachado casi nada, caminando un poco, corriendo mucho: ver RADIO_RUIDO en Noise.js).
+    // Adentro de un conducto de ventilación, cualquier paso suena a chapa.
     this.player.alDarPaso = (tipo) => {
+      if (this.house.enConducto(this.player.position)) tipo = 'conducto';
       this.audio.paso(tipo);
       this.hacerRuido(this.player.position, RADIO_RUIDO[tipo]);
     };
@@ -166,8 +192,8 @@ export class Game {
     // El dueño trabó una puerta
     this.owner.alTrabarPuerta = (puerta) => {
       this.audio.traba(Math.max(0.3, this.volumenPorDistancia(puerta.centro)));
-      const donde = puerta.piso === 0 ? 'la planta baja' : 'la planta alta';
-      this.ui.mostrarAviso(`🔒 ¡El dueño trabó una puerta en ${donde}! Se destraba en 20 s`, 4);
+      const donde = NOMBRES_PISOS[puerta.piso].toLowerCase();
+      this.ui.mostrarAviso(`🔒 ¡El dueño trabó una puerta (${donde})! Se destraba en 20 s`, 4);
     };
 
     // El dueño cambió de estado: alerta si te vio, "¿?" si escuchó algo
@@ -181,6 +207,41 @@ export class Game {
       }
       this.ui.mostrarAlertaPersecucion(nuevo === ESTADO_DUENO.PERSEGUIR);
     };
+  }
+
+  // Pone el sol de adentro debajo del techo del piso dado (en el ático, debajo de la cumbrera)
+  moverSolInterior(piso) {
+    if (piso === this.pisoDeLaLuz) return;
+    this.pisoDeLaLuz = piso;
+    const techo = piso >= 3 ? TECHO.y + TECHO.alto - 0.9 : (piso + 1) * ALTURA_PISO - 0.25;
+    this.solInterior.position.set(0, techo, 0);
+    this.solInterior.target.position.set(0, techo - 10, 0);
+    this.solInterior.target.updateMatrixWorld();
+    // La cámara de sombras llega hasta el piso del sótano
+    this.solInterior.shadow.camera.far = techo - (PISO_MINIMO * ALTURA_PISO - 0.3);
+    this.solInterior.shadow.camera.updateProjectionMatrix();
+  }
+
+  // Cada frame: el sol se muda al piso del jugador y las luces se acercan de a poco a las de ese piso
+  // (así, al bajar al sótano, "se te acostumbra la vista" en vez de oscurecerse de golpe).
+  // También le decimos a la casa qué muebles dibujar y mostramos el piso en el HUD.
+  actualizarLuces(dt) {
+    const piso = pisoDeAltura(this.player.position.y);
+    this.moverSolInterior(piso);
+    this.house.mostrarPisosCercanos(piso);
+    const p = this.player.position;
+    const enLaCasa = p.x > -15.5 && p.x < 9 && p.z > -6 && p.z < 6; // (casa + garaje)
+    let donde = enLaCasa ? NOMBRES_PISOS[piso] : 'Afuera';
+    if (this.house.enTunel(p)) donde = 'Túnel secreto';
+    else if (this.house.enConducto(p)) donde = 'Conducto de ventilación';
+    this.ui.mostrarPiso(donde);
+
+    const objetivo = LUZ_POR_PISO[piso] || LUZ_NORMAL;
+    const t = Math.min(1, dt * 3);
+    this.solInterior.intensity += (objetivo.sol - this.solInterior.intensity) * t;
+    this.luzRelleno.intensity += (objetivo.relleno - this.luzRelleno.intensity) * t;
+    this.luzCielo.intensity += (objetivo.cielo - this.luzCielo.intensity) * t;
+    this.luzAmbiente.intensity += (objetivo.ambiente - this.luzAmbiente.intensity) * t;
   }
 
   // De 1 (al lado de la cámara) a 0 (a 15 m o más)
@@ -260,6 +321,7 @@ export class Game {
     this.ruido.limpiar();
     this.player.setPosition(INICIO_JUGADOR.x, INICIO_JUGADOR.y, INICIO_JUGADOR.z);
     this.camera.rotation.set(0, 0, 0); // mirando hacia adentro de la casa
+    this.pasadizoEncontrado = false;
     this.items.sortearObjetivos();
     this.zonaEscape.activar(false);
     this.estabaEnLaZona = false;
@@ -289,6 +351,7 @@ export class Game {
 
     this.items.update(dt); // los objetos flotan aunque estemos en pausa
     this.zonaEscape.update(dt);
+    this.actualizarLuces(dt);
 
     if (this.estado === ESTADO.JUGANDO) {
       this.tiempoPartida += dt;
@@ -306,7 +369,9 @@ export class Game {
       this.actualizarAyuda();
       this.ui.actualizarHUD(this.tiempoPartida, this.nivelEnojo);
       const paso = this.player.tipoDePaso;
-      this.ui.mostrarRuido(paso ? RADIO_RUIDO[paso] : 0, this.player.agachado);
+      const enConducto = this.house.enConducto(this.player.position);
+      const radio = paso ? RADIO_RUIDO[enConducto ? 'conducto' : paso] : 0;
+      this.ui.mostrarRuido(radio, this.player.agachado, enConducto);
 
       if (this.owner.atrapoAlJugador()) this.perder();
       else this.revisarZonaDeEscape();
@@ -428,10 +493,17 @@ export class Game {
     // No cerramos la puerta si el jugador está parado en el hueco (quedaría atrapado)
     if (puerta.abierta && this.player.obtenerCaja().intersectsBox(puerta.collider)) return;
 
-    // Abrir o cerrar una puerta suena y hace ruido
+    // Abrir o cerrar una puerta suena y hace ruido (una rejilla, menos; el estante secreto rechina)
     if (puerta.alternar()) {
-      this.audio.puerta();
-      this.hacerRuido(puerta.centro.clone().setY(this.player.position.y), RADIO_RUIDO.puerta);
+      const chiquita = puerta.estilo === 'rejilla' || puerta.estilo === 'tabla';
+      if (chiquita) this.audio.rejilla();
+      else if (puerta.secreta) this.audio.estante();
+      else this.audio.puerta();
+      if (puerta.secreta && puerta.abierta && !this.pasadizoEncontrado) {
+        this.pasadizoEncontrado = true;
+        this.ui.mostrarAviso('📚 ¡El estante giró! Hay un cuarto secreto detrás', 3);
+      }
+      this.hacerRuido(puerta.centro.clone().setY(this.player.position.y), RADIO_RUIDO[chiquita ? 'rejilla' : 'puerta']);
     }
   }
 
@@ -503,6 +575,12 @@ export class Game {
       this.ui.mostrarAyuda('Cerrada con llave. ¿Habrá una llave de repuesto escondida por acá?');
     } else if (puerta.trabada) {
       this.ui.mostrarAyuda(`🔒 Trabada por el dueño (${Math.ceil(puerta.tiempoTrabada)} s)`);
+    } else if (puerta.estilo === 'rejilla') {
+      this.ui.mostrarAyuda(puerta.abierta ? '[E] Cerrar la rejilla' : '[E] Abrir la rejilla del conducto (entrá agachado)');
+    } else if (puerta.estilo === 'tabla') {
+      this.ui.mostrarAyuda(puerta.abierta ? '[E] Volver a poner la tabla' : '[E] Correr la tabla floja');
+    } else if (puerta.secreta) {
+      this.ui.mostrarAyuda(puerta.abierta ? '[E] Cerrar el pasadizo' : '[E] Hay un libro rojo que sobresale... ¿tirar de él?');
     } else {
       this.ui.mostrarAyuda(puerta.abierta ? '[E] Cerrar puerta (hace ruido)' : '[E] Abrir puerta (hace ruido)');
     }

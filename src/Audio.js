@@ -85,8 +85,14 @@ export class Audio {
   // ------------------------------------------------------------
   //  EFECTOS
   // ------------------------------------------------------------
-  // tipo: 'pasosAgachado' (muy suave), 'pasos' o 'pasosCorriendo' (fuerte)
+  // tipo: 'pasosAgachado' (muy suave), 'pasos', 'pasosCorriendo' (fuerte) o 'conducto' (chapa)
   paso(tipo) {
+    if (tipo === 'conducto') {
+      // Adentro de un conducto: "¡bonc!" metálico
+      this.tono({ frecuencia: 420 + Math.random() * 80, frecuenciaFinal: 300, duracion: 0.12, tipo: 'square', volumen: 0.06 });
+      this.ruido({ duracion: 0.06, volumen: 0.1, filtro: 3000 });
+      return;
+    }
     const volumen = { pasosAgachado: 0.04, pasos: 0.12, pasosCorriendo: 0.35 }[tipo] ?? 0.12;
     this.ruido({ duracion: 0.07, volumen, filtro: tipo === 'pasosCorriendo' ? 900 : 500 });
   }
@@ -176,6 +182,25 @@ export class Audio {
   // Mover una maceta: raspón de cerámica
   maceta() {
     this.ruido({ duracion: 0.25, volumen: 0.2, filtro: 1200 });
+  }
+
+  // --- Zonas especiales ---
+  // Rejilla de un conducto (o la tabla del túnel): chirrido cortito de metal
+  rejilla() {
+    this.tono({ frecuencia: 900, frecuenciaFinal: 1300, duracion: 0.12, tipo: 'sawtooth', volumen: 0.04 });
+    this.ruido({ duracion: 0.08, volumen: 0.15, filtro: 2500, retraso: 0.1 });
+  }
+
+  // El estante secreto gira: rechinar grave y largo, de película de misterio
+  estante() {
+    this.tono({ frecuencia: 90, frecuenciaFinal: 140, duracion: 1, tipo: 'sawtooth', volumen: 0.1 });
+    this.ruido({ duracion: 0.9, volumen: 0.12, filtro: 500 });
+  }
+
+  // La escalera del ático se despliega: crujido de madera y un golpe al final
+  trampilla() {
+    this.tono({ frecuencia: 250, frecuenciaFinal: 180, duracion: 0.6, tipo: 'sawtooth', volumen: 0.07 });
+    this.ruido({ duracion: 0.2, volumen: 0.35, filtro: 500, retraso: 0.55 });
   }
 
   // --- Botín ---

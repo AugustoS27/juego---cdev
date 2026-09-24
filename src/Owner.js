@@ -16,7 +16,7 @@
 import * as THREE from 'three';
 import { materialToon } from './Materials.js';
 import { cargarPiezas } from './Models.js';
-import { WAYPOINTS, CONEXIONES, LIMITES_CASA } from './HouseData.js';
+import { WAYPOINTS, CONEXIONES, LIMITES_CASA, ALTURA_PISO, pisoDeAltura } from './HouseData.js';
 
 export const ESTADO_DUENO = {
   PATRULLA: 'patrulla',
@@ -43,8 +43,14 @@ const TIEMPO_TRABA = 20; // segundos que queda trabada la puerta
 const TIEMPO_MAXIMO_YENDO = 15; // si en 15 s no llegó a donde investigaba, se rinde
 
 const WAYPOINT_INICIAL = 'dormitorio'; // arranca arriba, así el jugador tiene unos segundos
-// Habitaciones que recorre al patrullar (elige una al azar cada vez)
-const PUNTOS_PATRULLA = ['living', 'cocina', 'comedor', 'baño', 'entrada-este', 'dormitorio', 'hijo', 'baño-arriba', 'estudio'];
+// Habitaciones que recorre al patrullar (elige una al azar cada vez), de todos los pisos
+const PUNTOS_PATRULLA = [
+  'caldera', 'deposito', 'bodega', 'munecas', // sótano
+  'living', 'cocina', 'comedor', 'baño', 'entrada-este', // planta baja
+  'dormitorio', 'hijo', 'baño-arriba', 'abuela', // primer piso
+  'biblioteca', 'trofeos', 'juegos', 'reves', // segundo piso
+  'atico-oeste', // ático
+];
 
 // Si ponés acá la ruta a un modelo GLTF (ej: '/models/dueno.glb') se usa ese modelo.
 // Si es null o no carga, queda el muñeco hecho con formas básicas.
@@ -148,9 +154,11 @@ export class Owner {
     else if (this.estado === ESTADO_DUENO.INVESTIGAR) this.actualizarInvestigar(dt);
     else if (this.estado === ESTADO_DUENO.PERSEGUIR) this.actualizarPersecucion(dt);
 
-    // 4. Puertas: abre las que tiene adelante y a veces traba las que deja atrás
+    // 4. Puertas: abre las que tiene adelante y a veces traba las que deja atrás.
+    //    Si llega a la escalera plegable del ático y está plegada, la despliega.
     this.abrirPuertaDeAdelante();
     this.trabarPuertaQueCruzo();
+    if (this.house.trampilla?.abrirSiEstaCerca(this.position)) this.alAbrirPuerta?.(this.house.trampilla);
 
     this.animar(dt);
   }
@@ -222,7 +230,7 @@ export class Owner {
     const margen = 0.45;
     const adentro = new THREE.Vector3(
       THREE.MathUtils.clamp(punto.x, x1 + margen, x2 - margen),
-      punto.y > 1.5 ? 3 : 0, // planta alta o baja
+      pisoDeAltura(punto.y) * ALTURA_PISO, // al mismo piso del punto
       THREE.MathUtils.clamp(punto.z, z1 + margen, z2 - margen),
     );
     if (adentro.x === punto.x && adentro.z === punto.z) return punto.clone(); // ya estaba adentro
@@ -457,10 +465,11 @@ export class Owner {
     this.rotacion = this.anguloBase + Math.sin(this.tiempoMirando * 2) * 0.9;
   }
 
-  // Abre la puerta cerrada que tiene adelante (si la había trabado él, la destraba: tiene la llave)
+  // Abre la puerta cerrada que tiene adelante (si la había trabado él, la destraba: tiene la llave).
+  // Las rejillas de los conductos y la tabla del túnel no le interesan: por ahí no entra.
   abrirPuertaDeAdelante() {
     const mirada = new THREE.Vector3(Math.sin(this.rotacion), 0, Math.cos(this.rotacion));
-    const puerta = this.house.puertaCercana(this.position, mirada, 1.3);
+    const puerta = this.house.puertaCercana(this.position, mirada, 1.3, (p) => !p.soloJugador);
     if (puerta && !puerta.abierta && !puerta.conLlave) {
       puerta.destrabar();
       puerta.alternar();
@@ -483,6 +492,7 @@ export class Owner {
           (p) =>
             p.abierta &&
             !p.conLlave &&
+            p.estilo === 'normal' && // (no traba rejillas, tablas ni el estante secreto)
             Math.abs(p.centro.y - 1.1 - this.position.y) < 1 &&
             Math.hypot(p.centro.x - this.position.x, p.centro.z - this.position.z) < 0.6,
         ) || null;

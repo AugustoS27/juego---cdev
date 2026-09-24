@@ -6,6 +6,9 @@
 //   Escalera al balcón:  poco ruido, pero entrás arriba... donde duerme el dueño.
 //   Portón del garaje:   hay que forzarlo varios segundos, y cada tirón hace ruido.
 //   Llave en la maceta:  silenciosa, pero hay que adivinar en cuál de las macetas está.
+//   Pozo del jardín:     silencioso, pero el túnel es largo, oscuro y hay que ir agachado.
+//                        Llega al sótano. (Está en Especiales.js, igual que la trampilla del ático,
+//                        que también se usa desde acá aunque no sea una entrada.)
 //
 // Todas funcionan igual: tienen una "raiz" (el objeto 3D que se mira), un texto de ayuda,
 // y un usar() que hace la acción y DEVUELVE qué pasó (un "resultado"):
@@ -13,7 +16,8 @@
 // Game lee ese resultado y se encarga del sonido, el ruido, el cartel y la animación.
 import * as THREE from 'three';
 import { materialToon } from './Materials.js';
-import { VENTANA_ROMPIBLE, PORTON_GARAJE, ESCALERA_BALCON, BALCON, MACETAS } from './HouseData.js';
+import { VENTANA_ROMPIBLE, PORTON_GARAJE, ESCALERA_BALCON, BALCON, MACETAS, POZO, TUNEL, ALTURA_PISO } from './HouseData.js';
+import { Pozo } from './Especiales.js';
 
 const DISTANCIA_USO = 2.5; // a cuántos metros se puede usar una entrada
 const RUIDO = { romperVentana: 15, levantarEscalera: 5, forcejeo: 9 };
@@ -345,7 +349,9 @@ export class Entradas {
     this.escalera = new EscaleraBalcon(scene);
     this.porton = new PortonGaraje(scene, house);
     this.macetas = MACETAS.map(({ x, z }) => new Maceta(scene, house, x, z));
-    this.lista = [this.ventana, this.escalera, this.porton, ...this.macetas];
+    this.pozo = new Pozo(scene, house, POZO, TUNEL.piso * ALTURA_PISO);
+    this.lista = [this.ventana, this.escalera, this.porton, ...this.macetas, this.pozo];
+    if (house.trampilla) this.lista.push(house.trampilla); // la escalera plegable del ático
 
     this.raycaster = new THREE.Raycaster();
     this.raycaster.far = DISTANCIA_USO;

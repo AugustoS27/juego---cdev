@@ -41,6 +41,7 @@ export class ZonaDeEscape {
       malla.position.set(px, py + h / 2, pz);
       malla.castShadow = sombra;
       malla.receiveShadow = true;
+      malla.userData.estatico = true; // la van no se mueve: se junta con lo demás (ver Optimizar.js)
       grupo.add(malla);
       return malla;
     };

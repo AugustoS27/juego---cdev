@@ -11,7 +11,7 @@ export const RADIO_RUIDO = {
   salto: 2,
   aterrizaje: 5, // caer desde alto hace ¡pum!
   puerta: 6,
-  choque: 5,
+  choque: 5, conducto: 4, rejilla: 3, trampilla: 6,
 };
 
 export const RADIO_MAXIMO_PASOS = RADIO_RUIDO.pasosCorriendo; // para el "ruidómetro" de la pantalla

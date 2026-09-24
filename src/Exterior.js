@@ -12,7 +12,8 @@ import * as THREE from 'three';
 import { materialToon, materialConTextura } from './Materials.js';
 import { textura } from './Texturas.js';
 import { cargarPiezas } from './Models.js';
-import { UBICACION_MUEBLES, BALCON, COLOR_EXTERIOR } from './HouseData.js';
+import { crearTechoDosAguas } from './House.js';
+import { UBICACION_MUEBLES, BALCON, COLOR_EXTERIOR, TECHO, LIMITES_CASA } from './HouseData.js';
 
 // Ruta de un modelo de naturaleza de Kenney (en public/models/naturaleza)
 const N = (nombre) => `/models/naturaleza/${nombre}.glb`;
@@ -44,12 +45,18 @@ const VENTANAS_SOLO_AFUERA = [
   { piso: 1, x: 9, z: -4 },
   { piso: 1, x: 6, z: -6 },
   { piso: 0, x: -15.5, z: 2 },
+  { piso: 2, x: 4, z: 6 },
+  { piso: 2, x: 7.8, z: 6 },
+  { piso: 2, x: 9, z: -4 },
+  { piso: 2, x: -4.5, z: -6 },
+  { piso: 2, x: 4.5, z: -6 },
 ];
 
 export class Exterior {
   constructor(scene, house) {
     this.scene = scene;
     this.house = house;
+    this.cargas = []; // promesas de los modelos que se están cargando (Game espera a que terminen)
 
     this.crearCielo();
     this.crearSuelo();
@@ -76,6 +83,9 @@ export class Exterior {
     malla.position.set(x, y, z);
     malla.castShadow = sombra;
     malla.receiveShadow = true;
+    // Lo que va directo en la escena no se mueve nunca: se puede juntar con otras mallas (ver Optimizar.js).
+    // (Lo que va adentro de un grupo puede ser reemplazado por un modelo, así que no.)
+    malla.userData.estatico = padre === this.scene;
     padre.add(malla);
     return malla;
   }
@@ -84,15 +94,18 @@ export class Exterior {
   // entra en la caja [x, y, z, ancho, alto, prof] (coordenadas del grupo).
   // Si falla la carga, el grupo queda como estaba.
   // sombra: false para cosas chiquitas (pasto, flores): menos sombras = el juego anda más rápido
+  // Cuando termina (cargue o no), lo que quedó en el grupo se marca como estático para juntarlo.
   reemplazarPorModelo(grupo, archivo, caja, rot = 0, sombra = true) {
-    cargarPiezas([{ archivo, caja, rot }], false)
+    const carga = cargarPiezas([{ archivo, caja, rot }], false)
       .then((modelo) => {
         if (!sombra) modelo.traverse((hijo) => (hijo.castShadow = false));
         grupo.clear();
         grupo.add(modelo);
         grupo.updateMatrixWorld(true);
       })
-      .catch(() => console.warn(`No se pudo cargar ${archivo}: queda la forma básica`));
+      .catch(() => console.warn(`No se pudo cargar ${archivo}: queda la forma básica`))
+      .finally(() => grupo.traverse((m) => m.isMesh && (m.userData.estatico = true)));
+    this.cargas.push(carga);
   }
 
   // Un grupo vacío ubicado en (x, 0, z), para armar algo adentro
@@ -153,13 +166,22 @@ export class Exterior {
     const { x1, z1, x2, z2 } = TERRENO;
 
     // Pasto del terreno (se pisa). Queda 2 cm más bajo que el piso de la casa.
-    const ancho = x2 - x1;
-    const prof = z2 - z1;
-    h.agregarCaja({
-      x: (x1 + x2) / 2, y: -0.3, z: (z1 + z2) / 2, ancho, alto: 0.28, prof,
-      material: materialConTextura('#7cc36b', textura('pasto', ancho / 3, prof / 3)),
-      suelo: true, sombra: false,
-    });
+    // Se arma con 4 rectángulos que rodean la casa: debajo de la casa está el sótano,
+    // así que ahí no puede haber pasto (taparía la escalera que baja).
+    const casa = { x1: LIMITES_CASA.x1 - 0.1, z1: LIMITES_CASA.z1 - 0.1, x2: LIMITES_CASA.x2 + 0.1, z2: LIMITES_CASA.z2 + 0.1 };
+    const pasto = (px1, pz1, px2, pz2) => {
+      const ancho = px2 - px1;
+      const prof = pz2 - pz1;
+      h.agregarCaja({
+        x: (px1 + px2) / 2, y: -0.3, z: (pz1 + pz2) / 2, ancho, alto: 0.28, prof,
+        material: materialConTextura('#7cc36b', textura('pasto', ancho / 3, prof / 3)),
+        suelo: true, sombra: false,
+      });
+    };
+    pasto(x1, z1, x2, casa.z1); // fondo
+    pasto(x1, casa.z2, x2, z2); // frente
+    pasto(x1, casa.z1, casa.x1, casa.z2); // costado oeste (incluye el garaje)
+    pasto(casa.x2, casa.z1, x2, casa.z2); // costado este
 
     // Caminos (se pisan). El dibujo de baldosas se repite cada 1.5 m.
     const camino = (cx1, cz1, cx2, cz2, color, conBaldosas) => {
@@ -174,7 +196,14 @@ export class Exterior {
     camino(9.1, -2, 14.5, 4.5, '#e0c9a6', true); // patio trasero con baldosas
 
     // Afuera del terreno: solo decoración (vereda, calle y el pasto del barrio)
-    this.decor(new THREE.PlaneGeometry(400, 400).rotateX(-Math.PI / 2), '#6fb35f', 0, -0.08, 0, false);
+    // El pasto del barrio es un "marco" alrededor del terreno (4 planos): por debajo del terreno
+    // no puede pasar, porque se vería por el hueco de la escalera del sótano.
+    const barrio = (bx1, bz1, bx2, bz2) =>
+      this.decor(new THREE.PlaneGeometry(bx2 - bx1, bz2 - bz1).rotateX(-Math.PI / 2), '#6fb35f', (bx1 + bx2) / 2, -0.08, (bz1 + bz2) / 2, false);
+    barrio(-200, -200, 200, z1);
+    barrio(-200, z2, 200, 200);
+    barrio(-200, z1, x1, z2);
+    barrio(x2, z1, 200, z2);
     this.cajaDecor(0, -0.06, 23.5, 200, 0.06, 3, '#d9d9d9', false); // vereda
     this.cajaDecor(0, -0.07, 29, 200, 0.06, 8, '#555b61', false); // calle
     for (let x = -96; x < 100; x += 6) this.cajaDecor(x, -0.005, 29, 3, 0.01, 0.2, '#ffffff', false); // líneas
@@ -232,35 +261,48 @@ export class Exterior {
   //  CASA POR FUERA
   // ------------------------------------------------------------
   crearTechos() {
-    // Techo a dos aguas: un triángulo "estirado" a lo largo de la casa (ExtrudeGeometry).
+    // Techo a dos aguas: dos faldones de tejas y las puntas del color de la casa.
     // Bien empinado para que se vea desde el piso (si es muy chato, desde abajo queda "de canto").
-    const ALTO_TECHO = 4.2;
-    const forma = new THREE.Shape();
-    forma.moveTo(-6.7, 0);
-    forma.lineTo(6.7, 0);
-    forma.lineTo(0, ALTO_TECHO);
-    forma.lineTo(-6.7, 0);
-    const geometria = new THREE.ExtrudeGeometry(forma, { depth: 19.4, bevelEnabled: false });
-    geometria.rotateY(Math.PI / 2); // que se estire a lo largo de X
-    geometria.translate(-9.7, 6.18, 0);
-    // Dos materiales: los triángulos de las puntas del color de la casa, y las tejas rojas.
-    // (En los costados de un ExtrudeGeometry las coordenadas de textura van en metros:
-    // con repeat 0.8, el dibujo de tejas se repite cada 1.25 m.)
-    const techo = new THREE.Mesh(geometria, [
-      materialToon(COLOR_EXTERIOR),
-      materialConTextura(COLOR_TECHO, textura('tejas', 0.8, 0.8)),
-    ]);
-    techo.castShadow = true;
-    techo.receiveShadow = true;
+    // Arranca arriba del segundo piso; adentro está el ático (su interior lo arma House.crearAtico).
+    const { y, alto, mitad, x1, x2 } = TECHO;
+    const inclinado = Math.hypot(mitad, alto);
+    // El dibujo de tejas se repite cada 1.25 m
+    const tejas = materialConTextura(COLOR_TECHO, textura('tejas', (x2 - x1) / 1.25, inclinado / 1.25));
+    const puntas = materialToon(COLOR_EXTERIOR).clone();
+    // Son planos de una sola cara: que hagan sombra de los dos lados (si no, el sol "atraviesa" el techo)
+    tejas.shadowSide = THREE.DoubleSide;
+    puntas.shadowSide = THREE.DoubleSide;
+    const techo = crearTechoDosAguas(TECHO, tejas, puntas);
+    techo.traverse((m) => {
+      m.castShadow = true;
+      m.receiveShadow = true;
+    });
     this.scene.add(techo);
-    this.cajaDecor(0, 6.18 + ALTO_TECHO - 0.1, 0, 19.6, 0.15, 0.3, '#9d0208'); // cumbrera
+    this.cajaDecor(0, y + alto - 0.1, 0, x2 - x1 + 0.2, 0.15, 0.3, '#9d0208'); // cumbrera
 
-    // Chimenea
-    this.cajaDecor(5, 7, -2.5, 0.9, 4.4, 0.9, '#b5523b');
-    this.cajaDecor(5, 11.4, -2.5, 1.1, 0.2, 1.1, '#6c3a2b');
+    // Chimenea: atraviesa el ático (ahí adentro también se choca contra ella)
+    this.cajaDecor(5, y, -2.5, 0.9, 5.6, 0.9, '#b5523b');
+    this.cajaDecor(5, y + 5.6, -2.5, 1.1, 0.2, 1.1, '#6c3a2b');
+    this.house.colliders.push(new THREE.Box3(new THREE.Vector3(4.55, y, -2.95), new THREE.Vector3(5.45, y + 5.8, -2.05)));
+
+    // Ventanas redondas ("ojos de buey") en las dos puntas del techo, por fuera y por dentro del ático
+    for (const lado of [-1, 1]) {
+      for (const x of [lado * (x2 + 0.03), lado * (x2 - 0.1)]) this.ventanaRedonda(x, y + 1.8, 0);
+    }
 
     // Techo plano del garaje
     this.cajaDecor(-12.2, 2.98, 2, 6.9, 0.22, 8.5, '#6c757d');
+  }
+
+  // Ventana redonda mirando hacia los costados (±X): aro blanco, vidrio y una cruz
+  ventanaRedonda(x, y, z) {
+    const aro = this.decor(new THREE.CylinderGeometry(0.55, 0.55, 0.06, 24), COLOR_MARCO, x, y, z, false);
+    const vidrio = this.decor(new THREE.CylinderGeometry(0.45, 0.45, 0.08, 24), '#9be7ff', x, y, z, false);
+    const cruz1 = this.decor(new THREE.BoxGeometry(0.1, 0.9, 0.06), COLOR_MARCO, x, y, z, false);
+    const cruz2 = this.decor(new THREE.BoxGeometry(0.1, 0.06, 0.9), COLOR_MARCO, x, y, z, false);
+    aro.rotation.z = Math.PI / 2; // el cilindro acostado: mira hacia los costados
+    vidrio.rotation.z = Math.PI / 2;
+    for (const m of [cruz1, cruz2]) m.scale.x = 1.2;
   }
 
   crearBalcon() {
@@ -307,7 +349,9 @@ export class Exterior {
   // Por cada ventana de adentro que da a una pared exterior, ponemos su versión de afuera.
   // Además agregamos algunas ventanas que solo existen por fuera.
   crearVentanasExteriores() {
-    const deAdentro = UBICACION_MUEBLES.filter((m) => m.tipo === 'ventana').map(({ piso, x, z }) => {
+    // (solo los pisos con ventanas hacia afuera: el sótano está bajo tierra y el ático no tiene paredes)
+    const conVentanas = (m) => m.tipo === 'ventana' && m.piso >= 0 && m.piso <= 2;
+    const deAdentro = UBICACION_MUEBLES.filter(conVentanas).map(({ piso, x, z }) => {
       // Buscamos a qué pared exterior está pegada
       if (Math.abs(x) > 8.5) return { piso, x: Math.sign(x) * 9, z };
       return { piso, x, z: Math.sign(z) * 6 };
@@ -321,6 +365,7 @@ export class Exterior {
     const parte = (ancho, alto, prof, color, px, py, pz) => {
       const m = new THREE.Mesh(new THREE.BoxGeometry(ancho, alto, prof), materialToon(color));
       m.position.set(px, py, pz);
+      m.userData.estatico = true;
       grupo.add(m); // sin sombra: están pegadas a la pared, no se notaría
     };
     parte(1.5, 1.3, 0.06, COLOR_MARCO, 0, 0.65, 0); // marco
@@ -425,7 +470,8 @@ export class Exterior {
       !(x > -3 && x < 1 && z > 7) && // camino con canteros
       !(x > -15 && x < -9.5 && z > 6) && // entrada de autos
       !(x > 8.5 && x < 15 && z > -2.5 && z < 5) && // patio
-      !(x > -8 && x < -5.8 && z > 8.5 && z < 14.5); // la escalera tirada en el pasto
+      !(x > -8 && x < -5.8 && z > 8.5 && z < 14.5) && // la escalera tirada en el pasto
+      !(x > 11.5 && x < 14.3 && z > -6 && z < -3); // el pozo
 
     let puestas = 0;
     while (puestas < 70) {

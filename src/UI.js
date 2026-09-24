@@ -25,6 +25,7 @@ export class UI {
     this.tituloBotin = $('titulo-botin');
     this.listaPistas = $('lista-pistas');
     this.textoTiempo = $('texto-tiempo');
+    this.textoPiso = $('texto-piso');
     this.rellenoEnojo = $('relleno-enojo');
     this.hudSonido = $('hud-sonido');
 
@@ -86,6 +87,11 @@ export class UI {
     this.rellenoEnojo.style.width = `${(nivelEnojo / NIVEL_MAXIMO_ENOJO) * 100}%`;
   }
 
+  // Dónde está el jugador: 'Sótano', 'Planta baja'... o 'Afuera'
+  mostrarPiso(nombre) {
+    if (nombre !== this.textoPiso.textContent) this.textoPiso.textContent = nombre;
+  }
+
   mostrarSilencio(silenciado) {
     this.hudSonido.textContent = silenciado ? '🔇 [M] Sonido' : '🔊 [M] Sonido';
   }
@@ -111,8 +117,9 @@ export class UI {
     this.avisos.innerHTML = '';
   }
 
-  // Ruidómetro: "radio" es el alcance del ruido de tus pasos ahora mismo (0 = quieto)
-  mostrarRuido(radio, agachado = false) {
+  // Ruidómetro: "radio" es el alcance del ruido de tus pasos ahora mismo (0 = quieto).
+  // enConducto: adentro de un conducto de chapa todo suena más (aunque vayas agachado)
+  mostrarRuido(radio, agachado = false, enConducto = false) {
     const porcentaje = (radio / RADIO_MAXIMO_PASOS) * 100;
     let texto = agachado ? '🦶 Agachado' : '🤫 Silencio';
     let color = '#52b788'; // verde
@@ -124,6 +131,10 @@ export class UI {
     if (radio > 3) {
       texto = '📢 ¡Mucho ruido!';
       color = '#e63946'; // rojo
+    }
+    if (enConducto && radio > 0) {
+      texto = '🔩 ¡La chapa suena!';
+      color = '#f4a261'; // naranja
     }
     if (texto !== this.textoRuidoActual) {
       this.textoRuidoActual = texto;

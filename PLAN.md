@@ -3,8 +3,8 @@
 Este documento detalla las etapas para las mejoras nuevas del juego: qué se va a hacer en cada una,
 en qué orden, qué archivos se tocan, cómo se prueba y qué decisiones quedan pendientes.
 
-> **Estado actual:** etapas 1 a 8 terminadas (juego base + exterior + gráficos), **etapas 9 y 10 terminadas**.
-> Próxima: **etapa 11**.
+> **Estado actual:** etapas 1 a 10 terminadas, **11A y 11B terminadas** (estructura y zonas especiales).
+> Próxima: **etapa 11C** (interiores refinados y más decoración).
 
 ---
 
@@ -21,7 +21,7 @@ en qué orden, qué archivos se tocan, cómo se prueba y qué decisiones quedan 
 9. [Etapa 14 — Pulido: animaciones, entradas y escondites](#etapa-14--pulido-animaciones-entradas-y-escondites)
 10. [Riesgos y cómo los manejamos](#riesgos-y-cómo-los-manejamos)
 11. [Decisiones pendientes](#decisiones-pendientes)
-12. [Historial (etapas 1 a 10)](#historial-etapas-1-a-10)
+12. [Historial (etapas 1 a 11B)](#historial-etapas-1-a-11b)
 
 ---
 
@@ -49,7 +49,7 @@ Son los mismos que usamos desde el principio, porque el proyecto tiene que ser f
 |---|---|---|---|
 | **9** | Saltar y agacharse | Mediana | ✅ Terminada |
 | **10** | Cinco objetos para robar + zona de escape | Mediana | ✅ Terminada |
-| **11** | Casa gigante: pisos, sótano, ático, puentes, túneles, ventilaciones | Muy grande (se divide en 11A y 11B) | ⏳ Próxima |
+| **11** | Casa gigante: pisos, sótano, ático, puentes, túneles, ventilaciones, decoración | Muy grande (se divide en 11A, 11B y 11C) | 🟡 11A y 11B terminadas · 11C próxima |
 | **12** | Enemigos nuevos: dos perros y la abuela con escopeta | Grande | Pendiente |
 | **13** | Objetos de habilidad: zanahoria, botas de lana, bebida energética | Mediana | Pendiente |
 | **14** | Pulido: animaciones, más entradas, más escondites | Grande | Pendiente |
@@ -196,10 +196,66 @@ Cada objeto: una función que lo arma con formas básicas (como los actuales) y 
 ## Etapa 11 — La casa gigante
 
 **Objetivo:** una casa mucho más grande y rara, con varios pisos y zonas especiales.
-Por su tamaño se divide en dos partes.
+Por su tamaño se divide en tres partes: **11A** estructura, **11B** zonas especiales y **11C** interiores
+refinados y decoración.
 
-### 11A — Estructura
+### 11A — Estructura ✅
 
+#### Qué se hizo
+La planta de la casa (18 × 12 m) no cambió, así que las 5 entradas, el exterior y lo que ya estaba probado
+siguen igual. La casa crece para arriba y para abajo: de 2 niveles pasa a **5**.
+
+| Nivel | Habitaciones |
+|---|---|
+| -1 **Sótano** | Sala de la caldera, depósito (con un maniquí), bodega (barriles y vinos), **cuarto de las muñecas** y pasillo. Oscuro, con lamparitas que parpadean y el resplandor naranja de la caldera. |
+| 0 Planta baja | Igual que antes, más la escalera que baja al sótano. |
+| 1 Primer piso | Dormitorio, cuarto del hijo, baño y el **cuarto de la abuela** (antes era el estudio): cama, mecedora y tele vieja. |
+| 2 Segundo piso | **Biblioteca**, **sala de trofeos** (oso disecado, cabezas de ciervo, vitrina), **cuarto de juegos** (pool, arcade) y **el cuarto al revés** (los muebles cuelgan del techo y una lámpara sale del piso). |
+| 3 **Ático** | Adentro del techo a dos aguas: baúles, caballito de madera, muñeca, espejo viejo. En los bordes el techo es tan bajo que hay que agacharse. |
+
+- **Escalera principal apilada:** tres tramos (sótano→PB, PB→1°, 1°→2°) exactamente uno encima del otro;
+  entre tramo y tramo siempre quedan 3 m libres. Los escalones son tablones y las rebanadas de colisión miden
+  medio metro de alto, así por debajo de un tramo puede pasar otro.
+- **Escalera empinada al ático** (3 m de alto en 4 m) en el medio de la sala de trofeos.
+- **Datos por piso:** `src/datos/` tiene un archivo por piso (`sotano.js`, `plantaBaja.js`, `primerPiso.js`,
+  `segundoPiso.js`, `atico.js`), el catálogo de muebles (`muebles.js`) y lo común (`comun.js`).
+  `HouseData.js` los junta y exporta las mismas listas de siempre, así el resto del código casi no cambió.
+- **Muebles nuevos** (26 tipos), algunos con formas nuevas: las partes ahora pueden ser `'cilindro'` o `'esfera'`.
+  Opciones `alReves` (cuelga del techo) y `patasArriba` (dado vuelta en el piso).
+- **Techo del ático:** faldones de madera vistos desde adentro, franjas de colisión que bajan hacia los
+  bordes (parado llegás hasta 3,9 m del centro; agachado hasta 4,9 m) y la chimenea que lo atraviesa.
+  Ventanas redondas en las puntas del techo.
+- **Luz que sigue al jugador:** en vez de un sol por piso hay **uno solo** que se muda al piso donde estás
+  (una luz direccional ilumina todos los pisos: con 5 soles todo quedaba quemado). Su sombra llega hasta el
+  sótano, así los pisos de abajo quedan a la sombra del tuyo. En el sótano la luz baja de a poco ("se te
+  acostumbra la vista") y en el ático un poco.
+- **HUD:** muestra dónde estás (📍 Sótano, Planta baja... o Afuera).
+- **Dueño:** 72 conexiones de waypoints en los 5 pisos y patrulla por los cuartos nuevos.
+- **Objetos:** 82 ubicaciones (se sumaron lugares en el sótano, la biblioteca, el cuarto de la abuela y el ático).
+- **Rendimiento** (ver `src/Optimizar.js`): todo lo que no se mueve (paredes, pisos, escalones, decoración,
+  y cuando terminan de cargar, los muebles de cada piso y las plantas del jardín) se junta en **una malla por
+  material**. Las originales quedan invisibles para los rayos. Los muebles de los pisos lejanos no se dibujan.
+
+#### Cambios respecto de la idea original
+- La **sala de música** se cambió por **el cuarto al revés** (más raro y más gracioso).
+- El **invernadero** queda para más adelante: no había lugar para pegarlo a la casa sin mover las entradas.
+- Los **soles por piso** se cambiaron por un solo sol que sigue al jugador (ver arriba el porqué).
+- La **trampilla** del ático va en la 11B: por ahora la escalera llega directo por un hueco con baranda.
+
+#### Pruebas que se corrieron
+- Las 72 conexiones de waypoints se pueden caminar en línea recta y el grafo llega a todos los puntos.
+- El dueño camina de verdad entre pisos lejanos (bodega → ático, ático → caldera, etc.) y llega.
+  Se encontró y arregló un error: dos puntos casi uno encima del otro en pisos distintos "parecían"
+  conectados en línea recta (ahora hay un límite de pendiente).
+- El jugador sube y baja los 4 tramos de escalera caminando; en el ático no se puede parar bajo el techo bajo.
+- Las 26 puertas se pueden cruzar; hay suelo en todo el terreno alrededor de la casa.
+- Las 82 ubicaciones de objetos se ven y se agarran (cada una desde 4 posiciones o más).
+- Partida simulada de 79 s sin errores (el dueño recorrió 3 pisos y atrapó al jugador); build OK.
+- **Rendimiento** (misma compu, placa de video integrada Intel UHD 620): la casa gigante tarda lo mismo que
+  la casa de la etapa 10 (de frente ~27-34 ms por frame contra 27-32; adentro ~24 contra ~20) con la mitad
+  de llamadas de dibujo (570 contra 1081).
+
+#### Plan original
 **Pisos (de abajo hacia arriba):**
 
 | Nivel | Nombre | Idea |
@@ -222,8 +278,49 @@ decoración), baño con la bañera en el medio.
 - El sótano queda debajo del pasto: su techo es el piso de la planta baja.
 - **Waypoints** nuevos para todos los pisos, conectados por las escaleras.
 
-### 11B — Zonas especiales
+### 11B — Zonas especiales ✅
 
+#### Qué se hizo
+| Zona | Dónde | Cómo funciona |
+|---|---|---|
+| **Conductos de ventilación** | Sótano (depósito ↔ bodega), primer piso (baño ↔ cuarto de la abuela) y segundo piso (sala de trofeos ↔ cuarto de juegos) | Caños de chapa a ras del piso que atraviesan una pared, con una rejilla en cada punta (E). Adentro miden 1,15 m: solo se pasa agachado. El dueño no entra (mide 1,8) ni ve adentro, pero cada paso suena a chapa (radio 4 m, aunque vayas agachado). El HUD y el ruidómetro avisan. |
+| **Túnel secreto** | Del pozo del jardín (nuevo, en el fondo) a la bodega del sótano | Nueva forma de entrar: E en el pozo y bajás por la escalerita. El túnel, oscuro y con marcos de madera como una mina, se pasa agachado y termina en una tabla floja en la pared de la bodega (E). Silencioso pero largo. |
+| **Puente** | Ático, sobre el cuarto de juegos | Encima del cuarto de juegos se sacó el piso del ático (desde abajo se ve un techo altísimo) y lo cruza un puente de tablones sin baranda. Si te caés, aterrizás en el cuarto de juegos con ruido. |
+| **Trampilla del ático** | Sala de trofeos | La escalera al ático ahora es **plegable**: arranca plegada contra el techo (desde el ático es la tapa de la trampilla) con una cuerda colgando. E para desplegarla o plegarla (hace ruido). No se pliega con alguien encima. El dueño la despliega solo cuando la necesita. |
+| **Pasadizo secreto** | Biblioteca (segundo piso) | Un estante lleno de libros, con un libro rojo que sobresale, es una puerta que gira (E) y lleva a un **cuarto secreto** con una caja fuerte y un cofre del tesoro (dos lugares nuevos para el botín). |
+
+**Cómo está hecho (para explicarlo):**
+- Las rejillas, la tabla del túnel y el estante secreto son **puertas** (`Door.js`) con otro estilo y tamaño:
+  chocan, se abren con E y se animan igual que las demás. Las marcadas `soloJugador` el dueño no las usa.
+- La trampilla y el pozo funcionan como las **entradas**: un objeto que se mira, un texto de ayuda y un
+  `usar()` que devuelve qué pasó (`src/Especiales.js`).
+- La escalera plegable se arma adentro de un grupo que gira sobre su punta de arriba: girándolo, la
+  escalera entera (rampa invisible incluida) se pliega contra el techo. Plegada, su rampa queda horizontal
+  y sirve de piso en el ático.
+- Los conductos y el túnel se describen como datos (`conductos` en cada piso, `TUNEL` y `POZO` en
+  `HouseData.js`); `House.js` arma los caños y hace solo los agujeros en las paredes que atraviesan.
+- Para no sumar dibujos por frame, los libros del estante y las varillas de las rejillas están **dibujados
+  en un canvas** sobre la hoja (una malla en vez de ~50), y el pozo se junta con lo demás.
+
+**Cambios respecto de la idea original:** el túnel sale de un **pozo** (no de la cucha: la cucha es chica
+para meterse) y el puente cruza un **vacío en el ático** sobre el cuarto de juegos.
+
+#### Pruebas que se corrieron
+- Los 3 conductos y el túnel: agachado se pasan, parado no; el dueño no puede entrar.
+- Pozo: bajar, recorrer el túnel hasta la bodega y volver a subir.
+- Trampilla: plegada no se sube y se camina por encima; desplegada se sube; no se pliega con el jugador
+  encima; el dueño la despliega al llegar.
+- Estante secreto: cerrado no se pasa; abierto se entra al cuarto secreto. Puente: se cruza, y al caerse
+  se aterriza abajo con ruido.
+- **Recorrido automático** (nuevo): con todo abierto, una "inundación" desde la entrada con la caja del
+  jugador agachado marca a dónde se puede llegar. Se llega a los 5 pisos, los 3 conductos, el túnel, el cuarto
+  secreto, el puente, los 85 lugares de objetos y los 73 puntos del dueño. (Así se encontró un inodoro que el
+  conducto del baño había dejado encerrado: se mudó.)
+- Las 78 conexiones de waypoints se caminan; el dueño llega al ático (desplegando la escalera) y al cuarto
+  secreto; las 27 puertas se cruzan; partida simulada de 120 s sin errores; build OK.
+- Rendimiento: casi las mismas llamadas de dibujo que en la 11A (617 contra 570 de frente).
+
+#### Plan original
 | Zona | Cómo funciona |
 |---|---|
 | **Ventilaciones** | Conductos bajos (solo agachado) que conectan cuartos. El dueño no entra, pero moverse adentro hace ruido metálico. |
@@ -231,6 +328,35 @@ decoración), baño con la bañera en el medio.
 | **Puentes** | Pasarela sobre un hall de doble altura o entre dos alas de la casa. Si te caés, aterrizás con ruido. |
 | **Ático** | Se entra por una trampilla (E) con escalera plegable. |
 | **Pasadizo secreto** | Un estante de la biblioteca que gira (E). |
+
+### 11C — Refinar los interiores y aumentar la decoración
+
+**Objetivo:** que cada cuarto se vea "vivido" y distinto de los demás, con muchos más detalles, sin perder
+rendimiento ni romper lo que ya funciona (caminos del dueño, escondites, ubicaciones de objetos).
+
+| Qué | Ideas |
+|---|---|
+| **Paredes** | Zócalos de madera abajo y molduras arriba. Empapelado o textura distinta por cuarto (rayas, flores, azulejos en los baños y la cocina, ladrillo en el sótano, tablas en el ático), dibujados con código en `Texturas.js`. |
+| **Puertas y ventanas** | Marcos por dentro, cortinas y persianas. |
+| **Cuadros** | Dibujados en un canvas: retrato del dueño, de la abuela, paisajes, un perro, y en el sótano un cuadro "que te sigue con la mirada". También relojes de pared, espejos y diplomas. |
+| **Luces** | Lámparas colgantes o plafones en cada techo y veladores en las mesas de luz (solo decoración: la luz la siguen dando las luces de siempre). |
+| **Detalles sobre los muebles** | Libros, floreros, tazas, platos y frascos en la cocina, jabón y toallas en los baños, juguetes en el cuarto del hijo, ovillos de lana en el cuarto de la abuela. |
+| **Textiles** | Alfombras distintas por cuarto, almohadones, mantas sobre los sillones y las camas. |
+| **Sótano** | Telarañas en las esquinas, gotas que caen del techo (con sonido), manchas de humedad, cadenas, charcos. |
+| **Ático** | Sábanas cubriendo muebles (parecen fantasmas), polvo flotando en la luz, cajas abiertas con cosas viejas. |
+| **Pasillos y escalera** | Cuadros a lo largo de la escalera, plantas, percheros, una alfombra larga. |
+
+**Cuidados:**
+- Todo lo decorativo se marca como estático para que `Optimizar.js` lo junte (si no, cada cosita es un
+  dibujo más por frame).
+- Las cosas chiquitas no chocan; las que ocupan lugar se revisan contra los caminos del dueño.
+- Las superficies donde aparecen objetos del botín no se tapan con decoración.
+
+**Archivos:** `src/datos/*.js` (decoración de cada piso), `src/datos/muebles.js` (piezas de decoración),
+`House.js` (zócalos, molduras y marcos), `Texturas.js` (empapelados, ladrillos, cuadros).
+
+**Pruebas:** tiempo por frame igual que en la 11B, conexiones del dueño, objetos visibles y agarrables,
+recorridos por todos los cuartos.
 
 ### Archivos
 `HouseData*.js` (nuevos por piso), `House.js` (varias escaleras, trampillas, conductos), `Game.js` (luces por
@@ -384,12 +510,12 @@ Todos usan el mismo sistema de escondites de ahora (y la misma regla de sospecha
 | ~~¿Dónde está la zona de escape?~~ | ✅ Decidido: atrás de una van negra en el frente de la casa | Etapa 10 |
 | ~~¿Cuántos objetos en total?~~ | ✅ Decidido: 18 tipos, se sortean 5 | Etapa 10 |
 | ¿Los perros pueden entrar por la puerta trasera? | No, se quedan en el patio | Etapa 12 |
-| ¿Linterna para el sótano? | Sí, si el sótano queda muy oscuro | Etapa 11 |
+| ¿Linterna para el sótano? | Por ahora no hace falta: las lamparitas alcanzan para ver. Se revisa al jugar | Etapa 11 |
 | ¿Habilidades con inventario o al agarrar? | Al agarrar (más simple) | Etapa 13 |
 
 ---
 
-## Historial (etapas 1 a 10)
+## Historial (etapas 1 a 11B)
 
 | Etapa | Qué se hizo |
 |---|---|
@@ -403,3 +529,5 @@ Todos usan el mismo sistema de escondites de ahora (y la misma regla de sospecha
 | 8 | Gráficos: modelos de Kenney (CC0) + bordes de dibujo animado + texturas propias |
 | 9 | Saltar y agacharse, ruido de pasos según el movimiento, ruidómetro |
 | 10 | 18 objetos (se sortean 5), lista del botín en el HUD y escape en la van negra del frente |
+| 11A | Casa de 5 niveles (sótano, 3 pisos y ático), escalera apilada, cuartos raros, luz que sigue al jugador, mallas juntadas |
+| 11B | Conductos de ventilación, túnel secreto desde un pozo, puente en el ático, escalera plegable (trampilla) y pasadizo secreto en la biblioteca |
