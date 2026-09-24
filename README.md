@@ -7,6 +7,8 @@ formas de entrar: romper una ventana, la puerta trasera que quedó abierta, una 
 forzar el portón del garaje o buscar la llave escondida en una maceta. Adentro, una pista (un acertijo)
 te dice qué objeto tenés que encontrar. Si lo agarrás, ganás. Si el dueño te atrapa, perdés.
 
+> 📋 El plan de las próximas mejoras (etapas 9 a 14) está en [PLAN.md](PLAN.md).
+
 ## Cómo correrlo
 
 ```bash
@@ -25,6 +27,8 @@ Para generar la versión final: `npm run build` (queda en `dist/`).
 | WASD | Moverse |
 | Mouse | Mirar |
 | Shift | Correr (hace ruido) |
+| Espacio | Saltar (se puede subir arriba de los muebles) |
+| C (mantener) | Agacharse: más lento pero casi sin ruido |
 | E | Abrir/cerrar puertas, esconderse, agarrar el objeto |
 | M | Activar/desactivar sonido |
 | B | Activar/desactivar los bordes de dibujo animado |

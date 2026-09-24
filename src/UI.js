@@ -1,5 +1,6 @@
 // UI: todo lo que se muestra "encima" del juego (HUD, avisos y pantallas en HTML).
 // Game le dice QUÉ mostrar; UI sabe CÓMO mostrarlo.
+import { RADIO_MAXIMO_PASOS } from './Noise.js';
 
 const NIVEL_MAXIMO_ENOJO = 6;
 
@@ -30,7 +31,8 @@ export class UI {
     this.mira = $('mira');
     this.ayuda = $('ayuda');
     this.avisos = $('avisos');
-    this.indicadorRuido = $('indicador-ruido');
+    this.textoRuido = $('texto-ruido');
+    this.rellenoRuido = $('relleno-ruido');
     this.vistaEscondite = $('vista-escondite');
     this.alertaPersecucion = $('alerta-persecucion');
 
@@ -93,8 +95,26 @@ export class UI {
     this.avisos.innerHTML = '';
   }
 
-  mostrarIndicadorRuido(visible) {
-    this.indicadorRuido.classList.toggle('oculto', !visible);
+  // Ruidómetro: "radio" es el alcance del ruido de tus pasos ahora mismo (0 = quieto)
+  mostrarRuido(radio, agachado = false) {
+    const porcentaje = (radio / RADIO_MAXIMO_PASOS) * 100;
+    let texto = agachado ? '🦶 Agachado' : '🤫 Silencio';
+    let color = '#52b788'; // verde
+    if (radio > 0 && radio <= 1) texto = '🦶 Casi nada';
+    if (radio > 1 && radio <= 3) {
+      texto = '👣 Pasos';
+      color = '#ffd23f'; // amarillo
+    }
+    if (radio > 3) {
+      texto = '📢 ¡Mucho ruido!';
+      color = '#e63946'; // rojo
+    }
+    if (texto !== this.textoRuidoActual) {
+      this.textoRuidoActual = texto;
+      this.textoRuido.textContent = texto;
+    }
+    this.rellenoRuido.style.width = `${porcentaje}%`;
+    this.rellenoRuido.style.background = color;
   }
 
   mostrarAlertaPersecucion(visible) {
@@ -111,7 +131,7 @@ export class UI {
   ocultarCosasDelJuego() {
     this.mostrarAyuda(null);
     this.mostrarEscondite(null);
-    this.mostrarIndicadorRuido(false);
+    this.mostrarRuido(0);
     this.mostrarAlertaPersecucion(false);
     this.borrarAvisos();
   }

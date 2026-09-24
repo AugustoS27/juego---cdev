@@ -5,10 +5,16 @@ import * as THREE from 'three';
 
 // Radios de cada tipo de ruido (en metros)
 export const RADIO_RUIDO = {
+  pasosAgachado: 1, // casi no se escucha
+  pasos: 3, // caminando normal: el dueño te escucha si pasás cerca
   pasosCorriendo: 7,
+  salto: 2,
+  aterrizaje: 5, // caer desde alto hace ¡pum!
   puerta: 6,
   choque: 5,
 };
+
+export const RADIO_MAXIMO_PASOS = RADIO_RUIDO.pasosCorriendo; // para el "ruidómetro" de la pantalla
 
 const DURACION_ONDA = 0.6; // segundos que tarda la onda en llegar al radio
 

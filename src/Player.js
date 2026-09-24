@@ -1,18 +1,25 @@
-// El jugador: cámara en primera persona, movimiento con WASD y colisiones simples.
+// El jugador: cámara en primera persona, movimiento con WASD, salto, agacharse y colisiones simples.
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
 
 // Valores del jugador (fáciles de ajustar)
 const VELOCIDAD_CAMINAR = 3.5; // metros por segundo
 const VELOCIDAD_CORRER = 6.5;
+const VELOCIDAD_AGACHADO = 1.8;
 const ALTURA_OJOS = 1.6; // la cámara está a esta altura sobre los pies
-const RADIO = 0.3; // "ancho" del jugador (mitad del lado de su caja)
+const ALTURA_OJOS_AGACHADO = 0.9;
 const ALTURA_CUERPO = 1.7;
+const ALTURA_CUERPO_AGACHADO = 1.05; // agachado entra por lugares bajos (y se esconde detrás de los muebles)
+const RADIO = 0.3; // "ancho" del jugador (mitad del lado de su caja)
 const ESCALON = 0.35; // lo máximo que puede "subir" de golpe sin chocar (sirve para rampas)
 const GRAVEDAD = 20;
-const INTERVALO_PASOS_CORRIENDO = 0.45; // cada cuántos segundos hace ruido al correr
+const VELOCIDAD_SALTO = 6; // salta unos 90 cm (altura = v² / 2g)
+const CAIDA_RUIDOSA = -5; // si cae más rápido que esto, el aterrizaje hace ruido
 const ESPERA_ENTRE_CHOQUES = 1; // para no generar un ruido por frame contra una pared
 const ALTURA_OJOS_ESCONDIDO = { placard: 1.5, cama: 0.2 }; // debajo de la cama se ve desde el piso
+
+// Cada tipo de paso: cada cuánto se da un paso (s). El ruido de cada uno está en Noise.js.
+const INTERVALO_PASO = { pasos: 0.5, pasosCorriendo: 0.3, pasosAgachado: 0.7 };
 
 export class Player {
   constructor(camera, domElement, house) {
@@ -21,11 +28,14 @@ export class Player {
 
     // Posición de los PIES del jugador (la cámara se ubica arriba)
     this.position = new THREE.Vector3(0, 0, 0);
-    this.velocidadY = 0; // solo se usa para caer
+    this.velocidadY = 0; // velocidad vertical (saltar y caer)
+    this.enSuelo = true;
 
     // Estado que otras partes del juego van a leer (ej: el sistema de ruido)
     this.estaMoviendose = false;
     this.estaCorriendo = false;
+    this.agachado = false;
+    this.alturaOjos = ALTURA_OJOS; // se acerca de a poco a la altura de parado o agachado
 
     this.animacion = null; // movimiento automático (trepar, subir la escalera) o null
 
@@ -35,22 +45,23 @@ export class Player {
     this.posicionAntesDeEsconderse = new THREE.Vector3();
     this.rotacionAntesDeEsconderse = new THREE.Quaternion();
 
-    // Ruido: Game conecta esta función con el sistema de ruido.
-    // Se llama como alHacerRuido(tipo), con tipo = 'pasosCorriendo' o 'choque'.
-    this.alHacerRuido = null;
-    this.tiempoPasos = 0;
-    this.tiempoDesdeChoque = ESPERA_ENTRE_CHOQUES;
-
-    // Sonido de pasos: Game conecta esta función con el audio. Se llama como alDarPaso(corriendo).
+    // Game conecta estas funciones con el sonido y el sistema de ruido:
+    //   alDarPaso(tipo):    tipo = 'pasos', 'pasosCorriendo' o 'pasosAgachado'
+    //   alHacerRuido(tipo): tipo = 'choque', 'salto' o 'aterrizaje'
     this.alDarPaso = null;
-    this.tiempoSonidoPaso = 0;
+    this.alHacerRuido = null;
+    this.tiempoParaPaso = 0;
+    this.tiempoDesdeChoque = ESPERA_ENTRE_CHOQUES;
 
     // PointerLockControls: esconde el mouse y rota la cámara al moverlo
     this.controls = new PointerLockControls(camera, domElement);
 
     // Teclas apretadas en este momento
     this.teclas = {};
-    window.addEventListener('keydown', (e) => (this.teclas[e.code] = true));
+    window.addEventListener('keydown', (e) => {
+      this.teclas[e.code] = true;
+      if (e.code === 'Space' && this.controls.isLocked) e.preventDefault(); // que la página no scrollee
+    });
     window.addEventListener('keyup', (e) => (this.teclas[e.code] = false));
 
     // Objetos reutilizables (así no creamos objetos nuevos en cada frame)
@@ -64,6 +75,9 @@ export class Player {
   setPosition(x, y, z) {
     this.position.set(x, y, z);
     this.velocidadY = 0;
+    this.enSuelo = true;
+    this.agachado = false;
+    this.alturaOjos = ALTURA_OJOS;
     this.animacion = null;
     this.actualizarCamara();
   }
@@ -96,37 +110,68 @@ export class Player {
       return;
     }
 
+    this.tiempoDesdeChoque += dt;
+    this.actualizarAgachado();
+    this.saltarSiCorresponde();
     this.mover(dt);
     this.aplicarGravedad(dt);
-    this.actualizarCamara();
-    this.hacerRuidoAlCorrer(dt);
-    this.sonarPasos(dt);
+    this.actualizarCamara(dt);
+    this.darPasos(dt);
   }
 
-  // Sonido de pasos: uno cada medio segundo caminando, más seguido corriendo
-  sonarPasos(dt) {
-    if (!this.estaMoviendose) {
-      this.tiempoSonidoPaso = 0;
-      return;
-    }
-    this.tiempoSonidoPaso -= dt;
-    if (this.tiempoSonidoPaso <= 0) {
-      this.tiempoSonidoPaso = this.estaCorriendo ? 0.3 : 0.5;
-      this.alDarPaso?.(this.estaCorriendo);
+  // ------------------------------------------------------------
+  //  SALTAR Y AGACHARSE
+  // ------------------------------------------------------------
+  // C (mantener) = agacharse. Para pararse tiene que haber lugar arriba
+  // (si estás debajo de algo bajo, te quedás agachado).
+  actualizarAgachado() {
+    const quiereAgacharse = !!this.teclas['KeyC'];
+    if (quiereAgacharse) {
+      this.agachado = true;
+    } else if (this.agachado && this.hayLugarParaPararse()) {
+      this.agachado = false;
     }
   }
 
-  // Correr hace ruido: un "paso fuerte" cada INTERVALO_PASOS_CORRIENDO segundos
-  hacerRuidoAlCorrer(dt) {
-    this.tiempoDesdeChoque += dt;
-    if (!this.estaCorriendo) {
-      this.tiempoPasos = 0;
+  hayLugarParaPararse() {
+    const p = this.position;
+    const cajaParado = new THREE.Box3(
+      new THREE.Vector3(p.x - RADIO, p.y + ESCALON, p.z - RADIO),
+      new THREE.Vector3(p.x + RADIO, p.y + ALTURA_CUERPO, p.z + RADIO),
+    );
+    return !this.house.chocaCon(cajaParado);
+  }
+
+  // Espacio = saltar (solo parado y apoyado en algo)
+  saltarSiCorresponde() {
+    if (this.teclas['Space'] && this.enSuelo && !this.agachado) {
+      this.velocidadY = VELOCIDAD_SALTO;
+      this.enSuelo = false;
+      this.alHacerRuido?.('salto');
+    }
+  }
+
+  // ------------------------------------------------------------
+  //  PASOS (sonido y ruido)
+  // ------------------------------------------------------------
+  // Qué tipo de paso estamos dando ahora (null si estamos quietos o en el aire)
+  get tipoDePaso() {
+    if (!this.estaMoviendose || !this.enSuelo) return null;
+    if (this.agachado) return 'pasosAgachado';
+    return this.estaCorriendo ? 'pasosCorriendo' : 'pasos';
+  }
+
+  // Cada tanto se da un paso: Game le pone sonido y genera el ruido que corresponde
+  darPasos(dt) {
+    const tipo = this.tipoDePaso;
+    if (!tipo) {
+      this.tiempoParaPaso = 0;
       return;
     }
-    this.tiempoPasos += dt;
-    if (this.tiempoPasos >= INTERVALO_PASOS_CORRIENDO) {
-      this.tiempoPasos = 0;
-      this.alHacerRuido?.('pasosCorriendo');
+    this.tiempoParaPaso -= dt;
+    if (this.tiempoParaPaso <= 0) {
+      this.tiempoParaPaso = INTERVALO_PASO[tipo];
+      this.alDarPaso?.(tipo);
     }
   }
 
@@ -138,7 +183,9 @@ export class Player {
     }
   }
 
-  // --- Escondites ---
+  // ------------------------------------------------------------
+  //  ESCONDITES
+  // ------------------------------------------------------------
   // Nos metemos en el mueble y la cámara mira hacia donde estábamos parados:
   //  - placard: los ojos quedan en la puerta del placard (espiando por las rendijas)
   //  - cama: los ojos quedan abajo, cerca del borde (espiando desde el piso)
@@ -176,7 +223,10 @@ export class Player {
     this.actualizarCamara();
   }
 
-  // --- Movimiento horizontal con WASD ---
+  // ------------------------------------------------------------
+  //  MOVIMIENTO Y COLISIONES
+  // ------------------------------------------------------------
+  // Movimiento horizontal con WASD
   mover(dt) {
     // Hacia dónde mira la cámara, pero "aplastado" al piso (sin mirar arriba/abajo)
     this.camera.getWorldDirection(this.adelante);
@@ -193,12 +243,15 @@ export class Player {
     if (this.teclas['KeyA']) this.movimiento.sub(this.derecha);
 
     this.estaMoviendose = this.movimiento.lengthSq() > 0;
+    // Agachado no se puede correr
     this.estaCorriendo =
-      this.estaMoviendose && (this.teclas['ShiftLeft'] || this.teclas['ShiftRight']);
+      this.estaMoviendose && !this.agachado && (this.teclas['ShiftLeft'] || this.teclas['ShiftRight']);
 
     if (!this.estaMoviendose) return;
 
-    const velocidad = this.estaCorriendo ? VELOCIDAD_CORRER : VELOCIDAD_CAMINAR;
+    let velocidad = VELOCIDAD_CAMINAR;
+    if (this.agachado) velocidad = VELOCIDAD_AGACHADO;
+    else if (this.estaCorriendo) velocidad = VELOCIDAD_CORRER;
     // normalize(): que ir en diagonal no sea más rápido
     this.movimiento.normalize().multiplyScalar(velocidad * dt);
 
@@ -217,48 +270,77 @@ export class Player {
   }
 
   // Caja de colisión del jugador en su posición actual.
-  // Empieza un poco arriba de los pies (ESCALON) para poder subir rampas.
+  // Empieza un poco arriba de los pies (ESCALON) para poder subir rampas, y es más baja agachado.
   obtenerCaja() {
     const p = this.position;
+    const alto = this.agachado ? ALTURA_CUERPO_AGACHADO : ALTURA_CUERPO;
     this.caja.min.set(p.x - RADIO, p.y + ESCALON, p.z - RADIO);
-    this.caja.max.set(p.x + RADIO, p.y + ALTURA_CUERPO, p.z + RADIO);
+    this.caja.max.set(p.x + RADIO, p.y + alto, p.z + RADIO);
     return this.caja;
   }
 
-  // --- Colisión AABB: ¿la caja del jugador se superpone con algo sólido de la casa? ---
+  // Colisión AABB: ¿la caja del jugador se superpone con algo sólido de la casa?
   chocaConAlgo() {
     return this.house.chocaCon(this.obtenerCaja());
   }
 
-  // --- Gravedad: buscamos el suelo con un rayo hacia abajo ---
+  // Gravedad: la velocidad vertical baja todo el tiempo (por eso después de saltar caemos).
+  // Si tenemos una "base" cerca debajo de los pies (el piso o un mueble), nos apoyamos en ella.
   aplicarGravedad(dt) {
-    const alturaSuelo = this.buscarSuelo();
-
-    // Si hay suelo cerca debajo de los pies, nos "pegamos" a él (así se baja una rampa sin saltitos)
-    if (alturaSuelo !== null && this.position.y - alturaSuelo < ESCALON) {
-      this.position.y = alturaSuelo;
-      this.velocidadY = 0;
-      return;
-    }
-
-    // Si no, caemos
+    const velocidadAntes = this.velocidadY;
     this.velocidadY -= GRAVEDAD * dt;
     this.position.y += this.velocidadY * dt;
 
-    // No atravesar el suelo al caer
-    if (alturaSuelo !== null && this.position.y < alturaSuelo) {
-      this.position.y = alturaSuelo;
+    // Si subiendo nos pegamos la cabeza contra algo, frenamos
+    if (this.velocidadY > 0 && this.chocaConAlgo()) {
+      this.position.y -= this.velocidadY * dt;
       this.velocidadY = 0;
+    }
+
+    // Apoyarnos en la base (solo si estamos bajando o quietos). Así también se bajan
+    // las rampas sin saltitos: la base está apenas más abajo y nos "pegamos" a ella.
+    const base = this.buscarBase();
+    if (base !== null && this.velocidadY <= 0 && this.position.y - base < ESCALON) {
+      if (!this.enSuelo && velocidadAntes < CAIDA_RUIDOSA) this.alHacerRuido?.('aterrizaje');
+      this.position.y = base;
+      this.velocidadY = 0;
+      this.enSuelo = true;
+    } else {
+      this.enSuelo = false;
     }
   }
 
-  // Devuelve la altura del suelo debajo del jugador, o null si no hay nada.
-  buscarSuelo() {
-    // El rayo sale desde un poco arriba de los pies, así detecta la rampa cuando sube
-    return this.house.alturaDelSuelo(this.position, ESCALON);
+  // Lo más alto que tenemos debajo de los pies: el piso (o una rampa) o la parte de arriba
+  // de un mueble (así se puede saltar arriba de una mesa y quedarse parado ahí).
+  buscarBase() {
+    const suelo = this.house.alturaDelSuelo(this.position, ESCALON); // rayo hacia abajo
+    const apoyo = this.buscarApoyo();
+    if (suelo === null) return apoyo;
+    if (apoyo === null) return suelo;
+    return Math.max(suelo, apoyo);
   }
 
-  actualizarCamara() {
-    this.camera.position.set(this.position.x, this.position.y + ALTURA_OJOS, this.position.z);
+  // ¿Hay un mueble (caja sólida) justo debajo de los pies? Devuelve la altura de su tapa.
+  buscarApoyo() {
+    const p = this.position;
+    const r = RADIO * 0.8;
+    let mejor = null;
+    for (const collider of this.house.colliders) {
+      const tapa = collider.max.y;
+      // La tapa tiene que estar cerca de los pies (un poco abajo o, como mucho, un escalón arriba)
+      if (tapa < p.y - 0.5 || tapa > p.y + ESCALON) continue;
+      // Y tiene que estar debajo de nosotros (que se superpongan en x/z)
+      if (p.x + r < collider.min.x || p.x - r > collider.max.x) continue;
+      if (p.z + r < collider.min.z || p.z - r > collider.max.z) continue;
+      if (mejor === null || tapa > mejor) mejor = tapa;
+    }
+    return mejor;
+  }
+
+  // La cámara va a la altura de los ojos, que baja o sube suavemente al agacharse o pararse
+  actualizarCamara(dt = 1) {
+    const objetivo = this.agachado ? ALTURA_OJOS_AGACHADO : ALTURA_OJOS;
+    this.alturaOjos += (objetivo - this.alturaOjos) * Math.min(1, dt * 12);
+    this.camera.position.set(this.position.x, this.position.y + this.alturaOjos, this.position.z);
   }
 }

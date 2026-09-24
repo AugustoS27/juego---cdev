@@ -85,8 +85,21 @@ export class Audio {
   // ------------------------------------------------------------
   //  EFECTOS
   // ------------------------------------------------------------
-  paso(corriendo) {
-    this.ruido({ duracion: 0.07, volumen: corriendo ? 0.35 : 0.12, filtro: corriendo ? 900 : 500 });
+  // tipo: 'pasosAgachado' (muy suave), 'pasos' o 'pasosCorriendo' (fuerte)
+  paso(tipo) {
+    const volumen = { pasosAgachado: 0.04, pasos: 0.12, pasosCorriendo: 0.35 }[tipo] ?? 0.12;
+    this.ruido({ duracion: 0.07, volumen, filtro: tipo === 'pasosCorriendo' ? 900 : 500 });
+  }
+
+  // Saltar: un "¡hup!" cortito que sube
+  salto() {
+    this.tono({ frecuencia: 300, frecuenciaFinal: 520, duracion: 0.12, tipo: 'triangle', volumen: 0.12 });
+  }
+
+  // Aterrizar desde alto: golpe grave
+  aterrizaje() {
+    this.ruido({ duracion: 0.15, volumen: 0.4, filtro: 300 });
+    this.tono({ frecuencia: 90, frecuenciaFinal: 50, duracion: 0.15, volumen: 0.3 });
   }
 
   // Pasos del dueño: más graves. "volumen" va de 0 (lejos) a 1 (al lado)

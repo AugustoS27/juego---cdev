@@ -26,8 +26,6 @@
     <!-- Avisos que aparecen un par de segundos (ej: "¡El dueño trabó una puerta!") -->
     <div id="avisos"></div>
 
-    <!-- Indicador de ruido mientras se corre -->
-    <div id="indicador-ruido" class="oculto">🔊 Corriendo: ¡hacés ruido!</div>
 
     <!-- ============ HUD ============ -->
     <div id="hud" class="oculto">
@@ -40,6 +38,11 @@
       <div id="hud-estado">
         <div>⏱ <span id="texto-tiempo">0:00</span></div>
         <div>😠 Enojo <span id="barra-enojo"><span id="relleno-enojo"></span></span></div>
+      </div>
+      <!-- "Ruidómetro": cuánto ruido hacen tus pasos, abajo al centro -->
+      <div id="ruidometro">
+        <span id="texto-ruido">🤫 Silencio</span>
+        <span id="barra-ruido"><span id="relleno-ruido"></span></span>
       </div>
       <!-- Sonido, abajo a la derecha -->
       <div id="hud-sonido">🔊 [M] Sonido</div>
@@ -64,6 +67,7 @@
           <ul>
             <li><b>WASD</b> moverse · <b>Mouse</b> mirar</li>
             <li><b>Shift</b> correr (¡hace ruido!)</li>
+            <li><b>Espacio</b> saltar · <b>C</b> agacharse (más lento pero silencioso)</li>
             <li><b>E</b> puertas, esconderse y agarrar</li>
             <li><b>M</b> sonido · <b>B</b> bordes · <b>Esc</b> pausa</li>
           </ul>

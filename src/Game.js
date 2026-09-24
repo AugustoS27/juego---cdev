@@ -136,14 +136,22 @@ export class Game {
   //  y acá decidimos qué sonido, ruido o aviso corresponde.
   // ------------------------------------------------------------
   conectarEventos() {
-    // Pasos del jugador
-    this.player.alDarPaso = (corriendo) => this.audio.paso(corriendo);
+    // Cada paso del jugador suena y hace ruido según cómo se mueve
+    // (agachado casi nada, caminando un poco, corriendo mucho: ver RADIO_RUIDO en Noise.js)
+    this.player.alDarPaso = (tipo) => {
+      this.audio.paso(tipo);
+      this.hacerRuido(this.player.position, RADIO_RUIDO[tipo]);
+    };
 
-    // El jugador hace ruido al correr o al chocar algo
+    // Otros ruidos del jugador: chocar algo corriendo, saltar y aterrizar
     this.player.alHacerRuido = (tipo) => {
       if (tipo === 'choque') {
         this.audio.choque();
         this.ui.mostrarAviso('💥 ¡PUM! Te llevaste puesto un mueble', 1.5);
+      } else if (tipo === 'salto') {
+        this.audio.salto();
+      } else if (tipo === 'aterrizaje') {
+        this.audio.aterrizaje();
       }
       this.hacerRuido(this.player.position, RADIO_RUIDO[tipo]);
     };
@@ -210,7 +218,7 @@ export class Game {
       if (this.estado === ESTADO.JUGANDO) {
         this.estado = ESTADO.PAUSA;
         this.ui.mostrarPantalla('pausa');
-        this.ui.mostrarIndicadorRuido(false);
+        this.ui.mostrarRuido(0);
       }
     });
 
@@ -291,7 +299,8 @@ export class Game {
       this.audio.actualizarMusica(dt, this.owner.estado === ESTADO_DUENO.PERSEGUIR);
       this.actualizarAyuda();
       this.ui.actualizarHUD(this.tiempoPartida, this.nivelEnojo);
-      this.ui.mostrarIndicadorRuido(this.player.estaCorriendo);
+      const paso = this.player.tipoDePaso;
+      this.ui.mostrarRuido(paso ? RADIO_RUIDO[paso] : 0, this.player.agachado);
 
       if (this.owner.atrapoAlJugador()) this.perder();
     }
