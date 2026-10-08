@@ -7,6 +7,7 @@ import { Player } from './Player.js';
 import { UI } from './UI.js';
 import { Items } from './Items.js';
 import { Habilidades, HABILIDADES, MULTIPLICADOR_BEBIDA } from './Habilidades.js';
+import { Efectos } from './Efectos.js';
 import { Dueno } from './Dueno.js';
 import { Perro, PERROS } from './Perro.js';
 import { Abuela, ESTADO_ABUELA } from './Abuela.js';
@@ -72,6 +73,7 @@ export class Game {
     this.player = new Player(this.camera, document.body, this.house);
     this.items = new Items(this.scene);
     this.habilidades = new Habilidades(this.scene, this.house);
+    this.efectos = new Efectos(this.scene); // lo que vuela hacia la cámara al agarrar algo
     this.zonaEscape = new ZonaDeEscape(this.scene, this.house);
     this.decoracion = new Decoracion(this.scene, this.house);
     // Los enemigos: el dueño (toda la casa), dos perros (el patio) y la abuela (su piso)
@@ -388,6 +390,7 @@ export class Game {
     this.house.reiniciar();
     this.entradas.reiniciar();
     this.ruido.limpiar();
+    this.efectos.limpiar();
     this.player.setPosition(INICIO_JUGADOR.x, INICIO_JUGADOR.y, INICIO_JUGADOR.z);
     this.camera.rotation.set(0, 0, 0); // mirando hacia adentro de la casa
     this.pasadizoEncontrado = false;
@@ -422,6 +425,7 @@ export class Game {
     const dt = Math.min(this.timer.getDelta(), 0.05);
 
     this.items.update(dt); // los objetos flotan aunque estemos en pausa
+    this.efectos.update(dt, this.camera);
     this.zonaEscape.update(dt);
     this.decoracion.update(dt, this.camera);
     this.actualizarLuces(dt);
@@ -488,6 +492,7 @@ export class Game {
   // El jugador agarró uno de los objetos: va a la bolsa
   agarrarObjeto(objetivo) {
     this.items.agarrar(objetivo);
+    this.efectos.agarrar(objetivo.malla, '#ffd23f'); // vuela hacia la bolsa con un destello dorado
     this.audio.guardar();
     this.ui.mostrarBotin(this.items.objetivos);
 
@@ -510,6 +515,7 @@ export class Game {
     const { tipo } = habilidad;
     const { duracion } = HABILIDADES[tipo];
     this.habilidades.agarrar(habilidad);
+    this.efectos.agarrar(habilidad.malla, HABILIDADES[tipo].color);
     this.audio.habilidad(tipo);
 
     if (tipo === 'zanahoria') {

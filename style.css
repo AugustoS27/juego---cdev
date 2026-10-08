@@ -370,6 +370,31 @@ body {
   background: rgba(20, 10, 40, 0.82);
   color: white;
   text-align: center;
+  /* Fundido: las pantallas no aparecen de golpe, se van haciendo visibles (y al revés) */
+  transition: opacity 0.35s ease, visibility 0.35s;
+}
+
+/* Pantalla escondida: transparente e "intocable". (No usamos display: none porque eso no se puede
+   animar; visibility sí, y espera a que termine el fundido para esconderse del todo.) */
+.pantalla.escondida {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* Al aparecer una pantalla, el título "salta" un poquito */
+.pantalla:not(.escondida) h1 {
+  animation: entrarTitulo 0.45s ease-out;
+}
+
+@keyframes entrarTitulo {
+  from {
+    transform: scale(0.6) translateY(-20px);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(1.08);
+  }
 }
 
 .pantalla h1 {

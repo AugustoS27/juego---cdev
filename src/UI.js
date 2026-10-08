@@ -52,10 +52,11 @@ export class UI {
     }
   }
 
-  // Muestra una pantalla ('menu', 'pausa', 'victoria', 'derrota') o ninguna (null)
+  // Muestra una pantalla ('menu', 'pausa', 'victoria', 'derrota') o ninguna (null).
+  // Aparecen y desaparecen con un fundido (ver .pantalla.escondida en style.css)
   mostrarPantalla(nombre) {
     for (const [clave, pantalla] of Object.entries(this.pantallas)) {
-      pantalla.classList.toggle('oculto', clave !== nombre);
+      pantalla.classList.toggle('escondida', clave !== nombre);
     }
   }
 

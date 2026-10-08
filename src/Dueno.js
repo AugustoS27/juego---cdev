@@ -6,6 +6,8 @@
 //     va hasta el punto de adentro más cercano.
 //   - Si llega a la escalera plegable del ático y está plegada, la despliega.
 //   - Cada 30 segundos se enoja más y camina más rápido (lo maneja Game con multiplicadorVelocidad).
+//   - Animaciones: parpadea, pega un salto de sorpresa cuando te ve (y se queda duro medio segundo:
+//     es tu ventaja para arrancar) y se rasca la cabeza mientras busca.
 import * as THREE from 'three';
 import { Enemigo, ESTADO } from './Enemigo.js';
 import { cargarPiezas } from './Models.js';
@@ -15,6 +17,8 @@ const DISTANCIA_SOSPECHA = 2.5; // si pasa así de cerca de tu escondite, puede 
 const PROBABILIDAD_SOSPECHA = 0.4; // 40% de revisar cada vez que pasa cerca
 const PROBABILIDAD_TRABAR = 0.35; // 35% de trabar cada puerta que cruza
 const TIEMPO_TRABA = 20; // segundos que queda trabada la puerta
+const DURACION_SORPRESA = 0.5; // segundos del salto de sorpresa (no se mueve mientras tanto)
+const DURACION_PARPADEO = 0.12;
 
 // Si ponés acá la ruta a un modelo GLTF (ej: '/models/dueno.glb') se usa ese modelo.
 // Si es null o no carga, queda el muñeco hecho con formas básicas.
@@ -52,6 +56,28 @@ export class Dueno extends Enemigo {
     this.encontroAlJugador = false; // true si lo encontró escondido
     this.yaSospecho = false; // para tirar "la moneda" una sola vez por pasada
     this.puertaCruzada = null; // puerta por la que está pasando (para trabarla después)
+    this.sorpresa = 0; // > 0 mientras dura el salto de sorpresa
+    this.tiempoParaParpadear = 2 + Math.random() * 3;
+  }
+
+  // ------------------------------------------------------------
+  //  SORPRESA: "¡¿Eh?!" Salta, levanta los brazos y recién después te persigue
+  // ------------------------------------------------------------
+  alVerAlJugador() {
+    if (this.estado !== ESTADO.PERSEGUIR) {
+      this.sorpresa = DURACION_SORPRESA;
+      this.camino = []; // se frena en seco
+    }
+    super.alVerAlJugador();
+  }
+
+  actualizarPersecucion(dt) {
+    if (this.sorpresa > 0) {
+      this.sorpresa -= dt;
+      this.mirarHacia(this.player.position, dt); // te mira con los ojos bien abiertos
+      return;
+    }
+    super.actualizarPersecucion(dt);
   }
 
   update(dt) {
@@ -199,9 +225,10 @@ export class Dueno extends Enemigo {
     // Cabeza con nariz grande, ojos, cejas enojadas y bigote
     parte(new THREE.SphereGeometry(0.2, 16, 12), piel, 0, 1.62, 0);
     parte(new THREE.SphereGeometry(0.07, 10, 8), '#ff9e80', 0, 1.6, 0.2);
+    this.ojos = []; // (para parpadear: se aplastan en Y)
     for (const lado of [-1, 1]) {
-      parte(new THREE.SphereGeometry(0.045, 10, 8), '#ffffff', lado * 0.08, 1.68, 0.16);
-      parte(new THREE.SphereGeometry(0.022, 8, 6), '#000000', lado * 0.08, 1.68, 0.2);
+      this.ojos.push(parte(new THREE.SphereGeometry(0.045, 10, 8), '#ffffff', lado * 0.08, 1.68, 0.16));
+      this.ojos.push(parte(new THREE.SphereGeometry(0.022, 8, 6), '#000000', lado * 0.08, 1.68, 0.2));
       const ceja = parte(new THREE.BoxGeometry(0.1, 0.025, 0.02), '#5d4037', lado * 0.08, 1.75, 0.18);
       ceja.rotation.z = lado * 0.35;
     }
@@ -223,17 +250,49 @@ export class Dueno extends Enemigo {
         this.cuerpo.add(modelo);
         this.piernas = [];
         this.brazos = [];
+        this.ojos = [];
       })
       .catch(() => console.warn(`No se pudo cargar ${URL_MODELO}: queda el dueño hecho con formas básicas`));
   }
 
   // Balanceo de piernas y brazos al caminar. Persiguiendo: levanta el palo de amasar y lo agita (¡cómico!)
   animarCuerpo(dt, caminando) {
+    this.parpadear(dt);
+
+    // Salto de sorpresa: el cuerpo sube y baja (medio seno) con los dos brazos para arriba
+    if (this.sorpresa > 0) {
+      const t = 1 - this.sorpresa / DURACION_SORPRESA; // de 0 a 1
+      this.cuerpo.position.y = Math.sin(t * Math.PI) * 0.35;
+      this.piernas.forEach((pierna) => (pierna.rotation.x = 0));
+      this.brazos.forEach((brazo) => {
+        brazo.rotation.x = -2.8;
+        brazo.rotation.z = 0;
+      });
+      return;
+    }
+    this.cuerpo.position.y = 0;
+
     const balanceo = caminando ? Math.sin(this.tiempoAnimacion) * 0.6 : 0;
     this.piernas.forEach((pierna, i) => (pierna.rotation.x = i === 0 ? balanceo : -balanceo));
-    this.brazos.forEach((brazo, i) => (brazo.rotation.x = i === 0 ? -balanceo : balanceo));
+    this.brazos.forEach((brazo, i) => {
+      brazo.rotation.x = i === 0 ? -balanceo : balanceo;
+      brazo.rotation.z = 0;
+    });
     if (this.estado === ESTADO.PERSEGUIR && this.brazos[1]) {
       this.brazos[1].rotation.x = -2.6 + Math.sin(this.tiempoAnimacion * 2) * 0.4;
     }
+    // Buscando (quieto, mirando alrededor): se rasca la cabeza con la mano izquierda
+    if (this.estado === ESTADO.INVESTIGAR && !caminando && this.brazos[0]) {
+      this.brazos[0].rotation.x = -3; // brazo para arriba, al costado de la cabeza
+      this.brazos[0].rotation.z = 0.35 + Math.sin(this.tiempoTotal * 14) * 0.1; // la mano va y viene
+    }
+  }
+
+  // Cada 2 a 5 segundos cierra los ojos un ratito (los aplasta en Y)
+  parpadear(dt) {
+    this.tiempoParaParpadear -= dt;
+    if (this.tiempoParaParpadear < -DURACION_PARPADEO) this.tiempoParaParpadear = 2 + Math.random() * 3;
+    const cerrados = this.tiempoParaParpadear < 0 && this.sorpresa <= 0; // (sorprendido no parpadea)
+    for (const ojo of this.ojos) ojo.scale.y = cerrados ? 0.15 : 1;
   }
 }

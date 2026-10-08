@@ -21,6 +21,13 @@ const ALTURA_OJOS_ESCONDIDO = { placard: 1.5, cama: 0.2 }; // debajo de la cama 
 // Cada tipo de paso: cada cuánto se da un paso (s). El ruido de cada uno está en Noise.js.
 const INTERVALO_PASO = { pasos: 0.5, pasosCorriendo: 0.3, pasosAgachado: 0.7 };
 
+// Balanceo de la cámara al caminar: cuántos metros baja en cada paso (corriendo más, agachado casi nada)
+const BALANCEO = { pasos: 0.035, pasosCorriendo: 0.07, pasosAgachado: 0.012 };
+// "Sacudón" al aterrizar: la cámara se hunde y vuelve como un resorte
+const RIGIDEZ_RESORTE = 120; // más grande = vuelve más rápido
+const FRENO_RESORTE = 14; // más grande = rebota menos
+const CAIDA_CON_SACUDON = -2; // aterrizajes más lentos que esto no sacuden
+
 export class Player {
   constructor(camera, domElement, house) {
     this.camera = camera;
@@ -36,6 +43,10 @@ export class Player {
     this.estaCorriendo = false;
     this.agachado = false;
     this.alturaOjos = ALTURA_OJOS; // se acerca de a poco a la altura de parado o agachado
+    this.faseBalanceo = 0; // avanza medio ciclo por paso
+    this.amplitudBalanceo = 0; // se acerca de a poco a la del tipo de paso (así no "salta" al frenar)
+    this.sacudon = 0; // cuánto está hundida la cámara por el aterrizaje (negativo = abajo)
+    this.velocidadSacudon = 0;
 
     // Habilidades (ver Habilidades.js): Game las cambia mientras duran
     this.multiplicadorVelocidad = 1; // con la bebida energética: 1.5
@@ -83,6 +94,7 @@ export class Player {
     this.agachado = false;
     this.alturaOjos = ALTURA_OJOS;
     this.animacion = null;
+    this.amplitudBalanceo = this.sacudon = this.velocidadSacudon = 0;
     this.actualizarCamara();
   }
 
@@ -120,6 +132,7 @@ export class Player {
     this.mover(dt);
     this.aplicarGravedad(dt);
     this.actualizarCamara(dt);
+    this.balancearCamara(dt);
     this.darPasos(dt);
   }
 
@@ -308,6 +321,9 @@ export class Player {
     const base = this.buscarBase();
     if (base !== null && this.velocidadY <= 0 && this.position.y - base < ESCALON) {
       if (!this.enSuelo && velocidadAntes < CAIDA_RUIDOSA) this.alHacerRuido?.('aterrizaje');
+      // ¡Sacudón! Cuanto más rápido caía, más se hunde la cámara
+      // (con un tope, para que caer desde el techo no te hunda la cámara hasta el piso)
+      if (!this.enSuelo && velocidadAntes < CAIDA_CON_SACUDON) this.velocidadSacudon = Math.max(velocidadAntes * 0.6, -4);
       this.position.y = base;
       this.velocidadY = 0;
       this.enSuelo = true;
@@ -341,6 +357,24 @@ export class Player {
       if (mejor === null || tapa > mejor) mejor = tapa;
     }
     return mejor;
+  }
+
+  // Balanceo al caminar y sacudón al aterrizar: se le suman a la cámara (ya ubicada en los ojos).
+  //  - Arriba/abajo: baja y sube una vez por paso (|seno|).
+  //  - De lado a lado: un paso hacia cada lado (seno), con la mitad de la amplitud.
+  //  - Sacudón: un resorte. La "fuerza" lo empuja de vuelta a 0 y el "freno" evita que rebote mucho.
+  balancearCamara(dt) {
+    const tipo = this.tipoDePaso; // (null = quieto o en el aire)
+    const objetivo = tipo ? BALANCEO[tipo] : 0;
+    this.amplitudBalanceo += (objetivo - this.amplitudBalanceo) * Math.min(1, dt * 8);
+    if (tipo) this.faseBalanceo += (dt * Math.PI * this.multiplicadorVelocidad) / INTERVALO_PASO[tipo];
+
+    const fuerza = -this.sacudon * RIGIDEZ_RESORTE - this.velocidadSacudon * FRENO_RESORTE;
+    this.velocidadSacudon += fuerza * dt;
+    this.sacudon += this.velocidadSacudon * dt;
+
+    this.camera.position.y += this.sacudon - Math.abs(Math.sin(this.faseBalanceo)) * this.amplitudBalanceo;
+    this.camera.position.addScaledVector(this.derecha, Math.sin(this.faseBalanceo) * this.amplitudBalanceo * 0.5);
   }
 
   // La cámara va a la altura de los ojos, que baja o sube suavemente al agacharse o pararse

@@ -8,8 +8,20 @@
 import * as THREE from 'three';
 import { materialToon } from './Materials.js';
 
-const VELOCIDAD_GIRO = 5; // radianes por segundo (animación de abrir/cerrar)
+const DURACION_ANIMACION = 0.4; // segundos que tarda en abrirse o cerrarse
 const ANGULO_ABIERTA = Math.PI / 2; // 90 grados
+
+// "Curvas" de la animación: reciben t (de 0 a 1, el tiempo) y devuelven cuánto del recorrido se hizo.
+// Abrir: arranca rápido, se pasa un poquito (~6°) y vuelve, como si rebotara contra el tope.
+function curvaAbrir(t) {
+  const c = 1.4; // cuánto se pasa (más grande = rebota más)
+  return 1 + (c + 1) * (t - 1) ** 3 + c * (t - 1) ** 2;
+}
+// Cerrar: acelera (t²) hasta golpear el marco y rebota un poquito antes de quedar cerrada.
+function curvaCerrar(t) {
+  if (t < 0.7) return (t / 0.7) ** 2;
+  return 1 - Math.sin(((t - 0.7) / 0.3) * Math.PI) * 0.08;
+}
 const GROSOR_HUECO = 0.2; // igual que las paredes
 
 // Dibujos (en un canvas) para las caras de la hoja: 'rejilla' (varillas) y 'biblioteca' (estantes con libros)
@@ -74,8 +86,10 @@ export class Door {
     // Cómo arranca en cada partida (ver reiniciar)
     this.conLlaveInicial = conLlave;
     this.abiertaInicial = abierta;
-    this.angulo = 0; // ángulo actual (se anima hacia anguloObjetivo)
+    this.angulo = 0; // ángulo actual (se anima desde anguloDesde hasta anguloObjetivo)
+    this.anguloDesde = 0;
     this.anguloObjetivo = 0;
+    this.tiempoAnimacion = DURACION_ANIMACION; // (= ya terminó)
     this.tiempoTrabada = 0; // > 0 mientras el dueño la tenga trabada (segundos que faltan)
     this.piso = Math.round(y / 3);
 
@@ -160,14 +174,21 @@ export class Door {
   alternar() {
     if (this.conLlave || this.trabada) return false;
     this.abierta = !this.abierta;
-    this.anguloObjetivo = this.abierta ? ANGULO_ABIERTA : 0;
+    this.animarHacia(this.abierta ? ANGULO_ABIERTA : 0);
     return true;
+  }
+
+  // Empieza la animación desde el ángulo de ahora hasta "objetivo"
+  animarHacia(objetivo) {
+    this.anguloDesde = this.angulo;
+    this.anguloObjetivo = objetivo;
+    this.tiempoAnimacion = 0;
   }
 
   // El dueño la cierra y la traba por unos segundos. Después se destraba y se abre sola.
   trabar(segundos) {
     this.abierta = false;
-    this.anguloObjetivo = 0;
+    this.animarHacia(0);
     this.tiempoTrabada = segundos;
     this.hoja.material = this.materialTrabada;
   }
@@ -183,12 +204,13 @@ export class Door {
     this.conLlave = this.conLlaveInicial;
     this.abierta = this.abiertaInicial;
     this.angulo = this.abierta ? ANGULO_ABIERTA : 0;
-    this.anguloObjetivo = this.angulo;
+    this.anguloDesde = this.anguloObjetivo = this.angulo;
+    this.tiempoAnimacion = DURACION_ANIMACION;
     this.bisagra.rotation.y = this.rotacionBase + this.angulo;
     this.bisagra.updateMatrixWorld(true);
   }
 
-  // Animación: acercamos el ángulo actual al objetivo un poquito por frame
+  // Animación: el ángulo sigue la curva de abrir o de cerrar según el tiempo que pasó
   update(dt) {
     // Cuenta regresiva de la traba: al llegar a 0 se destraba y se abre sola
     if (this.trabada) {
@@ -199,13 +221,11 @@ export class Door {
       }
     }
 
-    const diferencia = this.anguloObjetivo - this.angulo;
-    const paso = VELOCIDAD_GIRO * dt;
-    if (Math.abs(diferencia) <= paso) {
-      this.angulo = this.anguloObjetivo;
-    } else {
-      this.angulo += Math.sign(diferencia) * paso;
-    }
+    if (this.tiempoAnimacion >= DURACION_ANIMACION) return; // quieta: no hay nada que mover
+    this.tiempoAnimacion = Math.min(this.tiempoAnimacion + dt, DURACION_ANIMACION);
+    const t = this.tiempoAnimacion / DURACION_ANIMACION;
+    const avance = this.anguloObjetivo > this.anguloDesde ? curvaAbrir(t) : curvaCerrar(t);
+    this.angulo = this.anguloDesde + (this.anguloObjetivo - this.anguloDesde) * avance;
     this.bisagra.rotation.y = this.rotacionBase + this.angulo;
     // Actualizamos su posición en el mundo ya mismo: los rayos de visión del dueño la usan
     this.bisagra.updateMatrixWorld(true);

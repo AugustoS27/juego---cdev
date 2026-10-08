@@ -63,6 +63,7 @@ Para generar la versión final: `npm run build` (queda en `dist/`).
 | `src/Especiales.js` | La escalera plegable del ático (trampilla) y el pozo que baja al túnel secreto |
 | `src/Door.js` | Puertas con bisagra (abrir, cerrar, trabar); también rejillas, la tabla del túnel y el estante secreto |
 | `src/Items.js` | Los 18 objetos, sus pistas y ubicaciones; sorteo de los 5 de cada partida |
+| `src/Efectos.js` | Lo que vuela hacia la cámara (con un destello) cuando agarrás algo |
 | `src/Habilidades.js` | Zanahoria, botas de lana y bebida energética: dónde aparecen, cuánto duran y el brillo de la zanahoria |
 | `src/Escape.js` | La van negra y la zona de escape (se prende con los 5 objetos) |
 | `src/Noise.js` | Sistema de ruido con radio de alcance (lo escuchan todos los enemigos, cada uno con su oído) |
@@ -93,6 +94,7 @@ Para generar la versión final: `npm run build` (queda en `dist/`).
 - **Tensión creciente:** cada 30 s el dueño camina un 10% más rápido, y a veces traba puertas por 20 s.
 - **Entradas con precio:** cada forma de entrar tiene su costo (ruido, distancia, riesgo). Cada entrada devuelve un "resultado" (sonido, ruido, aviso, animación) y Game lo aplica.
 - **Habilidades:** `Habilidades.js` solo sabe cuáles están activas y cuánto les queda; Game le pasa el efecto al jugador (`multiplicadorVelocidad`, `pasosSilenciosos`). La zanahoria pone una copia del objeto con un material que se dibuja por encima de todo (`depthTest: false`): por eso "se ve a través" de las paredes.
+- **Animaciones con curvas:** las puertas no giran a velocidad fija, siguen una función del tiempo (se pasan un poco y vuelven). El sacudón de la cámara al aterrizar es un resorte: una fuerza la devuelve a su lugar y un freno evita que rebote mucho.
 - **Botín sorteado:** se mezclan los 18 objetos, se toman 5 y a cada uno se le elige una ubicación que no esté
   pegada a la de otro. Así cada partida es distinta.
 

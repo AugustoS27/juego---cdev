@@ -501,8 +501,8 @@ export class Enemigo {
     }
     this.animarCuerpo(dt, caminando);
 
-    // Los carteles "!" y "?" rebotan arriba de la cabeza
-    const rebote = this.v.alturaCartel + Math.abs(Math.sin(this.tiempoTotal * 6)) * 0.08;
+    // Los carteles "!" y "?" rebotan arriba de la cabeza (y suben con el cuerpo si salta)
+    const rebote = this.v.alturaCartel + this.cuerpo.position.y + Math.abs(Math.sin(this.tiempoTotal * 6)) * 0.08;
     this.cartelVisto.position.y = rebote;
     this.cartelDuda.position.y = rebote;
   }
@@ -530,7 +530,10 @@ export function crearCartel(texto, color) {
   ctx.textBaseline = 'middle';
   ctx.fillText(texto, 64, 70);
 
-  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(canvas) }));
+  const material = new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(canvas) });
+  // Sin borde de dibujito: el efecto de bordes no sabe dibujar sprites y le dejaba un fondo cuadrado
+  material.userData.outlineParameters = { visible: false };
+  const sprite = new THREE.Sprite(material);
   sprite.scale.set(0.45, 0.45, 1);
   sprite.visible = false;
   return sprite;

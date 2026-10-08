@@ -4,7 +4,8 @@ Este documento detalla las etapas para las mejoras nuevas del juego: qué se va 
 en qué orden, qué archivos se tocan, cómo se prueba y qué decisiones quedan pendientes.
 
 > **Estado actual:** etapas 1 a 13 terminadas (la 13 sumó la zanahoria, las botas de lana y la bebida energética).
-> Próxima: **etapa 14** (pulido: animaciones, entradas y escondites).
+> La etapa 14 se dividió en tres: **14A** animaciones (✅ terminada), **14B** entradas nuevas y
+> **14C** escondites nuevos y cierre. Próxima: **14B**.
 
 ---
 
@@ -52,7 +53,7 @@ Son los mismos que usamos desde el principio, porque el proyecto tiene que ser f
 | **11** | Casa gigante: pisos, sótano, ático, puentes, túneles, ventilaciones, decoración | Muy grande (se divide en 11A, 11B y 11C) | ✅ Terminada (11A, 11B y 11C) |
 | **12** | Enemigos nuevos: dos perros y la abuela con escopeta | Grande | ✅ Terminada |
 | **13** | Objetos de habilidad: zanahoria, botas de lana, bebida energética | Mediana | ✅ Terminada |
-| **14** | Pulido: animaciones, más entradas, más escondites | Grande | ⏳ Próxima |
+| **14** | Pulido: animaciones, más entradas, más escondites | Grande (se divide en 14A, 14B y 14C) | 🔨 En curso (14A ✅, sigue 14B) |
 
 ---
 
@@ -553,6 +554,40 @@ enemigos, perder por disparo o mordida), `Noise.js` (ruido que escuchan todos, c
 ---
 
 ## Etapa 14 — Pulido: animaciones, entradas y escondites
+
+Se divide en tres partes, igual que la 11: **14A** animaciones, **14B** entradas nuevas y **14C** escondites
+nuevos y cierre (todas las pruebas, rendimiento y commit final).
+
+### 14A — Animaciones ✅
+
+#### Qué se hizo
+- **Cámara** (`Player.js`): baja y sube una vez por paso y se mece de lado a lado (3,5 cm caminando, 7 cm
+  corriendo, 1,2 cm agachado; con la bebida, al ritmo de los pasos más rápidos). Al aterrizar, **sacudón**: la
+  cámara se hunde y vuelve como un resorte (unos 8 cm después de un salto, con un tope para las caídas grandes).
+- **Agarrar** (`Efectos.js`, nuevo): el objeto o la habilidad vuela hacia la cámara haciendo un arquito, se
+  achica, y donde estaba queda un destello del color de la cosa (dorado para el botín).
+- **Puertas** (`Door.js`): en vez de girar a velocidad fija, siguen una "curva". Al abrir arrancan rápido, se
+  pasan unos 6° y vuelven (rebote contra el tope); al cerrar aceleran hasta el marco y rebotan un poquito.
+- **Dueño** (`Dueno.js`): parpadea cada 2 a 5 s, **pega un salto de sorpresa** con los brazos para arriba
+  cuando te ve (se queda duro medio segundo antes de perseguirte: es tu ventaja para arrancar) y **se rasca la
+  cabeza** mientras busca.
+- **Perros y abuela:** ya tenían sus animaciones desde la etapa 12 (la cola, olfatear, ladrar, hamacarse).
+- **Pantallas:** aparecen y desaparecen con un fundido de 0,35 s, y el título entra con un saltito.
+- Arreglo de paso: los carteles "!" y "?" tenían un fondo cuadrado celeste por culpa del efecto de bordes
+  (no sabe dibujar sprites). Ahora no llevan borde, y suben con el dueño cuando salta.
+
+#### Pruebas que se corrieron
+- Puertas (ángulo cada 3 frames): abrir 42° → 70° → 86° → 94° → **96°** → 92° → 90°; cerrar 87° → 64° → 18° →
+  4° → **7°** → 0°.
+- Cámara: caminando baja 3,5 cm y se mece 1,7 cm a cada lado; corriendo 7 y 3,5; agachado 1,2 y 0,6; quieto,
+  nada. Después de un salto se hunde 8,4 cm y en menos de un segundo vuelve a 0.
+- Sorpresa: el dueño se queda quieto exactamente 0,5 s (30 frames) y después arranca a perseguir.
+- Parpadeo: 5 veces en 20 s simulados.
+- Pantallas: la transición existe al abrir y al cerrar (350 ms) y el título tiene su animación.
+- 4 partidas simuladas con el jugador corriendo y saltando por la casa: sin errores; el dueño se sorprende y
+  se queda quieto mientras salta. Build OK.
+
+### Plan original
 
 ### Animaciones
 - **Cámara:** balanceo suave al caminar (más al correr, casi nada agachado) y un "sacudón" al aterrizar.
