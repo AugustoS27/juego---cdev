@@ -72,6 +72,20 @@
       <div id="hud-sonido">🔊 [M] Sonido</div>
     </div>
 
+    <!-- ============ CINEMÁTICAS (ver Cinematica.js) ============ -->
+    <!-- Barras negras arriba y abajo, el subtítulo (quién habla y qué dice) y el botón para saltear.
+         "cine-negro" es el fundido desde y hacia negro. -->
+    <div id="cine">
+      <div class="barra arriba"></div>
+      <div class="barra abajo"></div>
+      <div id="cine-subtitulo" class="oculto">
+        <span id="cine-quien"></span>
+        <span id="cine-texto"></span>
+      </div>
+      <button id="cine-saltear">[Espacio] Saltear ⏭</button>
+    </div>
+    <div id="cine-negro"></div>
+
     <!-- ============ PANTALLAS ============ -->
     <!-- Menú principal -->
     <div id="pantalla-menu" class="pantalla">
@@ -114,8 +128,21 @@
         </div>
       </div>
 
-      <button data-accion="jugar">¡A jugar!</button>
+      <div class="botones">
+        <button data-accion="jugar">¡A jugar!</button>
+        <button data-accion="historia" class="secundario">📜 Ver la historia</button>
+      </div>
       <p class="creditos">Modelos 3D de muebles y naturaleza: Kenney.nl (CC0) · El resto hecho con código</p>
+    </div>
+
+    <!-- Después de la intro: los juguetes de esta partida y el botón para empezar
+         (el navegador solo deja "atrapar" el mouse después de un click) -->
+    <div id="pantalla-listo" class="pantalla escondida">
+      <h1>¡A recuperarlos!</h1>
+      <p>Tus juguetes están en algún lugar de la casa de Don Ernesto y Doña Pocha:</p>
+      <ul id="lista-listo"></ul>
+      <p class="subtitulo">Facu te va a ir diciendo por el walkie dónde los vio.</p>
+      <button data-accion="continuar">¡Vamos!</button>
     </div>
 
     <!-- Pausa -->

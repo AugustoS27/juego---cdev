@@ -11,10 +11,12 @@ export class UI {
     // Pantallas (una sola visible a la vez)
     this.pantallas = {
       menu: $('pantalla-menu'),
+      listo: $('pantalla-listo'),
       pausa: $('pantalla-pausa'),
       victoria: $('pantalla-victoria'),
       derrota: $('pantalla-derrota'),
     };
+    this.listaListo = $('lista-listo');
     this.textoVictoria = $('texto-victoria');
     this.estadisticasVictoria = $('estadisticas-victoria');
     this.textoDerrota = $('texto-derrota');
@@ -279,6 +281,18 @@ export class UI {
     this.mostrarRed(0);
     this.hollin.classList.add('oculto');
     this.borrarAvisos();
+  }
+
+  // Después de la intro: los juguetes de esta partida (ícono y nombre) y el botón "¡Vamos!"
+  mostrarListo(objetivos) {
+    this.listaListo.replaceChildren(
+      ...objetivos.map(({ objeto }) => {
+        const li = document.createElement('li');
+        li.textContent = `${objeto.icono} ${mayuscula(objeto.nombre)}`;
+        return li;
+      }),
+    );
+    this.mostrarPantalla('listo');
   }
 
   // ------------------------------------------------------------

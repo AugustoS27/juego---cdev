@@ -364,6 +364,49 @@ export class Audio {
     this.tono({ frecuencia: 520 + Math.random() * 260, duracion: 0.04, tipo: 'square', volumen: 0.025 });
   }
 
+  // ------------------------------------------------------------
+  //  CINEMÁTICAS (ver Escenas.js)
+  // ------------------------------------------------------------
+  // La "vocecita" de cada personaje mientras aparece su subtítulo (como la de Facu en el walkie):
+  // Tomi agudito, Don Ernesto grave y gruñón, Doña Pocha temblorosa
+  voz(quien) {
+    if (quien === 'Facu') return this.vozFacu();
+    const voces = {
+      Tomi: { desde: 700, rango: 300, tipo: 'square', volumen: 0.022 },
+      'Don Ernesto': { desde: 95, rango: 60, tipo: 'sawtooth', volumen: 0.05 },
+      'Doña Pocha': { desde: 400, rango: 140, tipo: 'triangle', volumen: 0.07 },
+    };
+    const voz = voces[quien];
+    if (!voz) return;
+    const frecuencia = voz.desde + Math.random() * voz.rango;
+    this.tono({ frecuencia, frecuenciaFinal: frecuencia * 0.92, duracion: 0.06, tipo: voz.tipo, volumen: voz.volumen });
+  }
+
+  // Patada a la pelota: un "pum" corto y seco
+  patada() {
+    this.ruido({ duracion: 0.08, volumen: 0.35, filtro: 900 });
+    this.tono({ frecuencia: 140, frecuenciaFinal: 60, duracion: 0.12, volumen: 0.3 });
+  }
+
+  // La pelota pica en el pasto
+  pique(volumen = 1) {
+    this.tono({ frecuencia: 190, frecuenciaFinal: 90, duracion: 0.1, volumen: 0.25 * volumen });
+  }
+
+  // Gruñido de perro con la boca llena ("grrrr"): una nota grave que tiembla
+  grunido() {
+    for (let i = 0; i < 4; i++) {
+      this.tono({ frecuencia: 85 + Math.random() * 15, duracion: 0.09, tipo: 'sawtooth', volumen: 0.06, retraso: i * 0.08 });
+    }
+  }
+
+  // ¡RIIIP! La tela que se rompe: ruido áspero que sube
+  riiip() {
+    this.ruido({ duracion: 0.12, volumen: 0.25, filtro: 3000 });
+    this.ruido({ duracion: 0.3, volumen: 0.2, filtro: 6000, retraso: 0.1 });
+    this.tono({ frecuencia: 300, frecuenciaFinal: 900, duracion: 0.35, tipo: 'sawtooth', volumen: 0.03, retraso: 0.05 });
+  }
+
   // Timbre de bici: "¡ring ring!" (dos campanadas agudas con su eco)
   timbre() {
     for (const retraso of [0, 0.22]) {

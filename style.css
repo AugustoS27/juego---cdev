@@ -531,6 +531,114 @@ body {
   font-size: 14px;
 }
 
+/* ============ CINEMÁTICAS ============ */
+/* Las barras negras entran desde arriba y desde abajo (con .activa) */
+#cine {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  visibility: hidden;
+  transition: visibility 0.5s;
+}
+
+#cine.activa {
+  visibility: visible;
+}
+
+#cine .barra {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 12vh;
+  background: #000;
+  transition: transform 0.5s ease;
+}
+
+#cine .barra.arriba {
+  top: 0;
+  transform: translateY(-100%);
+}
+
+#cine .barra.abajo {
+  bottom: 0;
+  transform: translateY(100%);
+}
+
+#cine.activa .barra {
+  transform: translateY(0);
+}
+
+/* El subtítulo va sobre la barra de abajo: el nombre (con el color de cada personaje) y el texto */
+#cine-subtitulo {
+  position: absolute;
+  bottom: 3vh;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(900px, calc(100% - 32px));
+  color: #fff;
+  font-size: clamp(16px, 2.4vw, 24px);
+  text-align: center;
+  text-shadow: 2px 2px 0 #000;
+}
+
+#cine-quien {
+  font-weight: bold;
+  margin-right: 8px;
+}
+
+#cine-quien:not(:empty)::after {
+  content: ':';
+}
+
+/* El narrador (sin nombre) va en cursiva */
+#cine-subtitulo.narrador #cine-texto {
+  font-style: italic;
+  opacity: 0.9;
+}
+
+#cine-saltear {
+  position: absolute;
+  top: calc(12vh + 12px);
+  right: 16px;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+body.en-cine #mira {
+  visibility: hidden;
+}
+
+#cine-negro {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Pantalla "¡A recuperarlos!": la lista de los juguetes de esta partida */
+#lista-listo {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+}
+
+#lista-listo li {
+  padding: 10px 16px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.12);
+  font-size: 20px;
+}
+
 /* ============ PANTALLAS ============ */
 .pantalla {
   position: fixed;

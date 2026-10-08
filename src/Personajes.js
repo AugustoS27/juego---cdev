@@ -1,8 +1,9 @@
 // Los personajes de la historia (etapa 15D), hechos con formas básicas (estilo dibujito, con bordes):
-//   Don Ernesto (el vecino), Doña Pocha (la vecina), Tomi (el protagonista) y Facu (su amigo).
+//   Don Ernesto (el vecino), Doña Pocha (la vecina), Tomi (el protagonista), Facu (su amigo)
+//   y los perros del patio.
 // Cada función arma el personaje mirando hacia +Z, con los pies en y = 0, y devuelve sus partes
 // "con bisagra" (piernas, brazos, cabeza...) para que el que lo usa las anime:
-//   Dueno.js y Abuela.js (en el juego), Escape.js (Facu esperando) y las cinemáticas.
+//   Dueno.js, Abuela.js y Perro.js (en el juego), Escape.js (Facu esperando) y Escenas.js (las cinemáticas).
 // Las telas (a cuadros, a rayas, con lunares, tejida) se dibujan en un canvas chiquito.
 import * as THREE from 'three';
 import { materialToon, materialConTextura } from './Materials.js';
@@ -272,14 +273,16 @@ export function crearDonaPocha() {
 
 // ------------------------------------------------------------
 //  LOS NENES (Tomi y Facu): cabezón, ojos grandes, pecas, gorrita, remera, bermudas y zapatillas.
-//  Miden unos 1,4 m. Devuelve: { cuerpo, piernas, brazos, cabeza, ojos }
+//  Miden unos 1,4 m. Devuelve: { cuerpo, piernas, brazos, cabeza, ojos, bermudas }
+//  (bermudas: las mallas de la bermuda, para sacársela en la cinemática del perro)
 // ------------------------------------------------------------
 function crearNene({ remera, bermuda, gorra, gorraParaAtras = false, piel = '#f1c27d', pelo = '#5c3d2e' }) {
   const cuerpo = new THREE.Group();
 
+  const bermudas = [];
   const piernas = [-0.08, 0.08].map((x) => {
     const cadera = pivote(cuerpo, x, 0.56, 0);
-    parte(cadera, capsula(0.065, 0.14), bermuda, 0, -0.1, 0);
+    bermudas.push(parte(cadera, capsula(0.065, 0.14), bermuda, 0, -0.1, 0));
     parte(cadera, capsula(0.048, 0.22), piel, 0, -0.32, 0);
     parte(cadera, esfera(0.075), '#ffffff', 0, -0.5, 0.04).scale.set(0.9, 0.6, 1.5); // zapatilla
     parte(cadera, caja(0.11, 0.025, 0.2), '#e63946', 0, -0.535, 0.04); // suela
@@ -287,7 +290,7 @@ function crearNene({ remera, bermuda, gorra, gorraParaAtras = false, piel = '#f1
   });
 
   parte(cuerpo, cilindro(0.16, 0.15, 0.42), remera, 0, 0.78, 0);
-  parte(cuerpo, cilindro(0.155, 0.16, 0.08), bermuda, 0, 0.58, 0); // cintura de la bermuda
+  bermudas.push(parte(cuerpo, cilindro(0.155, 0.16, 0.08), bermuda, 0, 0.58, 0)); // cintura de la bermuda
 
   const brazos = [-0.2, 0.2].map((x) => {
     const hombro = pivote(cuerpo, x, 0.95, 0);
@@ -314,18 +317,26 @@ function crearNene({ remera, bermuda, gorra, gorraParaAtras = false, piel = '#f1
   parte(cabeza, mediaEsfera(0.195), gorra, 0, 0.25, 0);
   parte(cabeza, caja(0.22, 0.02, 0.14), gorra, 0, 0.26, gorraParaAtras ? -0.22 : 0.22); // visera
 
-  return { cuerpo, piernas, brazos, cabeza, ojos };
+  return { cuerpo, piernas, brazos, cabeza, ojos, bermudas };
 }
 
-// Tomi: gorrita roja, remera amarilla con una estrella y su mochila azul (para guardar los juguetes)
+// Tomi: gorrita roja, remera amarilla con una estrella y su mochila azul (para guardar los juguetes).
+// Debajo de la bermuda tiene calzoncillos blancos con corazones (escondidos: ver "calzoncillos").
+// Devuelve además "calzoncillos" (las mallas, invisibles) y "mochila" (el grupo de la mochila).
 export function crearTomi() {
   const tomi = crearNene({ remera: '#ffd23f', bermuda: '#3d5a80', gorra: '#e63946' });
-  const { cuerpo } = tomi;
+  const { cuerpo, piernas } = tomi;
   parte(cuerpo, new THREE.OctahedronGeometry(0.05, 0), '#e63946', 0, 0.85, 0.16).scale.set(1, 1, 0.3); // estrella
-  parte(cuerpo, caja(0.26, 0.3, 0.12), '#3a86ff', 0, 0.82, -0.2); // mochila
-  parte(cuerpo, caja(0.18, 0.1, 0.03), '#1d4ed8', 0, 0.74, -0.27); // bolsillo de la mochila
-  for (const lado of [-1, 1]) parte(cuerpo, caja(0.03, 0.36, 0.02), '#1d4ed8', lado * 0.09, 0.82, 0.155); // tiras
-  return tomi;
+  const mochila = pivote(cuerpo, 0, 0, 0);
+  parte(mochila, caja(0.26, 0.3, 0.12), '#3a86ff', 0, 0.82, -0.2);
+  parte(mochila, caja(0.18, 0.1, 0.03), '#1d4ed8', 0, 0.74, -0.27); // bolsillo
+  for (const lado of [-1, 1]) parte(mochila, caja(0.03, 0.36, 0.02), '#1d4ed8', lado * 0.09, 0.82, 0.155); // tiras
+
+  const conCorazones = tela(conLunares('#ffffff', '#ff4d6d'), 3, 1);
+  const calzoncillos = [parte(cuerpo, cilindro(0.15, 0.155, 0.1), conCorazones, 0, 0.57, 0)];
+  for (const cadera of piernas) calzoncillos.push(parte(cadera, capsula(0.058, 0.03), conCorazones, 0, -0.05, 0));
+  for (const malla of calzoncillos) malla.visible = false;
+  return { ...tomi, calzoncillos, mochila };
 }
 
 // Facu: gorrita naranja para atrás, remera verde, binoculares colgando y el walkie en la mano derecha.
@@ -339,4 +350,51 @@ export function crearFacu() {
   parte(brazoWalkie, caja(0.06, 0.13, 0.04), '#ffd23f', 0, -0.4, 0.04); // walkie
   parte(brazoWalkie, cilindro(0.006, 0.006, 0.12), '#222222', 0.015, -0.28, 0.04); // antena
   return { ...facu, brazoWalkie };
+}
+
+// ------------------------------------------------------------
+//  LOS PERROS (Firulais y Manchita): petisos y cabezones, con collar rojo. Miran hacia +Z.
+//  colores: { pelo, manchas, hocico }. Devuelve: { cuerpo, patas, cola, cabeza, mandibula }
+//  (patas: 4 bisagras, adelante izquierda, adelante derecha, atrás izquierda, atrás derecha)
+// ------------------------------------------------------------
+export function crearPerro({ pelo, manchas, hocico }) {
+  const cuerpo = new THREE.Group();
+
+  // Cuerpo (una cápsula acostada) y un par de manchas
+  parte(cuerpo, capsula(0.17, 0.38), pelo, 0, 0.45, 0).rotation.x = Math.PI / 2;
+  parte(cuerpo, esfera(0.1), manchas, 0.1, 0.55, -0.08).scale.set(1, 0.6, 1.3);
+  parte(cuerpo, esfera(0.08), manchas, -0.11, 0.5, 0.12).scale.set(1, 0.7, 1);
+
+  // Patas: cada una cuelga de una bisagra, así se balancean al correr
+  const patas = [[-0.1, 0.2], [0.1, 0.2], [-0.1, -0.2], [0.1, -0.2]].map(([x, z]) => {
+    const cadera = pivote(cuerpo, x, 0.36, z);
+    parte(cadera, new THREE.CylinderGeometry(0.045, 0.045, 0.3, 8), pelo, 0, -0.17, 0);
+    parte(cadera, esfera(0.06), hocico, 0, -0.33, 0.02);
+    return cadera;
+  });
+
+  // Cola (también con bisagra: se mueve de un lado al otro)
+  const cola = pivote(cuerpo, 0, 0.55, -0.35);
+  cola.rotation.x = -0.7;
+  parte(cola, new THREE.CylinderGeometry(0.025, 0.035, 0.28, 6), pelo, 0, 0.14, 0);
+
+  // Collar con chapita
+  parte(cuerpo, new THREE.TorusGeometry(0.12, 0.025, 6, 16), '#e63946', 0, 0.6, 0.27).rotation.x = Math.PI / 2 - 0.4;
+  parte(cuerpo, new THREE.CylinderGeometry(0.035, 0.035, 0.01, 10), '#ffd23f', 0, 0.5, 0.36).rotation.x = Math.PI / 2;
+
+  // Cabeza (se mueve sola al ladrar) con la mandíbula, que se abre, y la lengua
+  const cabeza = pivote(cuerpo, 0, 0.7, 0.35);
+  parte(cabeza, esfera(0.16), pelo, 0, 0, 0);
+  parte(cabeza, caja(0.14, 0.09, 0.16), hocico, 0, -0.04, 0.14);
+  parte(cabeza, esfera(0.035), '#000000', 0, 0, 0.23); // nariz
+  const mandibula = pivote(cabeza, 0, -0.08, 0.08);
+  parte(mandibula, caja(0.12, 0.03, 0.14), hocico, 0, -0.01, 0.07);
+  parte(mandibula, caja(0.06, 0.012, 0.1), '#ff6b8b', 0, 0.01, 0.09);
+  for (const lado of [-1, 1]) {
+    parte(cabeza, esfera(0.035), '#ffffff', lado * 0.07, 0.05, 0.12);
+    parte(cabeza, esfera(0.018), '#000000', lado * 0.07, 0.05, 0.15);
+    parte(cabeza, caja(0.05, 0.16, 0.1), manchas, lado * 0.15, -0.03, -0.02).rotation.z = lado * 0.3; // orejas caídas
+  }
+
+  return { cuerpo, patas, cola, cabeza, mandibula };
 }

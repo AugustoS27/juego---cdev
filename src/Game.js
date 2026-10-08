@@ -19,6 +19,8 @@ import { Audio } from './Audio.js';
 import { Exterior } from './Exterior.js';
 import { Entradas } from './Entradas.js';
 import { ZonaDeEscape } from './Escape.js';
+import { Cinematica } from './Cinematica.js';
+import { Escenas } from './Escenas.js';
 import { juntarMallasEstaticas } from './Optimizar.js';
 import { Decoracion } from './Decoracion.js';
 import { ALTURA_PISO, INICIO_JUGADOR, TECHO, PISO_MINIMO, NOMBRES_PISOS, ZONA_PATIO, pisoDeAltura } from './HouseData.js';
@@ -26,6 +28,8 @@ import { ALTURA_PISO, INICIO_JUGADOR, TECHO, PISO_MINIMO, NOMBRES_PISOS, ZONA_PA
 // Estados posibles de la partida
 const PARTIDA = {
   MENU: 'menu', // menú principal
+  CINE: 'cine', // mirando una cinemática
+  LISTO: 'listo', // terminó la intro: esperando el click en "¡Vamos!"
   JUGANDO: 'jugando',
   PAUSA: 'pausa', // se apretó Esc
   VICTORIA: 'victoria',
@@ -87,6 +91,11 @@ export class Game {
     this.audio = new Audio();
     this.ui = new UI();
     this.walkie = new Walkie(); // Facu, por radio (pistas y comentarios)
+    // Cinemáticas: el reproductor (Cinematica.js) y los guiones con sus actores (Escenas.js)
+    this.cinematica = new Cinematica(this.camera);
+    this.cinematica.alHablar = (quien) => this.audio.voz(quien);
+    this.escenas = new Escenas(this.scene, this.house, this.zonaEscape, this.audio);
+    this.vioLaIntro = false; // la intro sale sola la primera vez que se toca "¡A jugar!"
 
     // Rendimiento: todo lo que no se mueve (paredes, pisos, escalones, decoración) se junta en
     // pocas mallas, una por material. Tiene que ir DESPUÉS de crear la casa, el exterior y la van.
@@ -309,8 +318,9 @@ export class Game {
   // Cada frame: el sol se muda al piso del jugador y las luces se acercan de a poco a las de ese piso
   // (así, al bajar al sótano, "se te acostumbra la vista" en vez de oscurecerse de golpe).
   // También le decimos a la casa qué muebles dibujar y mostramos el piso en el HUD.
+  // (En las cinemáticas, que son todas afuera, se usa la luz de la planta baja)
   actualizarLuces(dt) {
-    const piso = pisoDeAltura(this.player.position.y);
+    const piso = this.estado === PARTIDA.CINE ? 0 : pisoDeAltura(this.player.position.y);
     this.moverSolInterior(piso);
     this.house.mostrarPisosCercanos(piso);
     const p = this.player.position;
@@ -365,6 +375,8 @@ export class Game {
   // ------------------------------------------------------------
   // Cómo se pasa de una pantalla a otra:
   //  - "¡A jugar!" / "Reiniciar": partida nueva y se bloquea el mouse.
+  //    La primera vez, "¡A jugar!" muestra antes la intro (y después la pantalla "¡A recuperarlos!").
+  //  - "Ver la historia": la intro, y de vuelta al menú.
   //  - Al bloquearse el mouse se empieza (o se sigue) jugando.
   //  - Esc: el navegador libera el mouse y aparece la pausa.
   //  - "Menú": vuelve al menú principal.
@@ -393,8 +405,26 @@ export class Game {
       controls.lock();
     };
 
+    // La intro termina en la pantalla "¡A recuperarlos!" (con los juguetes de esta partida): el mouse
+    // se bloquea recién con el click en "¡Vamos!" (el navegador no deja hacerlo sin un click)
+    const conIntro = () => {
+      this.audio.iniciar();
+      this.reiniciar();
+      this.verIntro(() => {
+        this.estado = PARTIDA.LISTO;
+        this.ui.mostrarListo(this.items.objetivos);
+      });
+    };
+
     this.ui.conectarBotones({
-      jugar: partidaNueva,
+      jugar: () => (this.vioLaIntro ? partidaNueva() : conIntro()),
+      historia: () => {
+        this.audio.iniciar();
+        this.verIntro(() => {
+          this.estado = PARTIDA.MENU;
+          this.ui.mostrarPantalla('menu');
+        });
+      },
       reiniciar: partidaNueva,
       continuar: () => controls.lock(),
       menu: () => {
@@ -408,6 +438,7 @@ export class Game {
 
   configurarTeclado() {
     window.addEventListener('keydown', (e) => {
+      if ((e.code === 'Space' || e.code === 'Enter') && this.estado === PARTIDA.CINE && !e.repeat) this.cinematica.saltear();
       if (e.code === 'KeyE' && this.estado === PARTIDA.JUGANDO) this.interactuar();
       if (e.code === 'KeyT' && this.estado === PARTIDA.JUGANDO) this.pedirPista();
       if (e.code === 'KeyM') this.ui.mostrarSilencio(this.audio.alternarSilencio());
@@ -446,6 +477,40 @@ export class Game {
   }
 
   // ------------------------------------------------------------
+  //  CINEMÁTICAS (ver Cinematica.js y Escenas.js)
+  // ------------------------------------------------------------
+  // Reproduce una cinemática y al terminar (o al saltearla) llama a "despues".
+  // Mientras dura, el juego está quieto: los enemigos se esconden (los reemplazan los actores).
+  verCinematica(tomas, despues) {
+    this.estado = PARTIDA.CINE;
+    // El botón que se tocó queda "con foco": sin esto, el Espacio para saltear también lo apretaría
+    document.activeElement?.blur();
+    this.ui.mostrarPantalla(null);
+    this.ui.mostrarHUD(false);
+    this.ui.ocultarCosasDelJuego();
+    for (const enemigo of this.enemigos) enemigo.modelo.visible = false;
+    this.zonaEscape.prepararCinematica();
+    this.actualizarLuces(1); // (de golpe: puede venir del sótano)
+    this.cinematica.reproducir(tomas, () => {
+      this.escenas.limpiar();
+      for (const enemigo of this.enemigos) enemigo.modelo.visible = true;
+      this.player.teclas = {}; // (Espacio para saltear no tiene que contar como salto)
+      despues();
+    });
+  }
+
+  // La intro: la primera vez que se juega, o con "Ver la historia" (usa los juguetes ya sorteados)
+  verIntro(despues) {
+    this.vioLaIntro = true;
+    this.verCinematica(this.escenas.intro(this.items.objetivos), () => {
+      // La cámara vuelve a los ojos de Tomi, mirando la casa (se ve detrás de la pantalla que venga)
+      this.player.actualizarCamara();
+      this.camera.rotation.set(0, 0, 0);
+      despues();
+    });
+  }
+
+  // ------------------------------------------------------------
   //  LOOP
   // ------------------------------------------------------------
   start() {
@@ -463,6 +528,11 @@ export class Game {
     this.zonaEscape.update(dt);
     this.decoracion.update(dt, this.camera);
     this.actualizarLuces(dt);
+
+    if (this.estado === PARTIDA.CINE) {
+      this.cinematica.update(dt);
+      this.house.update(dt); // (la puerta de calle se abre y se cierra en las cinemáticas)
+    }
 
     if (this.estado === PARTIDA.JUGANDO) {
       this.tiempoPartida += dt;
@@ -632,31 +702,47 @@ export class Game {
     this.estabaEnLaZona = adentro;
   }
 
-  // Tomi volvió con Facu y los tres juguetes
+  // Tomi volvió con Facu y los tres juguetes: cinemática (se van en bici) y la pantalla de victoria
   ganar() {
-    this.estado = PARTIDA.VICTORIA; // primero el estado, así "unlock" no muestra la pausa
+    this.estado = PARTIDA.CINE; // primero el estado, así "unlock" no muestra la pausa
     this.player.controls.unlock();
-    this.audio.timbre();
-    this.audio.victoria();
-    const nombres = this.items.objetivos.map((o) => o.objeto.nombre);
-    this.ui.mostrarVictoria(nombres, this.tiempoPartida, this.nivelEnojo);
+    this.audio.todoListo();
+    this.verCinematica(this.escenas.victoria(), () => {
+      this.estado = PARTIDA.VICTORIA;
+      this.audio.victoria();
+      const nombres = this.items.objetivos.map((o) => o.objeto.nombre);
+      this.ui.mostrarVictoria(nombres, this.tiempoPartida, this.nivelEnojo);
+    });
   }
 
-  // Te atrapó un enemigo: cada uno tiene su frase
+  // Te atrapó un enemigo: cada uno tiene su cinemática y su frase.
+  // Don Ernesto te saca de la oreja (y lo que dice depende de cómo te agarró); un perro te deja sin bermuda.
   perder(enemigo) {
     let texto = null; // (null = una frase de Don Ernesto al azar, ver UI.mostrarDerrota)
+    let frase = '¡A tu casa, atrevido! ¡Meterse en la casa ajena!'; // (la que dice en la cinemática)
+    let escena;
     if (enemigo === this.dueno && this.dueno.encontroAlJugador) {
       texto = '¡Don Ernesto te encontró escondido! "¿Jugando a las escondidas en MI casa?"';
+      frase = '¿Jugando a las escondidas en MI casa? ¡Afuera!';
     } else if (enemigo === this.dueno && this.player.enRed > 0) {
       texto = 'Don Ernesto te encontró enredado en la red de Doña Pocha. "¡Qué buena pesca, vieja!"';
-    } else if (this.perros.includes(enemigo)) {
+      frase = '¡Qué buena pesca, vieja! Y ahora... ¡afuera!';
+    }
+    if (this.perros.includes(enemigo)) {
       texto = `${enemigo.v.nombre} te mordió el pantalón y no lo suelta. Te fuiste en calzoncillos.`;
       this.audio.ladrido(1);
+      escena = this.escenas.derrotaPerro(enemigo.v.nombre);
+    } else {
+      this.audio.alerta();
+      escena = this.escenas.derrotaDueno(frase);
     }
-    this.estado = PARTIDA.DERROTA;
+    this.estado = PARTIDA.CINE;
     this.player.controls.unlock();
-    this.audio.derrota();
-    this.ui.mostrarDerrota(texto, this.tiempoPartida, this.nivelEnojo);
+    this.verCinematica(escena, () => {
+      this.estado = PARTIDA.DERROTA;
+      this.audio.derrota();
+      this.ui.mostrarDerrota(texto, this.tiempoPartida, this.nivelEnojo);
+    });
   }
 
   // ------------------------------------------------------------

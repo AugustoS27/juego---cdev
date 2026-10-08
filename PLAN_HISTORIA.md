@@ -3,7 +3,7 @@
 Este documento es la tercera parte del plan (la segunda, etapas 9 a 14, está en [PLAN.md](PLAN.md) y está
 terminada). Acá se detalla el cambio de historia y todo lo que viene con él.
 
-> **Estado actual:** 🔨 en curso. **15A** ✅, **15B** ✅, **15C** ✅, **15D** ✅. Próxima: **15E**.
+> **Estado actual:** 🔨 en curso. **15A** ✅, **15B** ✅, **15C** ✅, **15D** ✅, **15E** ✅. Próxima: **15F**.
 
 ---
 
@@ -32,8 +32,8 @@ Hoy Tomi se cansó: se va a meter a recuperar **3 juguetes**. Su amigo **Facu** 
 | **15B** | Walkie-talkie: Facu da las pistas por radio (cada vez más precisas) y comenta lo que pasa | Mediana | ✅ Terminada |
 | **15C** | Doña Pocha y su lanzarredes: la red vuela, te paraliza 3 s y hace ruido | Mediana | ✅ Terminada |
 | **15D** | Diseños nuevos: Don Ernesto y Doña Pocha (más detalle y animaciones); Tomi y Facu para las cinemáticas | Mediana | ✅ Terminada |
-| **15E** | Cinemáticas: la intro que cuenta la historia, la de victoria y la de derrota | Grande | ⏳ Próxima |
-| **15F** | Música y pasos nuevos + cierre (todas las pruebas, rendimiento, README) | Mediana | — |
+| **15E** | Cinemáticas: la intro que cuenta la historia, la de victoria y la de derrota | Grande | ✅ Terminada |
+| **15F** | Música y pasos nuevos + cierre (todas las pruebas, rendimiento, README) | Mediana | ⏳ Próxima |
 
 Igual que antes: **una etapa por vez**, se prueba, se muestra y se espera la confirmación antes de seguir.
 Un commit por etapa (cuando se pida).
@@ -259,7 +259,57 @@ Siguen hechos con formas básicas (estilo dibujito, con bordes), pero con más d
 
 ---
 
-## Etapa 15E — Cinemáticas
+## Etapa 15E — Cinemáticas ✅
+
+### Qué se hizo
+- **`Cinematica.js` (nuevo), el reproductor:** recibe una lista de tomas (dónde arranca y termina la cámara, a
+  dónde mira, cuánto dura, quién habla y qué dice, qué pasa al empezar y en cada frame) y las pasa una detrás de
+  la otra. La cámara va con una curva suave, con un lente más cerrado que el del juego (50° en vez de 75°).
+  Barras negras arriba y abajo, subtítulos letra por letra con el nombre en el color de cada personaje (el
+  narrador va en cursiva), fundido desde y hacia negro, y **Espacio, Enter o el botón para saltear**.
+- **`Escenas.js` (nuevo), los guiones:** los "actores" son los personajes de la 15D (Tomi, Don Ernesto,
+  Doña Pocha y los perros, que pasaron a `Personajes.js`), creados una vez y ocultos hasta que una toma los usa.
+  Facu, las bicis y la tranquera de los autos son los de verdad (`Escape.js`), y la puerta de calle es la de la
+  casa. Cada toma ubica a todos al empezar: funciona sola aunque se saltee la anterior.
+- **Intro (~45 s, 9 tomas):** el barrio; Tomi y Facu se pasan la pelota; Tomi patea y la pelota cae en el jardín;
+  sale Don Ernesto ("¡Lo que cae en mi jardín es MÍO!", colorado y con la pelota en alto); los nenes en la cerca
+  (Tomi dice **los 3 juguetes de esta partida**); los perros ladrando en el patio; Doña Pocha en el balcón con
+  el lanzarredes; el plan ("Yo te espero con las bicis") y Facu con el walkie. Sale sola la primera vez que se
+  toca "¡A jugar!" y se puede volver a ver con **"📜 Ver la historia"** en el menú. Termina en una pantalla nueva,
+  **"¡A recuperarlos!"**, con los tres juguetes y el botón "¡Vamos!" (el navegador solo deja atrapar el mouse
+  después de un click).
+- **Victoria (~17 s):** Tomi llega corriendo y Facu salta; Don Ernesto sale a los gritos revoleando el palo; se
+  abre la tranquera y se van en bici (¡ring ring!); Don Ernesto sacude el puño en la tranquera del camino.
+- **Derrota con Don Ernesto (~9 s):** te saca de la oreja por el camino del jardín (lo que dice depende de cómo
+  te agarró: escondido, enredado en la red o común) y te revolea por arriba de la cerca; Facu se rasca la cabeza.
+- **Derrota con un perro (~8 s):** te muerde la bermuda, tironea, ¡RIIIP!, y Tomi sale corriendo en calzoncillos
+  de corazones mientras el perro se queda con la bermuda.
+- **Vocecitas** para cada personaje mientras aparece su subtítulo (como la de Facu en el walkie) y sonidos nuevos:
+  patada, pique de la pelota, gruñido y la tela que se rompe.
+- **Cambios para que se pueda:** Facu y las bicis ya no se juntan con el resto del escenario (cada uno se junta
+  aparte, en pocas mallas, con `juntarGrupo` de `Optimizar.js`, así se pueden mover); la tranquera de los autos
+  es un objeto aparte que se abre; los travesaños de la cerca se cortan en esa tranquera.
+- Mientras dura una cinemática, el juego está quieto: se ocultan el HUD, la mira, la zona de escape y los
+  enemigos del juego (los reemplazan los actores), y la luz es la de la planta baja aunque te hayan agarrado en
+  el sótano. Al terminar, todo vuelve a su lugar.
+
+### Pruebas que se corrieron
+- Las 15 tomas, una por una, con capturas en distintos momentos. Se corrigieron: los nenes en la cerca (los
+  tapaban el buzón, un arbusto y la tranquera del camino), los perros (uno quedaba detrás de los tachos y otro
+  detrás del cartel), Doña Pocha (desde el pasto la tapaba la baranda: la cámara sube a la altura del balcón),
+  la llegada de Tomi en la victoria (lo tapaba Facu), Don Ernesto detrás de la tranquera del camino y la del
+  perro (de costado, desde adentro del patio, para que se vea la mordida). Con el lente del juego (75°) los
+  personajes se veían chiquitos: de ahí el de 50°.
+- Intro entera: termina en "¡A recuperarlos!" con los tres juguetes; Facu, las bicis, la puerta, la mira, el
+  lente y los enemigos quedan como antes. Salteada con Espacio a los 2 s: vuelve al menú con todo en su lugar
+  (se encontró y corrigió: el botón "Ver la historia" quedaba con foco y el mismo Espacio lo volvía a apretar).
+- Victoria y las derrotas (Don Ernesto común, enredado y un perro) desde la partida: cada una con sus frases,
+  termina en su pantalla, sin errores.
+- 6 partidas simuladas en distintos lugares (5 terminan atrapadas y pasan por su cinemática): sin errores.
+- Rendimiento (mismas vistas, con y sin la 15E): calle 2351 → 2364, frente 2345 → 2356, Facu 903 → 926,
+  patio 1919 → 1900 (entre -1% y +2,5%). Build OK.
+
+### Plan original
 
 ### Qué se hace
 - **Sistema de cinemáticas** (`Cinematica.js`): una cinemática es una lista de "tomas", cada una con dónde

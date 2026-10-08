@@ -238,17 +238,16 @@ export class Exterior {
     palitos.castShadow = true;
     this.scene.add(palitos);
 
-    // Travesaños
+    // Travesaños (los del frente, cortados en la tranquera de los autos: se abre en la cinemática de victoria)
     for (const y of [0.35, 0.85]) {
       this.cajaDecor((x1 + x2) / 2, y, z1, x2 - x1, 0.08, 0.04, '#fdfdfd');
-      this.cajaDecor((x1 + x2) / 2, y, z2, x2 - x1, 0.08, 0.04, '#fdfdfd');
+      for (const [a, b] of [[x1, -14.8], [-9.7, x2]]) this.cajaDecor((a + b) / 2, y, z2, b - a, 0.08, 0.04, '#fdfdfd');
       this.cajaDecor(x1, y, (z1 + z2) / 2, 0.04, 0.08, z2 - z1, '#fdfdfd');
       this.cajaDecor(x2, y, (z1 + z2) / 2, 0.04, 0.08, z2 - z1, '#fdfdfd');
     }
 
-    // Tranqueras cerradas (la del camino y la de los autos)
+    // Tranquera cerrada del camino (la de los autos está en Escape.js: se abre en la cinemática de victoria)
     this.cajaDecor(-1, 0.1, z2, 2, 0.9, 0.08, '#b08968');
-    this.cajaDecor(-12.25, 0.1, z2, 5.1, 1, 0.08, '#6c757d');
 
     // Colisiones: el jugador no puede salir del terreno
     const g = 0.3;

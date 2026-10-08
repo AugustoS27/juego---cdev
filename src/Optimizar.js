@@ -60,6 +60,34 @@ export function juntarMallasEstaticas(scene) {
   return { antes: juntadas.length, despues: porMaterial.size, porCapa };
 }
 
+// Lo mismo, pero adentro de un grupo que se tiene que poder mover u ocultar entero (Facu y las bicis,
+// que salen en las cinemáticas): sus mallas se juntan en una por material, pero quedan en el grupo.
+// excepto: las partes que se animan solas (un brazo, las piernas): esas no se tocan.
+// Hay que llamarla con el grupo todavía en el origen, sin moverlo ni girarlo.
+export function juntarGrupo(grupo, excepto = []) {
+  grupo.updateMatrixWorld(true);
+  const quedan = new Set();
+  for (const pieza of excepto) pieza.traverse((m) => quedan.add(m));
+  const porMaterial = new Map(); // clave -> { material, sombra, sinBorde, geometrias: [] }
+  const juntadas = [];
+  grupo.traverse((malla) => {
+    if (!malla.isMesh || quedan.has(malla) || Array.isArray(malla.material)) return;
+    const sinBorde = !!malla.userData.outlineParameters;
+    const clave = `${malla.material.uuid}${malla.castShadow ? '+sombra' : ''}${sinBorde ? '-borde' : ''}`;
+    if (!porMaterial.has(clave)) porMaterial.set(clave, { material: malla.material, sombra: malla.castShadow, sinBorde, geometrias: [] });
+    porMaterial.get(clave).geometrias.push(geometriaEnElMundo(malla));
+    juntadas.push(malla);
+  });
+  for (const malla of juntadas) malla.removeFromParent();
+  for (const { material, sombra, sinBorde, geometrias } of porMaterial.values()) {
+    const junta = new THREE.Mesh(mergeGeometries(geometrias, false), material);
+    junta.castShadow = sombra;
+    junta.receiveShadow = true;
+    if (sinBorde) junta.userData.outlineParameters = { visible: false };
+    grupo.add(junta);
+  }
+}
+
 // Copia de la geometría de la malla, sin índices (cada triángulo con sus 3 vértices propios),
 // ya movida/rotada/escalada a su lugar del mundo y solo con posición, normal y uv.
 function geometriaEnElMundo(malla) {

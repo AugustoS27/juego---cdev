@@ -1,4 +1,7 @@
 // Facu (el amigo de Tomi) esperando con las dos bicis en la entrada de autos, y la zona de escape.
+// Facu, las bicis y la tranquera de los autos salen en las cinemáticas (ver Escenas.js): por eso no
+// se juntan con el resto del escenario (cada uno se junta aparte, ver juntarGrupo) y reiniciar() los
+// vuelve a dejar en su lugar.
 //
 // La zona es un círculo en el piso, al lado de Facu.
 //  - Mientras faltan juguetes: el círculo es gris y apagado.
@@ -7,6 +10,7 @@
 import * as THREE from 'three';
 import { materialToon } from './Materials.js';
 import { crearFacu } from './Personajes.js';
+import { juntarGrupo } from './Optimizar.js';
 
 // Dónde espera Facu (mirando hacia la casa) y dónde están las bicis (con la rueda de adelante hacia la calle)
 const FACU = { x: -11.1, z: 16.2 };
@@ -16,6 +20,8 @@ const BICIS = [
 ];
 // La zona de escape queda adelante de Facu y las bicis
 export const ZONA_ESCAPE = { x: -12.25, z: 14.4, radio: 1.3 };
+// La tranquera de la entrada de autos (en la cerca del frente): se abre en la cinemática de victoria
+const TRANQUERA = { x: -14.8, z: 22, ancho: 5.1 }; // x: la bisagra (punta oeste)
 
 export class ZonaDeEscape {
   constructor(scene, house) {
@@ -24,9 +30,37 @@ export class ZonaDeEscape {
     this.activa = false;
     this.tiempo = 0;
 
-    for (const bici of BICIS) this.crearBici(bici);
+    this.bicis = BICIS.map((bici) => this.crearBici(bici));
     this.crearFacu();
+    this.crearTranquera();
     this.crearZona();
+    this.reiniciar();
+  }
+
+  // Facu, las bicis y la tranquera vuelven a su lugar (después de una cinemática)
+  reiniciar() {
+    const { cuerpo, piernas, brazos, cabeza } = this.facu;
+    cuerpo.position.set(FACU.x, 0, FACU.z);
+    cuerpo.rotation.set(0, Math.PI, 0); // mira hacia la casa (-Z)
+    cuerpo.visible = true;
+    for (const parte of [...piernas, ...brazos, cabeza]) parte.rotation.set(0, 0, 0);
+    this.brazoFacu.rotation.x = -2.3; // walkie a la altura de la boca
+    BICIS.forEach(({ x, z }, i) => {
+      this.bicis[i].position.set(x, 0, z);
+      this.bicis[i].rotation.set(0, 0, 0.12); // inclinada sobre la patita
+    });
+    this.tranquera.rotation.y = 0;
+    this.enCinematica = false; // (mientras sea true, update no toca el brazo de Facu)
+    if (this.aro) {
+      this.aro.visible = this.disco.visible = true;
+      this.flecha.visible = this.activa;
+    }
+  }
+
+  // Empieza una cinemática: Facu queda a cargo de Escenas.js y el círculo de la zona no se ve
+  prepararCinematica() {
+    this.enCinematica = true;
+    this.aro.visible = this.disco.visible = this.flecha.visible = false;
   }
 
   // ------------------------------------------------------------
@@ -39,17 +73,14 @@ export class ZonaDeEscape {
     malla.position.copy(a).add(b).multiplyScalar(0.5);
     malla.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direccion.normalize());
     malla.castShadow = true;
-    malla.userData.estatico = true;
     padre.add(malla);
     return malla;
   }
 
-  // Bici apoyada en su patita (un poco inclinada). Las ruedas son aros (toros) parados.
+  // Bici (mirando hacia +Z). Las ruedas son aros (toros) parados. Devuelve el grupo, que se arma en
+  // el origen y se junta en pocas mallas (una por color); reiniciar() la pone en su lugar.
   crearBici({ x, z, color }) {
     const grupo = new THREE.Group();
-    grupo.position.set(x, 0, z);
-    grupo.rotation.z = 0.12; // inclinada sobre la patita
-    this.scene.add(grupo);
     const V = (px, py, pz) => new THREE.Vector3(px, py, pz);
     const R = 0.32; // radio de las ruedas
     for (const rz of [-0.5, 0.5]) {
@@ -57,7 +88,6 @@ export class ZonaDeEscape {
       rueda.position.set(0, R, rz);
       rueda.rotation.y = Math.PI / 2; // parada, a lo largo de la bici
       rueda.castShadow = true;
-      rueda.userData.estatico = true;
       grupo.add(rueda);
       this.tubo(grupo, V(-0.04, R, rz), V(0.04, R, rz), 0.04, '#adb5bd'); // eje
     }
@@ -75,32 +105,41 @@ export class ZonaDeEscape {
     for (const lado of [-1, 1]) this.tubo(grupo, V(lado * 0.22, 0.88, 0.42), V(lado * 0.3, 0.88, 0.42), 0.03, '#222222'); // puños
     const sillin = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.05, 0.24), materialToon('#222222'));
     sillin.position.copy(asiento).setY(asiento.y + 0.03);
-    sillin.userData.estatico = true;
     grupo.add(sillin);
     this.tubo(grupo, V(0, 0.15, 0.05), V(0.18, 0, 0.05), 0.012, '#6c757d'); // patita
+    juntarGrupo(grupo);
+    this.scene.add(grupo);
     // Colisión: una caja finita a lo largo de la bici
     this.house.colliders.push(new THREE.Box3(new THREE.Vector3(x - 0.25, 0, z - 0.85), new THREE.Vector3(x + 0.25, 1, z + 0.85)));
+    return grupo;
   }
 
   // ------------------------------------------------------------
   //  FACU (ver Personajes.js): espera mirando hacia la casa, con el walkie a la altura de la boca
   // ------------------------------------------------------------
   crearFacu() {
-    const facu = crearFacu();
-    facu.cuerpo.position.set(FACU.x, 0, FACU.z);
-    facu.cuerpo.rotation.y = Math.PI; // mira hacia la casa (-Z)
-    this.scene.add(facu.cuerpo);
-    this.brazoFacu = facu.brazoWalkie;
-    this.brazoFacu.rotation.x = -2.3; // walkie a la altura de la boca
-    // Facu no se mueve (salvo el brazo del walkie): todo lo demás se junta con el resto (ver Optimizar.js)
-    const delBrazo = new Set();
-    this.brazoFacu.traverse((m) => delBrazo.add(m));
-    facu.cuerpo.traverse((m) => {
-      if (m.isMesh && !delBrazo.has(m)) m.userData.estatico = true;
-    });
+    this.facu = crearFacu();
+    this.brazoFacu = this.facu.brazoWalkie;
+    // Rendimiento: el cuerpo y la cabeza se juntan en una malla por material (las piernas y los
+    // brazos no: en las cinemáticas camina y pedalea)
+    juntarGrupo(this.facu.cuerpo, [...this.facu.piernas, ...this.facu.brazos]);
+    this.scene.add(this.facu.cuerpo);
     this.house.colliders.push(
       new THREE.Box3(new THREE.Vector3(FACU.x - 0.3, 0, FACU.z - 0.3), new THREE.Vector3(FACU.x + 0.3, 1.4, FACU.z + 0.3)),
     );
+  }
+
+  // La tranquera de la entrada de autos: una hoja gris que gira sobre su punta oeste
+  crearTranquera() {
+    const { x, z, ancho } = TRANQUERA;
+    this.tranquera = new THREE.Group();
+    this.tranquera.position.set(x, 0, z);
+    const hoja = new THREE.Mesh(new THREE.BoxGeometry(ancho, 1, 0.08), materialToon('#6c757d'));
+    hoja.position.set(ancho / 2, 0.6, 0);
+    hoja.castShadow = true;
+    hoja.receiveShadow = true;
+    this.tranquera.add(hoja);
+    this.scene.add(this.tranquera);
   }
 
   // ------------------------------------------------------------
@@ -150,7 +189,7 @@ export class ZonaDeEscape {
   // Animación: si está activa, el círculo "late", la flecha sube y baja y Facu te saluda con el walkie
   update(dt) {
     this.tiempo += dt;
-    this.brazoFacu.rotation.set(this.activa ? -2.9 : -2.3, 0, this.activa ? Math.sin(this.tiempo * 8) * 0.4 : 0);
+    if (!this.enCinematica) this.brazoFacu.rotation.set(this.activa ? -2.9 : -2.3, 0, this.activa ? Math.sin(this.tiempo * 8) * 0.4 : 0);
     if (!this.activa) return;
     const latido = (Math.sin(this.tiempo * 5) + 1) / 2; // de 0 a 1
     this.materialAro.opacity = 0.6 + latido * 0.4;
