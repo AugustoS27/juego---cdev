@@ -18,6 +18,9 @@ const VELOCIDAD_SALTO = 6; // salta unos 90 cm (altura = v² / 2g)
 const CAIDA_RUIDOSA = -5; // si cae más rápido que esto, el aterrizaje hace ruido
 const ESPERA_ENTRE_CHOQUES = 1; // para no generar un ruido por frame contra una pared
 
+export const TIEMPO_EN_LA_RED = 3; // segundos que quedás enredado si te da la red de Doña Pocha
+const INMUNIDAD_RED = 2; // segundos después de soltarte en los que no te puede volver a enredar
+
 // Cada tipo de paso: cada cuánto se da un paso (s). El ruido de cada uno está en Noise.js.
 const INTERVALO_PASO = { pasos: 0.5, pasosCorriendo: 0.3, pasosAgachado: 0.7 };
 
@@ -60,14 +63,18 @@ export class Player {
     this.posicionAntesDeEsconderse = new THREE.Vector3();
     this.rotacionAntesDeEsconderse = new THREE.Quaternion();
     this.olor = 0; // segundos que le quedan de olor a basura (después de esconderse en un tacho)
+    this.enRed = 0; // > 0 mientras está enredado en la red de Doña Pocha (no se puede mover)
+    this.inmuneRed = 0; // > 0 justo después de soltarse (la red no lo vuelve a enredar)
 
     // Game conecta estas funciones con el sonido y el sistema de ruido:
     //   alDarPaso(tipo):    tipo = 'pasos', 'pasosCorriendo' o 'pasosAgachado'
     //   alHacerRuido(tipo): tipo = 'choque', 'salto' o 'aterrizaje'
     //   alTerminarAnimacion(resultado): llegó al final de un movimiento automático que traía "alTerminar"
+    //   alSoltarseDeLaRed(): terminó de forcejear y se soltó de la red
     this.alDarPaso = null;
     this.alHacerRuido = null;
     this.alTerminarAnimacion = null;
+    this.alSoltarseDeLaRed = null;
     this.tiempoParaPaso = 0;
     this.tiempoDesdeChoque = ESPERA_ENTRE_CHOQUES;
 
@@ -98,6 +105,7 @@ export class Player {
     this.alturaOjos = ALTURA_OJOS;
     this.animacion = null;
     this.amplitudBalanceo = this.sacudon = this.velocidadSacudon = 0;
+    this.enRed = this.inmuneRed = 0;
     this.actualizarCamara();
   }
 
@@ -151,6 +159,11 @@ export class Player {
     }
 
     this.tiempoDesdeChoque += dt;
+    this.inmuneRed = Math.max(0, this.inmuneRed - dt);
+    if (this.enRed > 0) {
+      this.forcejearEnLaRed(dt);
+      return;
+    }
     this.actualizarAgachado();
     this.saltarSiCorresponde();
     this.mover(dt);
@@ -158,6 +171,37 @@ export class Player {
     this.actualizarCamara(dt);
     this.balancearCamara(dt);
     this.darPasos(dt);
+  }
+
+  // ------------------------------------------------------------
+  //  LA RED DE DOÑA POCHA
+  // ------------------------------------------------------------
+  // ¿La red lo puede enredar? (no si está escondido, ya enredado, recién soltado o trepando)
+  get puedeSerEnredado() {
+    return !this.escondido && !this.animacion && this.enRed <= 0 && this.inmuneRed <= 0;
+  }
+
+  atraparEnRed() {
+    this.enRed = TIEMPO_EN_LA_RED;
+    this.estaMoviendose = false;
+    this.estaCorriendo = false;
+  }
+
+  // Enredado: no se mueve (pero cae si estaba en el aire) y la cámara se sacude mientras forcejea
+  forcejearEnLaRed(dt) {
+    this.enRed = Math.max(0, this.enRed - dt);
+    this.estaMoviendose = false;
+    this.estaCorriendo = false;
+    this.aplicarGravedad(dt);
+    this.actualizarCamara(dt);
+    const t = this.enRed * 9;
+    this.camera.position.x += Math.sin(t * 1.3) * 0.04;
+    this.camera.position.y += Math.sin(t * 2.1) * 0.03 - 0.1; // un poco encogido
+    this.camera.position.z += Math.cos(t * 1.7) * 0.04;
+    if (this.enRed === 0) {
+      this.inmuneRed = INMUNIDAD_RED;
+      this.alSoltarseDeLaRed?.();
+    }
   }
 
   // ------------------------------------------------------------

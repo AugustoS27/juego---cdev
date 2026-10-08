@@ -1,20 +1,24 @@
-// Doña Pocha, la vecina (en el código le seguimos diciendo "la abuela"), con escopeta de perdigones de sal.
+// Doña Pocha, la vecina (en el código le seguimos diciendo "la abuela"), con su LANZARREDES (etapa 15C).
 // Usa el esqueleto de Enemigo.js, pero NO te persigue:
 //
 //   SENTADA  --(pasa un rato)-->  PATRULLA (da una vuelta por el pasillo y vuelve a su mecedora)
 //   cualquiera --(te ve)--> APUNTAR (1 segundo: se ve un rayito rojo y hace "clic")
-//   APUNTAR  --(pasa el segundo)--> dispara: ¡BANG!  --> RECARGAR (2.5 s: ¡tu oportunidad!)
+//   APUNTAR  --(pasa el segundo)--> dispara: ¡FUAP! sale una red  --> RECARGAR (2.5 s: ¡tu oportunidad!)
 //   RECARGAR --(te sigue viendo)--> APUNTAR   /   --(no te ve)--> INVESTIGAR (donde te vio)
 //   SENTADA / PATRULLA --(escucha algo)--> INVESTIGAR (es medio sorda: oído x0.5)
 //
-// Puntería: la probabilidad de acertar baja con la distancia y si te estás moviendo (ver
-// probabilidadDeAcierto). Si justo cuando dispara no te ve (te agachaste detrás de un mueble), erra seguro.
-// Cada disparo hace muchísimo ruido (lo escuchan el dueño y los perros) y deja un agujero donde pega.
+// La red vuela (ver Red.js): si te toca, quedás enredado 3 segundos y Doña Pocha le grita a Don Ernesto.
+// Ella sola no te puede hacer perder (no te agarra), pero Don Ernesto sí, si llega mientras estás enredado.
+// Puntería: apunta a donde estás cuando dispara, pero puede errar: la probabilidad de apuntar bien baja con la
+// distancia y si te estás moviendo (ver probabilidadDeAcierto). Además, como la red tarda en llegar,
+// corriendo de costado la podés esquivar. Si justo cuando dispara no te ve, erra seguro.
+// Cada disparo hace ruido (lo escuchan Don Ernesto y los perros) y la red queda tirada donde pega.
+// Mientras estás enredado (o recién soltado) no te apunta.
 //
 // Camina muy despacio y nunca sale de su cuarto y del pasillo del primer piso.
 import * as THREE from 'three';
 import { Enemigo, ESTADO } from './Enemigo.js';
-import { materialToon } from './Materials.js';
+import { Redes } from './Red.js';
 import { ABUELA, WAYPOINTS, CONEXIONES, ALTURA_PISO, pisoDeAltura } from './HouseData.js';
 
 export const ESTADO_ABUELA = {
@@ -27,9 +31,8 @@ const TIEMPO_APUNTANDO = 1; // segundos de aviso antes de disparar
 const TIEMPO_RECARGA = 2.5;
 const TIEMPO_SENTADA = [18, 28]; // se hamaca entre 18 y 28 segundos antes de levantarse
 const PARADAS_POR_PASEO = 2; // puntos del pasillo que visita antes de volver a sentarse
-const MAXIMO_AGUJEROS = 30;
 
-// Probabilidad de acertar un tiro (de 0 a 1).
+// Probabilidad de apuntar bien (de 0 a 1). Si apunta mal, la red sale bastante desviada.
 //  - De cerca apunta mejor: 60% a 3 m, 15% a 12 m (como mínimo 5%, como máximo 75%).
 //  - Moverse la complica: corriendo x0.6, caminando x0.8, agachado x0.9, quieto x1.
 // Ejemplos: quieto a 3 m -> 60%. Corriendo a 12 m -> 9%.
@@ -83,25 +86,27 @@ export class Abuela extends Enemigo {
     this.rayo.frustumCulled = false;
     scene.add(this.rayo);
 
-    this.agujeros = []; // agujeros de los perdigones en paredes y muebles
-    this.humos = []; // nubecitas de humo del disparo
-    this.raycaster = new THREE.Raycaster();
+    this.redes = new Redes(scene, house, player); // las redes que vuelan y las que quedan tiradas
+    this.humos = []; // nubecitas de aire del disparo
 
     // Funciones que conecta Game
     this.alApuntar = null; // alApuntar()
-    this.alDisparar = null; // alDisparar({ acerto, objetivo, probabilidad })
+    this.alDisparar = null; // alDisparar({ objetivo, probabilidad })
     this.alRecargar = null; // alRecargar()
+    this.alAtrapar = null; // alAtrapar(): la red enredó al jugador
+    this.alErrar = null; // alErrar(): la red no le dio
+    this.redes.alAtrapar = () => this.alAtrapar?.();
+    this.redes.alErrar = () => this.alErrar?.();
   }
 
   reiniciar() {
     super.reiniciar();
-    this.acerto = false;
     this.paradas = 0;
     this.volviendo = false; // true mientras vuelve a la mecedora
     this.tiempoApuntando = 0;
     this.tiempoRecarga = 0;
     this.balanceoSilla = 0;
-    this.limpiarAgujeros();
+    this.redes?.limpiar();
     this.sentarse();
   }
 
@@ -122,10 +127,17 @@ export class Abuela extends Enemigo {
     return this.estado === ESTADO_ABUELA.SENTADA;
   }
 
-  // La abuela no te persigue: te apunta (si está recargando, primero termina de recargar)
+  // La abuela no te persigue: te apunta (si está recargando, primero termina de recargar).
+  // Si ya estás enredado (o recién te soltaste), no te apunta: ya gritó "¡Ernesto!".
   alVerAlJugador() {
     if (this.estado === ESTADO_ABUELA.APUNTAR || this.estado === ESTADO_ABUELA.RECARGAR) return;
+    if (!this.player.puedeSerEnredado) return;
     this.empezarAApuntar();
+  }
+
+  // Ella no te agarra: solo te enreda (el que te agarra es Don Ernesto)
+  atrapoAlJugador() {
+    return false;
   }
 
   // Apuntando o recargando no se distrae con ruidos
@@ -147,6 +159,7 @@ export class Abuela extends Enemigo {
     else if (this.estado === ESTADO_ABUELA.RECARGAR) this.actualizarRecarga(dt);
     else super.actualizarEstado(dt);
     this.actualizarHumo(dt);
+    this.redes.update(dt);
   }
 
   // ------------------------------------------------------------
@@ -208,7 +221,7 @@ export class Abuela extends Enemigo {
     this.mirarHacia(this.ultimaPosicionVista, dt * 2);
     this.tiempoApuntando -= dt;
     // El rayito rojo va de la punta de la escopeta al pecho del jugador (si lo ve)
-    const punta = this.puntaDeLaEscopeta();
+    const punta = this.puntaDelLanzador();
     const pecho = this.player.position.clone().setY(this.player.position.y + 1.1);
     const hasta = this.tiempoSinVer < 0.1 ? pecho : this.ultimaPosicionVista.clone().setY(pecho.y);
     const puntos = this.rayo.geometry.attributes.position;
@@ -222,25 +235,27 @@ export class Abuela extends Enemigo {
 
   disparar() {
     this.rayo.visible = false;
-    const punta = this.puntaDeLaEscopeta();
-    const loVe = this.puedeVerAlJugador();
+    const punta = this.puntaDelLanzador();
+    const loVe = this.puedeVerAlJugador() && this.player.puedeSerEnredado;
     const distancia = punta.distanceTo(this.player.camera.position);
     const probabilidad = loVe ? probabilidadDeAcierto(distancia, this.player.tipoDePaso) : 0;
-    this.acerto = Math.random() < probabilidad;
+    const apuntoBien = Math.random() < probabilidad;
 
-    // A dónde va el tiro: al jugador si acertó; si no, un poco al costado (o a donde te vio)
+    // A dónde apunta: al pecho del jugador si apuntó bien; si no, bastante al costado (o a donde te vio).
+    // El desvío va de costado (perpendicular a la línea de tiro): si fuera para adelante o para atrás,
+    // la red pasaría igual por donde estás.
     const objetivo = (loVe ? this.player.position : this.ultimaPosicionVista).clone();
-    objetivo.y += 1.1;
-    if (!this.acerto) {
-      const angulo = Math.random() * Math.PI * 2;
-      const desvio = 0.6 + Math.random() * 0.6;
-      objetivo.x += Math.cos(angulo) * desvio;
-      objetivo.z += Math.sin(angulo) * desvio;
+    objetivo.y += this.player.agachado ? 0.6 : 1.1;
+    if (!apuntoBien) {
+      const tiro = objetivo.clone().sub(punta).setY(0).normalize();
+      const costado = new THREE.Vector3(-tiro.z, 0, tiro.x); // (girado 90°)
+      const desvio = (1.3 + Math.random() * 0.6) * (Math.random() < 0.5 ? -1 : 1);
+      objetivo.addScaledVector(costado, desvio);
       objetivo.y += (Math.random() - 0.3) * 0.8;
-      this.hacerAgujero(punta, objetivo);
     }
+    this.redes.lanzar(punta, objetivo);
     this.crearHumo(punta);
-    this.alDisparar?.({ acerto: this.acerto, objetivo, probabilidad });
+    this.alDisparar?.({ objetivo, probabilidad });
 
     this.cambiarEstado(ESTADO_ABUELA.RECARGAR);
     this.tiempoRecarga = TIEMPO_RECARGA;
@@ -251,41 +266,22 @@ export class Abuela extends Enemigo {
     if (this.tiempoSinVer < 0.1) this.mirarHacia(this.ultimaPosicionVista, dt);
     this.tiempoRecarga -= dt;
     if (this.tiempoRecarga > 0) return;
-    if (this.tiempoSinVer < 0.3) {
+    if (this.tiempoSinVer < 0.3 && !this.player.puedeSerEnredado) {
+      this.tiempoRecarga = 0.2; // te ve enredado (o recién soltado): espera con la red lista
+    } else if (this.tiempoSinVer < 0.3) {
       this.empezarAApuntar(); // te sigue viendo: ¡otra vez!
     } else {
       this.investigar(this.ultimaPosicionVista);
     }
   }
 
-  // Posición en el mundo de la punta del caño
-  puntaDeLaEscopeta() {
+  // Posición en el mundo de la boca del lanzarredes
+  puntaDelLanzador() {
     this.modelo.updateMatrixWorld(true);
     return this.punta.getWorldPosition(new THREE.Vector3());
   }
 
-  // El perdigón sigue derecho hasta pegar en algo: ahí deja un agujerito negro
-  hacerAgujero(desde, hacia) {
-    const direccion = hacia.clone().sub(desde).normalize();
-    this.raycaster.set(desde, direccion);
-    this.raycaster.far = 30;
-    const choque = this.raycaster.intersectObjects(this.house.obstaculos, true).find((c) => c.face);
-    if (!choque) return;
-    const normal = choque.face.normal.clone().transformDirection(choque.object.matrixWorld);
-    const agujero = new THREE.Mesh(new THREE.CircleGeometry(0.07, 10), materialToon('#1a1a1a'));
-    agujero.position.copy(choque.point).addScaledVector(normal, 0.01);
-    agujero.lookAt(choque.point.clone().add(normal.multiplyScalar(2)));
-    this.scene.add(agujero);
-    this.agujeros.push(agujero);
-    if (this.agujeros.length > MAXIMO_AGUJEROS) this.scene.remove(this.agujeros.shift());
-  }
-
-  limpiarAgujeros() {
-    for (const agujero of this.agujeros) this.scene.remove(agujero);
-    this.agujeros = [];
-  }
-
-  // Nubecita de humo gris que crece y se desvanece
+  // Nubecita de aire (el "fuap" del lanzador) que crece y se desvanece
   crearHumo(posicion) {
     const material = new THREE.MeshBasicMaterial({ color: '#dddddd', transparent: true, opacity: 0.8, depthWrite: false });
     material.userData.outlineParameters = { visible: false };
@@ -343,7 +339,7 @@ export class Abuela extends Enemigo {
     }
     parte(new THREE.SphereGeometry(0.04, 8, 6), '#f4a582', 0, 1.37, 0.16); // nariz
 
-    // Brazos y escopeta: todo en un grupo que sube a la altura de los ojos cuando apunta
+    // Brazos y lanzarredes: todo en un grupo que sube a la altura de los ojos cuando apunta
     this.brazos = new THREE.Group();
     this.brazos.position.set(0, 1.18, 0);
     cuerpo.add(this.brazos);
@@ -352,17 +348,19 @@ export class Abuela extends Enemigo {
       brazo.rotation.x = Math.PI / 2 - 0.3;
       parte(new THREE.SphereGeometry(0.055, 8, 6), piel, lado * 0.12, -0.08, 0.32, this.brazos);
     }
-    this.escopeta = new THREE.Group();
-    this.escopeta.position.set(0.05, -0.06, 0.25);
-    this.brazos.add(this.escopeta);
-    parte(new THREE.BoxGeometry(0.07, 0.1, 0.3), '#8d5524', 0, -0.02, -0.12, this.escopeta); // culata
-    for (const lado of [-1, 1]) {
-      const cano = parte(new THREE.CylinderGeometry(0.022, 0.022, 0.6, 8), '#495057', lado * 0.023, 0.02, 0.3, this.escopeta);
-      cano.rotation.x = Math.PI / 2;
-    }
-    this.punta = new THREE.Object3D(); // la punta del caño (de acá salen el rayo, el humo y el tiro)
-    this.punta.position.set(0, 0.02, 0.62);
-    this.escopeta.add(this.punta);
+    // El lanzarredes: un tubo verde con boca ancha, empuñadura y la red asomando por la boca
+    this.lanzador = new THREE.Group();
+    this.lanzador.position.set(0.05, -0.06, 0.25);
+    this.brazos.add(this.lanzador);
+    const tubo = parte(new THREE.CylinderGeometry(0.06, 0.05, 0.5, 12), '#2a9d8f', 0, 0.03, 0.15, this.lanzador);
+    tubo.rotation.x = Math.PI / 2;
+    parte(new THREE.TorusGeometry(0.065, 0.015, 6, 14), '#1b4332', 0, 0.03, 0.4, this.lanzador); // boca
+    parte(new THREE.BoxGeometry(0.04, 0.12, 0.05), '#6d4c41', 0, -0.06, 0.0, this.lanzador); // empuñadura
+    parte(new THREE.BoxGeometry(0.015, 0.04, 0.02), '#e63946', 0, -0.03, 0.05, this.lanzador); // gatillo
+    this.redCargada = parte(new THREE.SphereGeometry(0.055, 10, 8), '#f1e3c6', 0, 0.03, 0.41, this.lanzador); // la red, hecha un bollo
+    this.punta = new THREE.Object3D(); // la boca del tubo (de acá salen el rayo, el aire y la red)
+    this.punta.position.set(0, 0.03, 0.46);
+    this.lanzador.add(this.punta);
     return cuerpo;
   }
 
@@ -397,8 +395,8 @@ export class Abuela extends Enemigo {
     this.hamaca.rotation.x = this.balanceoSilla;
     this.cuerpo.rotation.x = sentada ? this.balanceoSilla : 0;
 
-    // Escopeta: apuntando, a la altura de los ojos; recargando, "quebrada" hacia abajo;
-    // si no, en diagonal (sentada, sobre las piernas)
+    // Lanzarredes: apuntando, a la altura de los ojos; recargando, apuntando al piso mientras mete otra
+    // red (el bollo aparece recién al final); si no, en diagonal (sentada, sobre las piernas)
     let alturaBrazos = 1.18;
     let inclinacion = 0.5;
     if (this.estado === ESTADO_ABUELA.APUNTAR) {
@@ -408,6 +406,7 @@ export class Abuela extends Enemigo {
       inclinacion = 0.9 + Math.sin(this.tiempoRecarga * 5) * 0.15;
     }
     this.brazos.position.y = alturaBrazos;
-    this.escopeta.rotation.x = inclinacion;
+    this.lanzador.rotation.x = inclinacion;
+    this.redCargada.visible = this.estado !== ESTADO_ABUELA.RECARGAR || this.tiempoRecarga < 0.6;
   }
 }

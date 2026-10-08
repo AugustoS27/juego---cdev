@@ -157,13 +157,27 @@ export class Audio {
     this.ruido({ duracion: 0.04, volumen: 0.25 * volumen, filtro: 4000, retraso: 0.12 });
   }
 
-  // ¡BANG! Un estallido de ruido y un golpe grave
-  disparo(volumen = 1) {
-    this.ruido({ duracion: 0.5, volumen: 0.9 * volumen, filtro: 1500 });
-    this.tono({ frecuencia: 140, frecuenciaFinal: 35, duracion: 0.45, tipo: 'square', volumen: 0.4 * volumen });
+  // Lanzarredes: "¡FUAP!" de aire comprimido (ruido que se apaga rápido) y el "fffff" de la red volando
+  fuap(volumen = 1) {
+    this.ruido({ duracion: 0.12, volumen: 0.5 * volumen, filtro: 2500 });
+    this.tono({ frecuencia: 160, frecuenciaFinal: 70, duracion: 0.15, volumen: 0.3 * volumen });
+    this.ruido({ duracion: 0.5, volumen: 0.08 * volumen, filtro: 1200, retraso: 0.1 });
   }
 
-  // Recargar: abrir la escopeta, meter los cartuchos y cerrarla (tres "clacs" en 2.5 s)
+  // Te enredó la red: "¡ay!" de Tomi y el roce de las sogas
+  enredado() {
+    this.tono({ frecuencia: 950, frecuenciaFinal: 620, duracion: 0.25, tipo: 'triangle', volumen: 0.18 });
+    this.ruido({ duracion: 0.4, volumen: 0.15, filtro: 1800, retraso: 0.05 });
+  }
+
+  // "¡ERNESTOOO!" de Doña Pocha: una nota aguda temblorosa que baja (de lejos se oye más suave)
+  gritoPocha(volumen = 1) {
+    this.tono({ frecuencia: 700, frecuenciaFinal: 520, duracion: 0.7, tipo: 'sawtooth', volumen: 0.06 * volumen, retraso: 0.3 });
+    this.tono({ frecuencia: 720, frecuenciaFinal: 540, duracion: 0.7, tipo: 'triangle', volumen: 0.08 * volumen, retraso: 0.3 });
+  }
+
+
+  // Recargar el lanzarredes: abrir la tapa, meter otra red y cerrarla (tres "clacs" en 2.5 s)
   recarga(volumen = 1) {
     for (const retraso of [0.3, 1.3, 2.1]) {
       this.ruido({ duracion: 0.05, volumen: 0.3 * volumen, filtro: 3000, retraso });

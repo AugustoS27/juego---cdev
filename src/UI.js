@@ -43,7 +43,8 @@ export class UI {
     this.vistaEscondite = $('vista-escondite');
     this.alertaPersecucion = $('alerta-persecucion');
     this.apuntado = $('apuntado');
-    this.bang = $('bang');
+    this.fuap = $('fuap');
+    this.red = $('red');
     this.fundido = $('fundido');
     this.olor = $('olor');
     this.hollin = $('hollin');
@@ -212,12 +213,23 @@ export class UI {
     this.apuntado.classList.toggle('oculto', !visible);
   }
 
-  // "¡BANG!" de historieta. Para repetir la animación de CSS hay que sacar la clase,
+  // "¡FUAP!" de historieta (el lanzarredes). Para repetir la animación de CSS hay que sacar la clase,
   // forzar que el navegador lo note (leer offsetWidth) y volver a ponerla.
-  mostrarBang() {
-    this.bang.classList.remove('oculto', 'mostrar');
-    void this.bang.offsetWidth;
-    this.bang.classList.add('mostrar');
+  mostrarFuap() {
+    this.fuap.classList.remove('oculto', 'mostrar');
+    void this.fuap.offsetWidth;
+    this.fuap.classList.add('mostrar');
+  }
+
+  // La red sobre la pantalla mientras estás enredado (segundos que faltan; 0 = no se ve).
+  // En el último ratito se va desvaneciendo.
+  mostrarRed(segundos) {
+    const valor = Math.min(1, segundos / 0.3).toFixed(2);
+    if (valor !== this.redActual) {
+      this.redActual = valor;
+      this.red.style.opacity = valor;
+      this.red.classList.toggle('activa', segundos > 0); // (tiembla solo mientras se ve)
+    }
   }
 
   // Pantalla negra (0 = no se ve, 1 = todo negro): la usan las entradas para "cortar" la imagen
@@ -264,6 +276,7 @@ export class UI {
     this.mostrarFundido(0);
     this.mostrarOlor(0);
     this.mostrarWalkie(null);
+    this.mostrarRed(0);
     this.hollin.classList.add('oculto');
     this.borrarAvisos();
   }

@@ -3,7 +3,7 @@
 Este documento es la tercera parte del plan (la segunda, etapas 9 a 14, está en [PLAN.md](PLAN.md) y está
 terminada). Acá se detalla el cambio de historia y todo lo que viene con él.
 
-> **Estado actual:** 🔨 en curso. **15A** ✅, **15B** ✅. Próxima: **15C**.
+> **Estado actual:** 🔨 en curso. **15A** ✅, **15B** ✅, **15C** ✅. Próxima: **15D**.
 
 ---
 
@@ -30,8 +30,8 @@ Hoy Tomi se cansó: se va a meter a recuperar **3 juguetes**. Su amigo **Facu** 
 |---|---|---|---|
 | **15A** | Historia y juguetes: 3 juguetes (de 8), textos nuevos en todo el juego, Facu y las bicis en vez de la van | Grande | ✅ Terminada |
 | **15B** | Walkie-talkie: Facu da las pistas por radio (cada vez más precisas) y comenta lo que pasa | Mediana | ✅ Terminada |
-| **15C** | Doña Pocha y su lanzarredes: la red vuela, te paraliza 3 s y hace ruido | Mediana | ⏳ Próxima |
-| **15D** | Diseños nuevos: Don Ernesto y Doña Pocha (más detalle y animaciones); Tomi y Facu para las cinemáticas | Mediana | — |
+| **15C** | Doña Pocha y su lanzarredes: la red vuela, te paraliza 3 s y hace ruido | Mediana | ✅ Terminada |
+| **15D** | Diseños nuevos: Don Ernesto y Doña Pocha (más detalle y animaciones); Tomi y Facu para las cinemáticas | Mediana | ⏳ Próxima |
 | **15E** | Cinemáticas: la intro que cuenta la historia, la de victoria y la de derrota | Grande | — |
 | **15F** | Música y pasos nuevos + cierre (todas las pruebas, rendimiento, README) | Mediana | — |
 
@@ -162,7 +162,34 @@ Un commit por etapa (cuando se pida).
 
 ---
 
-## Etapa 15C — Doña Pocha y su lanzarredes
+## Etapa 15C — Doña Pocha y su lanzarredes ✅
+
+### Qué se hizo
+- **`Red.js` (nuevo):** la red sale de la boca del lanzador a 14 m/s (con un poquito de caída), se abre y
+  gira. En cada frame mira si tocó al jugador (el punto más cercano de lo que recorrió contra un "palito" de los
+  pies a la cabeza), si pegó contra algo (un rayo: queda apoyada en esa pared, mueble o piso) o si se fue lejos.
+- **Doña Pocha** (`Abuela.js`): misma rutina (sentada, paseo, apuntar 1 s, recargar 2,5 s), pero lanza una red.
+  Si apunta mal, la red sale 1,3 a 1,9 m **de costado** (perpendicular al tiro). Ya no te atrapa al tocarte, y
+  no te apunta mientras estás enredado o recién soltado. Su arma ahora es un lanzarredes: tubo verde con
+  empuñadura y la red hecha un bollo en la boca (al recargar desaparece y vuelve a aparecer).
+- **Enredado** (`Player.js`): 3 s sin moverte ni interactuar (la cámara forcejea y se encoge un poco); al
+  soltarte, 2 s de inmunidad y la red te queda tirada a los pies.
+- **Ruido:** el "¡FUAP!" (15 m, desde donde te vio) y, si te agarra, el grito de Doña Pocha
+  "¡ERNESTOOO!" (25 m, desde donde estás): Don Ernesto viene. Si llega mientras estás enredado, perdés
+  ("Don Ernesto te encontró enredado... ¡Qué buena pesca, vieja!").
+- **Pantalla:** "¡FUAP!" de historieta en vez de "¡BANG!", sogas cruzadas que tiemblan mientras estás enredado,
+  y ayuda "🕸️ ¡Enredado! Forcejeando... (2 s)". Sonidos nuevos (fuap, "¡ay!", grito). Facu también avisa.
+
+### Pruebas que se corrieron
+- Quieto a 3 m: lo enreda, 3 s exactos sin moverse, después 2 s de inmunidad; mientras tanto ella no apunta (se
+  encontró y corrigió: al terminar de recargar apuntaba directo, sin preguntar si estabas enredado).
+- Apuntando mal: la red no te da (se encontró y corrigió: el desvío podía caer sobre la línea de tiro, detrás
+  tuyo, y la red te agarraba igual).
+- 40 tiros en cada caso, a unos 3 m: quieto 23 te agarra, caminando de costado 17, corriendo de costado 11.
+- Con Don Ernesto en el pasillo: el grito lo trae y te atrapa enredado (frase nueva). Sin él cerca, seguís jugando.
+- 6 partidas simuladas (tres en el cuarto de Doña Pocha): sin errores; las redes tiradas no pasan de 8. Build OK.
+
+### Plan original
 
 ### Qué se hace
 - **Lanzarredes** en vez de escopeta: mismo aviso de 1 s apuntando (rayito y "clic"), pero al disparar sale

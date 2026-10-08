@@ -15,7 +15,8 @@ garaje saltando por los trastos para llegar al tragaluz del ático.
 Adentro hay conductos de ventilación, un pasadizo detrás de un estante de la biblioteca, una escalera plegable al ático
 y un puente sin baranda.
 Y Don Ernesto no es el único: en el patio hay **dos perros** que oyen todo, y en el primer piso vive **Doña Pocha**,
-que se hamaca en su mecedora... con una escopeta de perdigones de sal.
+que se hamaca en su mecedora... con un **lanzarredes**: si la red te agarra, quedás quieto 3 segundos mientras ella
+le grita a Don Ernesto.
 Para ayudarte, hay escondidas una **zanahoria** (te deja ver uno de tus juguetes a través de las paredes), unas
 **botas de lana** (pasos silenciosos) y una **bebida energética** (más rápido), que duran unos segundos.
 Y para esconderte: placards, camas, mesas, la bañera (detrás de la cortina), cajas grandes, arbustos... o el
@@ -59,7 +60,8 @@ Para generar la versión final: `npm run build` (queda en `dist/`).
 | `src/Enemigo.js` | El "esqueleto" de todos los enemigos: máquina de estados, visión, oído, navegación por waypoints y zona |
 | `src/Dueno.js` | Don Ernesto ("el dueño" en el código): toda la casa, traba puertas, revisa escondites, se enoja con el tiempo |
 | `src/Perro.js` | Los dos perros del patio: rapidísimos, ven poco, oyen el doble, ladran y se aburren |
-| `src/Abuela.js` | Doña Pocha ("la abuela" en el código): se hamaca, apunta 1 s, dispara (con puntería que depende de la distancia) y recarga |
+| `src/Abuela.js` | Doña Pocha ("la abuela" en el código): se hamaca, apunta 1 s, lanza una red (con puntería que depende de la distancia) y recarga |
+| `src/Red.js` | Las redes del lanzarredes: vuelan, te enredan si te tocan o quedan tiradas donde pegan |
 | `src/House.js` | Construye la casa desde los datos y responde consultas (colisiones, suelo, visión) |
 | `src/HouseData.js` | Junta los datos de todos los pisos; escaleras, techo, entradas |
 | `src/datos/` | La casa como datos: un archivo por piso (habitaciones, paredes, puertas, muebles, luces, waypoints), el patio de los perros, el catálogo de muebles y lo común |
@@ -95,12 +97,12 @@ Para generar la versión final: `npm run build` (queda en `dist/`).
 - **Atlas de cuadros:** todos los cuadros usan pedacitos de una misma imagen; el del sótano mueve las pupilas hacia el jugador.
 - **Juntar mallas:** cada malla es un "dibujo" para la placa de video; las paredes, pisos, decoración y muebles se juntan en una malla por material (ver `Optimizar.js`).
 - **Máquina de estados de los enemigos:** PATRULLA → (te ve) → PERSEGUIR → (te pierde) → INVESTIGAR → PATRULLA. Un ruido también lo manda a INVESTIGAR.
-- **Un esqueleto, cuatro enemigos:** `Enemigo.js` tiene todo lo común; el dueño, los perros y la abuela son "el mismo esqueleto con otros números" (velocidad, vista, oído) y cada uno sobrescribe lo suyo. La abuela, por ejemplo, cambia PERSEGUIR por APUNTAR → disparar → RECARGAR.
+- **Un esqueleto, cuatro enemigos:** `Enemigo.js` tiene todo lo común; el dueño, los perros y la abuela son "el mismo esqueleto con otros números" (velocidad, vista, oído) y cada uno sobrescribe lo suyo. Doña Pocha ("la abuela" en el código), por ejemplo, cambia PERSEGUIR por APUNTAR → lanzar la red → RECARGAR.
 - **Zonas:** cada enemigo tiene una zona de la que no sale (la casa, el patio, el piso de la abuela). Si el jugador o un ruido están afuera, va al punto de su zona más cercano.
 - **Visión:** distancia + ángulo (cono) + un raycast para ver si hay paredes en el medio.
 - **Navegación:** waypoints conectados; el camino con menos saltos se busca con BFS y se recorre en línea recta.
-- **Ruido:** cada ruido tiene un radio; los enemigos que estén dentro van a investigar (los perros oyen al doble de distancia, la abuela a la mitad). Los ladridos y los disparos también son ruidos: así un enemigo alerta a los otros.
-- **Puntería de la abuela:** probabilidad de acierto = según la distancia (60% a 3 m, 15% a 12 m) × según cómo te movés (corriendo ×0,6). Si justo cuando dispara no te ve, erra seguro.
+- **Ruido:** cada ruido tiene un radio; los enemigos que estén dentro van a investigar (los perros oyen al doble de distancia, la abuela a la mitad). Los ladridos, el "¡FUAP!" de la red y el grito de Doña Pocha también son ruidos: así un enemigo alerta a los otros.
+- **Puntería de Doña Pocha:** probabilidad de apuntar bien = según la distancia (60% a 3 m, 15% a 12 m) × según cómo te movés (corriendo ×0,6); si apunta mal, la red sale de costado. Además la red tarda en llegar (14 m/s), así que corriendo de costado se esquiva. Si te agarra, 3 s enredado y después 2 s en los que no te puede volver a enredar.
 - **Escondites:** una tabla de tipos (`Escondites.js`) y un solo sistema para todos. Escondido no te ve, pero si pasa cerca puede sospechar (40%) y revisar. Debajo de una mesa, si te mira de cerca, te ve. La "vista" desde adentro (rendijas, cortina, hojas) es una máscara de CSS encima del juego.
 - **Tensión creciente:** cada 30 s el dueño camina un 10% más rápido, y a veces traba puertas por 20 s.
 - **Entradas con precio:** cada forma de entrar tiene su costo (ruido, distancia, riesgo). Cada entrada devuelve un "resultado" (sonido, ruido, aviso, animación) y Game lo aplica.

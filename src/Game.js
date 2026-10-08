@@ -262,19 +262,33 @@ export class Game {
       perro.alAburrirse = () => this.ui.mostrarAviso(`🥱 ${perro.v.nombre} se aburrió de ladrarte y vuelve a la cucha`, 3);
     }
 
-    // Abuela: "clic" al apuntar, ¡BANG! al disparar (ruido enorme) y ruiditos al recargar
+    // Doña Pocha: "clic" al apuntar, ¡FUAP! al disparar la red (hace ruido) y ruiditos al recargar
     this.abuela.alApuntar = () => {
       this.audio.clic(Math.max(0.5, this.volumenPorDistancia(this.abuela.position)));
-      this.ui.mostrarAviso('🎯 ¡Doña Pocha te está apuntando con la escopeta! ¡Cubrite!', 2);
+      this.ui.mostrarAviso('🎯 ¡Doña Pocha te apunta con el lanzarredes! ¡Cubrite o corré de costado!', 2);
       this.walkie.comentar('abuela', {}, true);
     };
-    this.abuela.alDisparar = ({ acerto }) => {
-      this.audio.disparo(Math.max(0.4, this.volumenPorDistancia(this.abuela.position)));
-      this.ui.mostrarBang();
+    this.abuela.alDisparar = () => {
+      this.audio.fuap(Math.max(0.4, this.volumenPorDistancia(this.abuela.position)));
+      this.ui.mostrarFuap();
       // El ruido sale de donde te vio (a la altura de tus pies): el dueño va a ir a ver ahí
-      this.hacerRuido(this.abuela.ultimaPosicionVista, RADIO_RUIDO.disparo, this.abuela);
-      if (acerto) this.perder(this.abuela);
-      else this.ui.mostrarAviso('💨 ¡Le erró! Tarda en recargar: ¡aprovechá!', 2.5);
+      this.hacerRuido(this.abuela.ultimaPosicionVista, RADIO_RUIDO.red, this.abuela);
+    };
+    this.abuela.alErrar = () => {
+      if (this.player.enRed <= 0) this.ui.mostrarAviso('💨 ¡La red no te agarró! Tarda en recargar: ¡aprovechá!', 2.5);
+    };
+    // La red te enredó: 3 s sin moverte, y Doña Pocha grita "¡ERNESTOOO!" (un ruido grande donde estás)
+    this.abuela.alAtrapar = () => {
+      this.player.atraparEnRed();
+      this.audio.enredado();
+      this.audio.gritoPocha(Math.max(0.5, this.volumenPorDistancia(this.abuela.position)));
+      this.ui.mostrarAviso('🕸️ ¡Te enredó la red! Quedás atrapado 3 segundos... ¡y Doña Pocha llama a Don Ernesto!', 3);
+      this.walkie.comentar('red', {}, true);
+      this.hacerRuido(this.player.position.clone(), RADIO_RUIDO.grito, this.abuela);
+    };
+    this.player.alSoltarseDeLaRed = () => {
+      this.abuela.redes.dejarEnElPiso(this.player.position);
+      this.ui.mostrarAviso('💪 ¡Te soltaste! Rajá de ahí', 2);
     };
     this.abuela.alRecargar = () => this.audio.recarga(this.volumenPorDistancia(this.abuela.position));
   }
@@ -333,7 +347,8 @@ export class Game {
     if (this.tiempoDesdeAvisoRuido <= 3 || this.estado !== PARTIDA.JUGANDO) return;
     let aviso = null;
     if (oyeron.includes(this.dueno)) {
-      if (fuente === this.abuela) aviso = '💥 ¡El escopetazo despertó a todos! Don Ernesto viene a ver...';
+      if (fuente === this.abuela && radio === RADIO_RUIDO.grito) aviso = '📢 "¡ERNESTOOO, LO AGARRÉ!" Don Ernesto viene para acá...';
+      else if (fuente === this.abuela) aviso = '🕸️ ¡El FUAP del lanzarredes alertó a Don Ernesto! Viene a ver...';
       else if (fuente) aviso = '🐕 ¡Los ladridos alertaron a Don Ernesto! Viene a ver...';
       else aviso = '👂 Don Ernesto escuchó algo y viene a ver...';
     } else if (!fuente && this.perros.some((perro) => oyeron.includes(perro))) {
@@ -466,13 +481,14 @@ export class Game {
       this.ruido.update(dt);
     }
 
-    // (Si la abuela te dio en su update, la partida ya terminó: por eso preguntamos de nuevo)
+    // (Si un enemigo te atrapó en su update, la partida ya terminó: por eso preguntamos de nuevo)
     if (this.estado === PARTIDA.JUGANDO) {
-      // Si algún enemigo te está cazando (o la abuela te apunta): música tensa y borde rojo
+      // Si algún enemigo te está cazando (o Doña Pocha te apunta): música tensa y borde rojo
       const alerta = this.enemigos.some((enemigo) => enemigo.estaAlerta);
       this.audio.actualizarMusica(dt, alerta);
       this.ui.mostrarAlertaPersecucion(alerta);
       this.ui.mostrarApuntado(this.abuela.estado === ESTADO_ABUELA.APUNTAR);
+      this.ui.mostrarRed(this.player.enRed);
       this.actualizarAyuda();
       this.comentarSiEntro();
       this.ui.mostrarFundido(this.player.oscuridad); // (negro mientras atravesás una pared trepando)
@@ -626,13 +642,13 @@ export class Game {
     this.ui.mostrarVictoria(nombres, this.tiempoPartida, this.nivelEnojo);
   }
 
-  // Te atrapó un enemigo (o Doña Pocha te dio): cada uno tiene su frase
+  // Te atrapó un enemigo: cada uno tiene su frase
   perder(enemigo) {
     let texto = null; // (null = una frase de Don Ernesto al azar, ver UI.mostrarDerrota)
     if (enemigo === this.dueno && this.dueno.encontroAlJugador) {
       texto = '¡Don Ernesto te encontró escondido! "¿Jugando a las escondidas en MI casa?"';
-    } else if (enemigo === this.abuela) {
-      texto = '¡PUM! Doña Pocha te dio con un perdigón de sal. Arde, pero más arde el orgullo.';
+    } else if (enemigo === this.dueno && this.player.enRed > 0) {
+      texto = 'Don Ernesto te encontró enredado en la red de Doña Pocha. "¡Qué buena pesca, vieja!"';
     } else if (this.perros.includes(enemigo)) {
       texto = `${enemigo.v.nombre} te mordió el pantalón y no lo suelta. Te fuiste en calzoncillos.`;
       this.audio.ladrido(1);
@@ -654,7 +670,7 @@ export class Game {
 
   // Prioridad: salir del escondite > agarrar un objeto > habilidad > entradas > esconderse > puerta
   interactuar() {
-    if (this.player.animacion) return; // trepando no se puede hacer otra cosa
+    if (this.player.animacion || this.player.enRed > 0) return; // trepando o enredado no se puede hacer nada
 
     if (this.player.escondido) {
       this.salirDelEscondite();
@@ -768,6 +784,11 @@ export class Game {
   actualizarAyuda() {
     if (this.player.animacion) {
       this.ui.mostrarAyuda(null);
+      return;
+    }
+
+    if (this.player.enRed > 0) {
+      this.ui.mostrarAyuda(`🕸️ ¡Enredado! Forcejeando... (${Math.ceil(this.player.enRed)} s)`);
       return;
     }
 

@@ -199,6 +199,32 @@ body {
   }
 }
 
+/* La red de Doña Pocha tapando la pantalla: sogas en diagonal (dos rayados cruzados), nudos en los
+   cruces y los bordes más oscuros. Game le cambia la opacidad; mientras se ve, tiembla (forcejeo). */
+#red {
+  position: fixed;
+  inset: -20px;
+  pointer-events: none;
+  opacity: 0;
+  background:
+    radial-gradient(ellipse at center, transparent 45%, rgba(40, 30, 10, 0.55) 100%),
+    repeating-linear-gradient(45deg, transparent 0 58px, rgba(241, 227, 198, 0.95) 58px 64px),
+    repeating-linear-gradient(-45deg, transparent 0 58px, rgba(241, 227, 198, 0.95) 58px 64px);
+}
+
+#red.activa {
+  animation: forcejeo 0.18s ease-in-out infinite alternate;
+}
+
+@keyframes forcejeo {
+  from {
+    transform: translate(-6px, 3px) rotate(-0.6deg);
+  }
+  to {
+    transform: translate(6px, -3px) rotate(0.6deg);
+  }
+}
+
 /* Pantalla negra: Game le cambia la opacidad (al atravesar una pared trepando) */
 #fundido {
   position: fixed;
@@ -236,7 +262,7 @@ body {
 }
 
 /* "¡BANG!" de historieta: aparece grande y se achica */
-#bang {
+#fuap {
   position: fixed;
   top: 32%;
   left: 50%;
@@ -249,11 +275,11 @@ body {
   pointer-events: none;
 }
 
-#bang.mostrar {
-  animation: bang 0.8s ease-out forwards;
+#fuap.mostrar {
+  animation: fuap 0.8s ease-out forwards;
 }
 
-@keyframes bang {
+@keyframes fuap {
   0% {
     transform: translate(-50%, -50%) rotate(-8deg) scale(0.3);
     opacity: 1;
