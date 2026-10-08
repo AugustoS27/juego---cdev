@@ -9,15 +9,17 @@
 //   Pozo del jardín:     silencioso, pero el túnel es largo, oscuro y hay que ir agachado.
 //                        Llega al sótano. (Está en Especiales.js, igual que la trampilla del ático,
 //                        que también se usa desde acá aunque no sea una entrada.)
+//   Y cinco más en EntradasNuevas.js: chimenea, ventanita del sótano, gatera, enredadera y tragaluz.
 //
 // Todas funcionan igual: tienen una "raiz" (el objeto 3D que se mira), un texto de ayuda,
 // y un usar() que hace la acción y DEVUELVE qué pasó (un "resultado"):
-//   { aviso, sonido, ruido: { posicion, radio }, animacion: { destino, duracion, arco }, llave }
+//   { aviso, sonido, ruido: { posicion, radio }, animacion: { destino, duracion, arco, ... }, llave, hollin }
 // Game lee ese resultado y se encarga del sonido, el ruido, el cartel y la animación.
 import * as THREE from 'three';
 import { materialToon } from './Materials.js';
 import { VENTANA_ROMPIBLE, PORTON_GARAJE, ESCALERA_BALCON, BALCON, MACETAS, POZO, TUNEL, ALTURA_PISO } from './HouseData.js';
 import { Pozo } from './Especiales.js';
+import { Chimenea, VentanaSotano, Gatera, Enredadera, Tragaluz } from './EntradasNuevas.js';
 
 const DISTANCIA_USO = 2.5; // a cuántos metros se puede usar una entrada
 const RUIDO = { romperVentana: 15, levantarEscalera: 5, forcejeo: 9 };
@@ -350,7 +352,14 @@ export class Entradas {
     this.porton = new PortonGaraje(scene, house);
     this.macetas = MACETAS.map(({ x, z }) => new Maceta(scene, house, x, z));
     this.pozo = new Pozo(scene, house, POZO, TUNEL.piso * ALTURA_PISO);
-    this.lista = [this.ventana, this.escalera, this.porton, ...this.macetas, this.pozo];
+    this.nuevas = [
+      new Chimenea(scene, house),
+      new VentanaSotano(scene),
+      new Gatera(house.puertaDeCalle),
+      new Enredadera(scene),
+      new Tragaluz(scene),
+    ];
+    this.lista = [this.ventana, this.escalera, this.porton, ...this.macetas, this.pozo, ...this.nuevas];
     if (house.trampilla) this.lista.push(house.trampilla); // la escalera plegable del ático
 
     this.raycaster = new THREE.Raycaster();

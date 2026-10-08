@@ -243,6 +243,36 @@ export class Audio {
     this.ruido({ duracion: 0.2, volumen: 0.35, filtro: 500, retraso: 0.55 });
   }
 
+  // --- Entradas nuevas (etapa 14B) ---
+  // Caer por la chimenea: rumor que baja, ¡PUF! y una tosecita
+  chimenea() {
+    this.ruido({ duracion: 0.6, volumen: 0.2, filtro: 400 });
+    this.ruido({ duracion: 0.35, volumen: 0.5, filtro: 300, retraso: 0.1 });
+    this.tono({ frecuencia: 90, frecuenciaFinal: 45, duracion: 0.3, volumen: 0.35, retraso: 0.1 });
+    for (const retraso of [0.6, 0.85]) this.ruido({ duracion: 0.12, volumen: 0.18, filtro: 1500, retraso }); // la tos
+  }
+
+  // Ventanita del sótano: chirrido cortito y bajito
+  ventanita() {
+    this.tono({ frecuencia: 600, frecuenciaFinal: 820, duracion: 0.2, tipo: 'sawtooth', volumen: 0.03 });
+  }
+
+  // Gatera: "clac, clac" de la tapita cuando pasás por el medio
+  gatera() {
+    this.ruido({ duracion: 0.05, volumen: 0.15, filtro: 2500, retraso: 1.5 });
+    this.ruido({ duracion: 0.05, volumen: 0.1, filtro: 2500, retraso: 1.75 });
+  }
+
+  // Enredadera: crujido de hojas
+  hojas() {
+    for (let i = 0; i < 4; i++) this.ruido({ duracion: 0.15, volumen: 0.12, filtro: 4000, retraso: i * 0.18 });
+  }
+
+  // Tragaluz: rechina al abrirse
+  tragaluz() {
+    this.tono({ frecuencia: 380, frecuenciaFinal: 520, duracion: 0.35, tipo: 'sawtooth', volumen: 0.05 });
+  }
+
   // --- Botín ---
   // Guardar un objeto en la bolsa: "¡bling!" de dos notas + roce de la bolsa
   guardar() {

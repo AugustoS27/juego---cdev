@@ -98,6 +98,31 @@ export const MACETAS = [
   { x: 1.3, z: 6.7 },
 ];
 
+// --- Entradas nuevas (etapa 14B, ver EntradasNuevas.js) ---
+// Techo plano del garaje: se puede pisar. Se sube saltando por los TRASTOS de su pared oeste
+// (cada uno un poco más alto que el anterior: tacho → cajones → aire acondicionado → techo).
+export const TECHO_GARAJE = { x1: -15.65, z1: -2.25, x2: -9.1, z2: 6.25, y: 3.2 };
+export const TRASTOS = [
+  { tipo: 'tacho', x: -16.05, z: 5.55, ancho: 0.7, prof: 0.7, alto: 0.9 },
+  { tipo: 'cajones', x: -16.05, z: 4.7, ancho: 0.8, prof: 0.8, alto: 1.7 },
+  { tipo: 'aire', x: -16.05, z: 3.8, ancho: 0.8, prof: 0.8, alto: 2.5 },
+];
+
+// Chimenea: una columna de ladrillos afuera, contra la pared oeste del living y pegada al garaje.
+// Su boca queda un poco más alta que el techo del garaje: desde ahí te tirás adentro y caés en el
+// hogar del living (x, z = centro de la columna; boca = altura de arriba).
+export const CHIMENEA = { x: -9.65, z: -2.75, ancho: 1.1, prof: 1.2, boca: 3.9 }; // (la boca, justo debajo de la ventana del primer piso)
+
+// Ventanita del sótano: al ras del pasto, en el frente. Da a la sala de la caldera (z = la pared)
+export const VENTANA_SOTANO = { x: -7, z: 6 };
+
+// Enredadera: sube por la pared este (adentro del patio de los perros) hasta una ventana del segundo piso
+export const ENREDADERA = { x: 9, z: -4, piso: 2 };
+
+// Escalerita de la antena: en la pared oeste, arriba del techo del garaje; llega al tragaluz del
+// ático, que está en el faldón sur del techo (x, z = centro del tragaluz)
+export const TRAGALUZ = { x: -7.9, z: 2 };
+
 // ============================================================
 //  LISTAS PLANAS (lo que usa House.js): a cada cosa le agregamos su piso
 // ============================================================

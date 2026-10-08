@@ -4,8 +4,8 @@ Este documento detalla las etapas para las mejoras nuevas del juego: qué se va 
 en qué orden, qué archivos se tocan, cómo se prueba y qué decisiones quedan pendientes.
 
 > **Estado actual:** etapas 1 a 13 terminadas (la 13 sumó la zanahoria, las botas de lana y la bebida energética).
-> La etapa 14 se dividió en tres: **14A** animaciones (✅ terminada), **14B** entradas nuevas y
-> **14C** escondites nuevos y cierre. Próxima: **14B**.
+> La etapa 14 se dividió en tres: **14A** animaciones (✅), **14B** entradas nuevas (✅) y
+> **14C** escondites nuevos y cierre. Próxima: **14C**.
 
 ---
 
@@ -53,7 +53,7 @@ Son los mismos que usamos desde el principio, porque el proyecto tiene que ser f
 | **11** | Casa gigante: pisos, sótano, ático, puentes, túneles, ventilaciones, decoración | Muy grande (se divide en 11A, 11B y 11C) | ✅ Terminada (11A, 11B y 11C) |
 | **12** | Enemigos nuevos: dos perros y la abuela con escopeta | Grande | ✅ Terminada |
 | **13** | Objetos de habilidad: zanahoria, botas de lana, bebida energética | Mediana | ✅ Terminada |
-| **14** | Pulido: animaciones, más entradas, más escondites | Grande (se divide en 14A, 14B y 14C) | 🔨 En curso (14A ✅, sigue 14B) |
+| **14** | Pulido: animaciones, más entradas, más escondites | Grande (se divide en 14A, 14B y 14C) | 🔨 En curso (14A ✅, 14B ✅, sigue 14C) |
 
 ---
 
@@ -586,6 +586,43 @@ nuevos y cierre (todas las pruebas, rendimiento y commit final).
 - Pantallas: la transición existe al abrir y al cerrar (350 ms) y el título tiene su animación.
 - 4 partidas simuladas con el jugador corriendo y saltando por la casa: sin errores; el dueño se sorprende y
   se queda quieto mientras salta. Build OK.
+
+### 14B — Entradas nuevas ✅
+
+#### Qué se hizo
+Cinco entradas nuevas en `EntradasNuevas.js` (funcionan igual que las de `Entradas.js`: una raíz que se mira,
+una ayuda y un `usar()` que devuelve un "resultado"). Cada una con su precio:
+
+| Entrada | Cómo se usa | Precio |
+|---|---|---|
+| **Chimenea** | Subís al techo del garaje y te tirás por la boca. Caés en el **hogar del living** | ¡PUF! (ruido de 8 m) y la pantalla queda llena de hollín unos segundos |
+| **Ventanita del sótano** | Al ras del pasto, en el frente | Silenciosa, pero entrás a la sala de la caldera, oscura y lejos de casi todo |
+| **Gatera** | En la puerta de calle, **solo agachado** | Tarda 3,5 s (y es la puerta más a la vista) |
+| **Enredadera** | En la pared este, dentro del patio de los perros. Llega al cuarto al revés (segundo piso) | Tarda 5 s, las hojas crujen y mientras trepás **te pueden ver** (los perros te ladran y avisan al dueño) |
+| **Tragaluz del ático** | Subís al techo del garaje **saltando por los trastos** (tacho → cajones → aire acondicionado) y trepás la escalerita de la antena | Mucho camino, y el tragaluz rechina un poco |
+
+- **Techo del garaje:** ahora se puede pisar. Los trastos de su pared oeste son escalones de 0,7 a 0,9 m (lo
+  que alcanzás saltando); sin ellos no se llega.
+- **Animaciones con recorrido:** `moverAnimado` acepta puntos intermedios (`por`, ej: subir la escalerita y
+  después meterse por el tragaluz), un **fundido a negro** en la parte donde atravesás una pared o el techo, y
+  `alTerminar`, algo que pasa recién al llegar (el ¡PUF! de la chimenea).
+- La gatera es parte de la puerta (`Door.js`): gira con ella y su tapita se hamaca cuando pasás.
+- Todas se pueden usar de vuelta para salir, menos la chimenea ("por la chimenea se baja, no se sube").
+- La ventana del living se corrió para dejarle lugar al hogar; las ventanas falsas de la pared este (donde está
+  la enredadera) se sacaron. El "túnel desde la cucha" no hizo falta: ya está el túnel del pozo (etapa 11B).
+
+#### Pruebas que se corrieron
+- Las cinco, de ida y de vuelta: se pueden mirar, la ayuda dice lo que corresponde y la animación termina en el
+  lugar correcto sin quedar adentro de nada (gatera, chimenea, ventanita, enredadera y tragaluz).
+- Gatera parado: no te deja ("agachate"). Chimenea desde el pasto: no se puede ("¿y desde el techo del garaje?").
+- Chimenea: ruido de 8 m (el dueño viene a ver) y hollín en pantalla. Tragaluz y enredadera: ruidito de 3 m.
+- Subida con física real: pasto → tacho (0,9) → cajones (1,7) → aire (2,5) → techo del garaje (3,2) → al lado de
+  la chimenea. Sin los trastos no se llega.
+- Enredadera con Firulais a 4 m: escucha las hojas, te persigue y te ladra mientras trepás, pero no te alcanza.
+- Grafos: los perros 17/17, la abuela 8/8 y el dueño 77/78 (la del ático necesita la escalera desplegada,
+  como siempre): el hogar nuevo no le corta el camino a nadie.
+- Rendimiento (medido igual con y sin la 14B, contando las dos pasadas de los bordes): frente 1357 → 1381
+  llamadas, patio 1018 → 1072, living 211 → 235. Build OK.
 
 ### Plan original
 

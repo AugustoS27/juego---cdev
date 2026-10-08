@@ -92,6 +92,7 @@ export const SEGUNDO_PISO = {
     { tipo: 'planta', x: 3.6, z: -5.4, alReves: true },
     { tipo: 'lamparaTecho', x: 6, z: -4, patasArriba: true },
     { tipo: 'ventana', x: 6, z: -5.87 },
+    { tipo: 'ventana', x: 8.87, z: -4, rot: -90 }, // acá llega la enredadera
     // Pasillo
     { tipo: 'planta', x: -2.5, z: 5.4 },
     { tipo: 'ventana', x: -1, z: 5.87, rot: 180 },

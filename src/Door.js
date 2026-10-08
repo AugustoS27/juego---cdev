@@ -5,6 +5,7 @@
 //   'tabla':      la tabla floja que tapa el túnel en la pared del sótano
 //   'biblioteca': el estante secreto de la biblioteca (parece un mueble lleno de libros)
 // soloJugador: el dueño no la usa (no entra en conductos ni en túneles).
+// gatera: la puerta tiene abajo una puertita para gatos (la puerta de calle: ver EntradasNuevas.js).
 import * as THREE from 'three';
 import { materialToon } from './Materials.js';
 
@@ -76,7 +77,7 @@ const ESTILOS = {
 
 export class Door {
   // x, z: centro del hueco. y: altura del piso. eje: hacia dónde corre la pared ('x' o 'z').
-  constructor(scene, { x, y, z, eje, ancho, alto, conLlave = false, abierta = false, deCalle = false, estilo = 'normal', soloJugador = false }) {
+  constructor(scene, { x, y, z, eje, ancho, alto, conLlave = false, abierta = false, deCalle = false, estilo = 'normal', soloJugador = false, gatera = false }) {
     this.conLlave = conLlave; // no se puede abrir (la puerta de calle, hasta encontrar la llave)
     this.abierta = false;
     this.deCalle = deCalle;
@@ -123,6 +124,7 @@ export class Door {
     this.hoja.receiveShadow = true;
     this.bisagra.add(this.hoja);
     this.agregarDetalles(ancho, alto);
+    this.gatera = gatera ? this.crearGatera(ancho) : null;
 
     // Caja de colisión: todo el hueco de la puerta. Solo se usa mientras está cerrada.
     const mitad = ancho / 2;
@@ -159,6 +161,25 @@ export class Door {
       // (la "palanca" del pasadizo) es una pieza aparte, para que se note.
       pieza(0.08, 0.34, 0.14, '#9d0208', ancho - 0.3, 1.43, 0.2);
     }
+  }
+
+  // Gatera: un grupo con un marco y una tapita que cuelga de arriba (la tapita es otro grupo que
+  // gira, así se puede animar cuando pasás: queda en userData.tapa). Es un poco más gruesa que la
+  // hoja, así se ve de los dos lados. Gira con la puerta porque es hija de la bisagra.
+  crearGatera(ancho) {
+    const gatera = new THREE.Group();
+    gatera.position.set(ancho / 2, 0, 0);
+    this.bisagra.add(gatera);
+    const marco = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.44, 0.1), materialToon('#6f4518'));
+    marco.position.y = 0.24;
+    const tapa = new THREE.Group();
+    tapa.position.y = 0.42; // la tapa cuelga de su borde de arriba
+    const hoja = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.34, 0.12), materialToon('#ffd23f'));
+    hoja.position.y = -0.17;
+    tapa.add(hoja);
+    gatera.add(marco, tapa);
+    gatera.userData.tapa = tapa;
+    return gatera;
   }
 
   // ¿Bloquea el paso? Sí, mientras esté cerrada (o cerrándose).

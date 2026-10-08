@@ -13,7 +13,7 @@ import { materialToon, materialConTextura } from './Materials.js';
 import { textura } from './Texturas.js';
 import { cargarPiezas } from './Models.js';
 import { crearTechoDosAguas } from './House.js';
-import { UBICACION_MUEBLES, BALCON, COLOR_EXTERIOR, TECHO, LIMITES_CASA, CERCOS_PATIO, CUCHA } from './HouseData.js';
+import { UBICACION_MUEBLES, BALCON, COLOR_EXTERIOR, TECHO, LIMITES_CASA, CERCOS_PATIO, CUCHA, TECHO_GARAJE, TRASTOS } from './HouseData.js';
 
 // Ruta de un modelo de naturaleza de Kenney (en public/models/naturaleza)
 const N = (nombre) => `/models/naturaleza/${nombre}.glb`;
@@ -41,13 +41,10 @@ const VENTANAS_SOLO_AFUERA = [
   { piso: 0, x: 4, z: 6 },
   { piso: 1, x: 4, z: 6 },
   { piso: 1, x: 7.8, z: 6 },
-  { piso: 0, x: 9, z: -4 },
-  { piso: 1, x: 9, z: -4 },
   { piso: 1, x: 6, z: -6 },
   { piso: 0, x: -15.5, z: 2 },
   { piso: 2, x: 4, z: 6 },
   { piso: 2, x: 7.8, z: 6 },
-  { piso: 2, x: 9, z: -4 },
   { piso: 2, x: -4.5, z: -6 },
   { piso: 2, x: 4.5, z: -6 },
 ];
@@ -67,6 +64,7 @@ export class Exterior {
     this.crearAleroDeLaPuerta();
     this.crearVentanasExteriores();
     this.crearJardin();
+    this.crearTrastos();
     this.crearBarrio();
 
     // Calculamos ya la posición en el mundo de todo lo que creamos
@@ -341,8 +339,11 @@ export class Exterior {
       for (const x of [lado * (x2 + 0.03), lado * (x2 - 0.1)]) this.ventanaRedonda(x, y + 1.8, 0);
     }
 
-    // Techo plano del garaje
+    // Techo plano del garaje. Se puede pisar (se llega saltando por los trastos, ver crearTrastos):
+    // la caja de colisión llega solo hasta la pared de la casa, así no "asoma" en el primer piso.
     this.cajaDecor(-12.2, 2.98, 2, 6.9, 0.22, 8.5, '#6c757d');
+    const g = TECHO_GARAJE;
+    this.house.colliders.push(new THREE.Box3(new THREE.Vector3(g.x1, 2.98, g.z1), new THREE.Vector3(g.x2, g.y, g.z2)));
   }
 
   // Ventana redonda mirando hacia los costados (±X): aro blanco, vidrio y una cruz
@@ -545,6 +546,31 @@ export class Exterior {
     cargarPiezas([{ archivo: '/models/muebles/rugDoormat.glb', caja: [0, 0.001, 0, 1.2, 0.03, 0.7] }])
       .then((m) => felpudo.add(m))
       .catch(() => {});
+  }
+
+  // Trastos contra la pared oeste del garaje: cada uno un poco más alto que el anterior, así se
+  // puede subir saltando hasta el techo del garaje (tacho 0,9 m → cajones 1,7 → aire 2,5 → techo 3,2)
+  crearTrastos() {
+    for (const { tipo, x, z, ancho, prof, alto } of TRASTOS) {
+      if (tipo === 'tacho') {
+        this.decor(new THREE.CylinderGeometry(0.33, 0.28, alto - 0.06, 14), '#2d6a4f', x, (alto - 0.06) / 2, z);
+        this.decor(new THREE.CylinderGeometry(0.36, 0.36, 0.06, 14), '#1b4332', x, alto - 0.03, z); // tapa
+      } else if (tipo === 'cajones') {
+        // Dos cajones de madera apilados, con tablitas
+        for (const base of [0, alto / 2]) {
+          this.cajaDecor(x, base, z, ancho, alto / 2 - 0.02, prof, '#c68642');
+          this.cajaDecor(x, base + alto / 4 - 0.04, z, ancho + 0.02, 0.06, prof + 0.02, '#8d5524');
+        }
+      } else if (tipo === 'aire') {
+        // Aparato de aire acondicionado arriba de un soporte de metal
+        const caja = 0.75;
+        for (const dz of [-0.3, 0.3]) this.cajaDecor(x, 0, z + dz, 0.08, alto - caja, 0.08, '#6c757d');
+        this.cajaDecor(x, alto - caja, z, ancho, caja, prof, '#e9ecef');
+        const rejilla = this.decor(new THREE.CylinderGeometry(0.25, 0.25, 0.02, 20), '#495057', x - ancho / 2 - 0.01, alto - caja / 2, z);
+        rejilla.rotation.z = Math.PI / 2; // mira hacia afuera (-X)
+      }
+      this.colision(x - ancho / 2, z - prof / 2, x + ancho / 2, z + prof / 2, alto);
+    }
   }
 
   buzon(x, z) {

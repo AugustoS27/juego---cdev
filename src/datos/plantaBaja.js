@@ -51,7 +51,7 @@ export const PLANTA_BAJA = {
     { x: 3, z: 0, eje: 'z' }, // cocina ↔ comedor
     { x: 6, z: 2, eje: 'x' }, // comedor ↔ entrada
     { x: 6, z: -2, eje: 'x' }, // comedor ↔ baño
-    { x: -1, z: 6, eje: 'x', conLlave: true, deCalle: true }, // puerta de calle (hay una llave escondida)
+    { x: -1, z: 6, eje: 'x', conLlave: true, deCalle: true, gatera: true }, // puerta de calle (hay una llave escondida... y una gatera)
     { x: 9, z: 1.1, eje: 'z', abierta: true }, // puerta trasera del comedor (¡se la olvidaron abierta!)
     { x: -9, z: 3.2, eje: 'z' }, // garaje ↔ living
   ],
@@ -70,7 +70,7 @@ export const PLANTA_BAJA = {
     { tipo: 'biblioteca', x: -6, z: -5.7 },
     { tipo: 'planta', x: -8.4, z: 5.4 },
     { tipo: 'lamparaPie', x: -8.5, z: -5.4 },
-    { tipo: 'ventana', x: -8.87, z: -3, rot: 90 },
+    { tipo: 'ventana', x: -8.87, z: -4.5, rot: 90 }, // (corrida: en z=-2.75 está el hogar de la chimenea)
     // Cocina
     { tipo: 'mesada', x: -0.5, z: -5.55 },
     { tipo: 'heladera', x: 2.4, z: -5.45 },

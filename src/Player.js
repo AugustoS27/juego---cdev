@@ -63,8 +63,10 @@ export class Player {
     // Game conecta estas funciones con el sonido y el sistema de ruido:
     //   alDarPaso(tipo):    tipo = 'pasos', 'pasosCorriendo' o 'pasosAgachado'
     //   alHacerRuido(tipo): tipo = 'choque', 'salto' o 'aterrizaje'
+    //   alTerminarAnimacion(resultado): llegó al final de un movimiento automático que traía "alTerminar"
     this.alDarPaso = null;
     this.alHacerRuido = null;
+    this.alTerminarAnimacion = null;
     this.tiempoParaPaso = 0;
     this.tiempoDesdeChoque = ESPERA_ENTRE_CHOQUES;
 
@@ -99,9 +101,16 @@ export class Player {
   }
 
   // Mueve al jugador solo, de a poco, hasta "destino" (para trepar una ventana o subir la escalera).
-  // arco: cuánto sube en el medio del recorrido (como pasar por encima del alféizar).
-  moverAnimado({ destino, duracion, arco = 0 }) {
-    this.animacion = { desde: this.position.clone(), hasta: destino.clone(), t: 0, duracion, arco };
+  //   arco: cuánto sube en el medio del recorrido (como pasar por encima del alféizar).
+  //   por: puntos intermedios (ej: subir una escalerita y después meterse por el tragaluz).
+  //        Cada tramo dura lo mismo.
+  //   fundido: { desde, hasta } (de 0 a 1): en esa parte del recorrido la pantalla queda negra
+  //            (así no se ve cómo atravesás una pared o el techo).
+  //   alTerminar: un "resultado" (como los de Entradas.js) que pasa recién al llegar
+  //               (ej: el ¡PUM! de caer por la chimenea).
+  moverAnimado({ destino, duracion, arco = 0, por = [], fundido = null, alTerminar = null }) {
+    const puntos = [this.position.clone(), ...por.map((p) => p.clone()), destino.clone()];
+    this.animacion = { puntos, t: 0, duracion, arco, fundido, alTerminar };
     this.estaMoviendose = false;
     this.estaCorriendo = false;
   }
@@ -109,13 +118,27 @@ export class Player {
   avanzarAnimacion(dt) {
     const a = this.animacion;
     a.t = Math.min(a.t + dt / a.duracion, 1);
-    this.position.lerpVectors(a.desde, a.hasta, a.t);
+    // ¿En qué tramo estamos? Con n tramos, t * n dice cuál (la parte entera) y cuánto avanzamos (el resto)
+    const tramos = a.puntos.length - 1;
+    const i = Math.min(Math.floor(a.t * tramos), tramos - 1);
+    this.position.lerpVectors(a.puntos[i], a.puntos[i + 1], a.t * tramos - i);
     this.position.y += Math.sin(a.t * Math.PI) * a.arco;
     this.actualizarCamara();
     if (a.t >= 1) {
       this.animacion = null;
       this.velocidadY = 0;
+      if (a.alTerminar) this.alTerminarAnimacion?.(a.alTerminar);
     }
+  }
+
+  // Cuánto se oscurece la pantalla ahora (0 = nada, 1 = negro): sube y baja en 0,1 del recorrido
+  // alrededor de la parte del fundido
+  get oscuridad() {
+    const f = this.animacion?.fundido;
+    if (!f) return 0;
+    const t = this.animacion.t;
+    const rampa = 0.1;
+    return THREE.MathUtils.clamp(Math.min((t - f.desde + rampa) / rampa, (f.hasta + rampa - t) / rampa), 0, 1);
   }
 
   update(dt) {

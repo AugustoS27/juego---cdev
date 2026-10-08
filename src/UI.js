@@ -41,6 +41,8 @@ export class UI {
     this.alertaPersecucion = $('alerta-persecucion');
     this.apuntado = $('apuntado');
     this.bang = $('bang');
+    this.fundido = $('fundido');
+    this.hollin = $('hollin');
 
     this.textoAyuda = null; // lo guardamos para no tocar el HTML si no cambió
   }
@@ -192,6 +194,24 @@ export class UI {
     this.bang.classList.add('mostrar');
   }
 
+  // Pantalla negra (0 = no se ve, 1 = todo negro): la usan las entradas para "cortar" la imagen
+  // mientras atravesás una pared o un techo
+  mostrarFundido(oscuridad) {
+    const valor = oscuridad.toFixed(2);
+    if (valor !== this.oscuridadActual) {
+      this.oscuridadActual = valor;
+      this.fundido.style.opacity = valor;
+    }
+  }
+
+  // Manchas de hollín que se van borrando solas (después de caer por la chimenea).
+  // Mismo truco que el ¡BANG! para poder repetir la animación.
+  mostrarHollin() {
+    this.hollin.classList.remove('oculto', 'mostrar');
+    void this.hollin.offsetWidth;
+    this.hollin.classList.add('mostrar');
+  }
+
   // tipo: 'placard', 'cama' o null (no está escondido)
   mostrarEscondite(tipo) {
     this.vistaEscondite.className = tipo || 'oculto';
@@ -206,6 +226,8 @@ export class UI {
     this.mostrarAlertaPersecucion(false);
     this.mostrarApuntado(false);
     this.mostrarHabilidades([]);
+    this.mostrarFundido(0);
+    this.hollin.classList.add('oculto');
     this.borrarAvisos();
   }
 

@@ -203,6 +203,9 @@ export class Game {
       this.hacerRuido(this.player.position, RADIO_RUIDO[tipo]);
     };
 
+    // Algunas animaciones de las entradas traen algo que pasa al llegar (ej: el ¡PUF! de la chimenea)
+    this.player.alTerminarAnimacion = (resultado) => this.aplicarResultado(resultado);
+
     // Pasos y puertas del dueño y la abuela: suenan más fuerte cuanto más cerca están
     this.dueno.alDarPaso = () => this.audio.pasoDueno(this.volumenPorDistancia(this.dueno.position));
     this.abuela.alDarPaso = () => this.audio.pasoDueno(0.4 * this.volumenPorDistancia(this.abuela.position));
@@ -453,6 +456,7 @@ export class Game {
       this.ui.mostrarAlertaPersecucion(alerta);
       this.ui.mostrarApuntado(this.abuela.estado === ESTADO_ABUELA.APUNTAR);
       this.actualizarAyuda();
+      this.ui.mostrarFundido(this.player.oscuridad); // (negro mientras atravesás una pared trepando)
       this.ui.actualizarHUD(this.tiempoPartida, this.nivelEnojo);
       this.ui.mostrarHabilidades(this.habilidades.paraElHUD);
       const paso = this.player.tipoDePaso;
@@ -665,12 +669,17 @@ export class Game {
   }
 
   // Las entradas devuelven "qué pasó"; acá lo convertimos en sonido, ruido, aviso y animación
-  aplicarResultado({ sonido, aviso, ruido, animacion, llave }) {
+  aplicarResultado({ sonido, aviso, ruido, animacion, llave, hollin }) {
     if (sonido) this.audio[sonido]?.();
     if (aviso) this.ui.mostrarAviso(aviso, 3);
     if (ruido) this.hacerRuido(ruido.posicion, ruido.radio);
     if (animacion) this.player.moverAnimado(animacion);
     if (llave) this.house.puertaDeCalle.conLlave = false;
+    if (hollin) {
+      // Caíste por la chimenea: la pantalla se llena de hollín y sale una nube gris del hogar
+      this.ui.mostrarHollin();
+      this.efectos.destello(this.player.position.clone().setY(this.player.position.y + 0.5), '#3d3d3d');
+    }
   }
 
   esconderse(escondite) {

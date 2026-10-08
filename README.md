@@ -3,8 +3,10 @@
 Juego 3D cómico en primera persona hecho con **Three.js** y **Vite** (proyecto universitario).
 
 Sos un ladrón torpe que tiene que meterse en una casa enorme: sótano tenebroso, tres pisos y un ático.
-Empezás afuera y hay varias formas de entrar: romper una ventana, la puerta trasera que quedó abierta, una escalera al balcón,
-forzar el portón del garaje, buscar la llave escondida en una maceta o bajar por el pozo del jardín hasta un túnel secreto.
+Empezás afuera y hay muchas formas de entrar: romper una ventana, la puerta trasera que quedó abierta, una escalera al balcón,
+forzar el portón del garaje, buscar la llave escondida en una maceta, bajar por el pozo del jardín hasta un túnel secreto,
+tirarte por la chimenea, colarte por la ventanita del sótano o por la gatera, trepar la enredadera o subir al techo del
+garaje saltando por los trastos para llegar al tragaluz del ático.
 Adentro hay conductos de ventilación, un pasadizo detrás de un estante de la biblioteca, una escalera plegable al ático
 y un puente sin baranda. Adentro tenés que robar **5 objetos**
 (sorteados entre 18): de cada uno solo sabés una pista (un acertijo). Con los cinco en la bolsa, escapás en la
@@ -60,6 +62,7 @@ Para generar la versión final: `npm run build` (queda en `dist/`).
 | `src/Optimizar.js` | Junta todo lo que no se mueve en pocas mallas (una por material) para dibujar más rápido |
 | `src/Exterior.js` | Jardín, cerca, cerco del patio de los perros, techos, balcón, ventanas de afuera, árboles y barrio |
 | `src/Entradas.js` | Las formas de entrar: ventana rompible, escalera, portón y macetas con la llave |
+| `src/EntradasNuevas.js` | Chimenea, ventanita del sótano, gatera, enredadera y tragaluz del ático |
 | `src/Especiales.js` | La escalera plegable del ático (trampilla) y el pozo que baja al túnel secreto |
 | `src/Door.js` | Puertas con bisagra (abrir, cerrar, trabar); también rejillas, la tabla del túnel y el estante secreto |
 | `src/Items.js` | Los 18 objetos, sus pistas y ubicaciones; sorteo de los 5 de cada partida |
