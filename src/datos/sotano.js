@@ -59,6 +59,7 @@ export const SOTANO = {
     { tipo: 'cajas', x: 2.3, z: -3 },
     { tipo: 'cajas', x: 2.4, z: 1.3, rot: 90 },
     { tipo: 'maniqui', x: -2.3, z: 1.2 },
+    { tipo: 'cajaGrande', x: 0, z: -4.9 }, // escondite (etapa 14C)
     // Bodega
     { tipo: 'estanteVinos', x: 4.6, z: -5.7 },
     { tipo: 'estanteVinos', x: 7.4, z: -5.7 },

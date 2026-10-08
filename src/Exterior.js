@@ -1,9 +1,10 @@
 // El exterior de la casa: cielo, jardín, cerca, techos, balcón, ventanas de afuera,
 // árboles, cucha, tendedero, el cerco del patio de los perros y el barrio de fondo.
 //
-// Casi todo está hecho con formas básicas. Los árboles, arbustos, flores, piedras y pasto
-// se arman primero con formas básicas y después se reemplazan por modelos de Kenney
-// (si un modelo no carga, queda la forma básica).
+// Casi todo está hecho con formas básicas. Los árboles, flores, piedras y pasto se arman
+// primero con formas básicas y después se reemplazan por modelos de Kenney (si un modelo no
+// carga, queda la forma básica). Los arbustos son siempre esferas: tienen que ser redondos y
+// tupidos para poder esconderse adentro (los de Kenney son plantas de hojas finitas).
 //
 // Lo que se puede pisar o contra lo que se choca se registra en la casa (house)
 // usando house.agregarCaja(...) o agregando cajas (Box3) a house.colliders.
@@ -21,7 +22,6 @@ const MODELOS_ARBOL = {
   redondo: [N('tree_default'), N('tree_oak'), N('tree_detailed')],
   pino: [N('tree_pineRoundA'), N('tree_pineRoundC'), N('tree_cone')],
 };
-const MODELOS_ARBUSTO = [N('plant_bushLarge'), N('plant_bushDetailed'), N('plant_bush')];
 const MODELOS_FLOR = [N('flower_redA'), N('flower_yellowA'), N('flower_purpleA')];
 
 // Elige un elemento al azar de una lista
@@ -121,9 +121,11 @@ export class Exterior {
     return this.decor(new THREE.BoxGeometry(ancho, alto, prof), color, x, y + alto / 2, z, sombra);
   }
 
-  // Una caja invisible de colisión (desde el piso hasta "alto")
+  // Una caja invisible de colisión (desde el piso hasta "alto"). La devuelve (los escondites la usan).
   colision(x1, z1, x2, z2, alto = 2) {
-    this.house.colliders.push(new THREE.Box3(new THREE.Vector3(x1, 0, z1), new THREE.Vector3(x2, alto, z2)));
+    const caja = new THREE.Box3(new THREE.Vector3(x1, 0, z1), new THREE.Vector3(x2, alto, z2));
+    this.house.colliders.push(caja);
+    return caja;
   }
 
   // ------------------------------------------------------------
@@ -454,9 +456,14 @@ export class Exterior {
     ];
     for (const [x, z, tipo] of arboles) this.arbol(x, z, tipo, 0.9 + Math.random() * 0.4);
 
-    // Arbustos contra el frente de la casa
+    // Arbustos contra el frente de la casa, en la vereda y en el patio de los perros (todos son escondites)
     for (const x of [3.5, 5.5, 7.5, -8.4]) this.arbusto(x, 6.8);
     for (const [x, z] of [[-3.5, 20.5], [1.8, 20.5], [16, 21], [-18, 21]]) this.arbusto(x, z);
+    for (const [x, z] of [[16.6, 3.5], [18.2, -7.6], [-1.5, -11.5]]) this.arbusto(x, z);
+
+    // Tachos de basura al lado de la tranquera del patio (escondite: salís oliendo a basura)
+    this.tachoDeBasura(14.4, 6.95);
+    this.tachoDeBasura(15.25, 6.95);
 
     // Canteros con flores al costado del camino
     for (let z = 9; z < 21; z += 0.7) {
@@ -490,13 +497,38 @@ export class Exterior {
     this.colision(x - 0.35, z - 0.35, x + 0.35, z + 0.35, 3); // el tronco
   }
 
+  // Arbusto redondo y tupido (cuatro esferas), de 1,2 m de alto: entra una persona agachada
   arbusto(x, z) {
     const grupo = this.grupoEn(x, z, Math.random() * Math.PI * 2);
     const verde = alAzar(VERDES);
-    this.decor(new THREE.SphereGeometry(0.6, 10, 8), verde, 0, 0.45, 0, true, grupo);
-    this.decor(new THREE.SphereGeometry(0.45, 10, 8), verde, 0.45, 0.35, 0.1, true, grupo);
-    this.reemplazarPorModelo(grupo, alAzar(MODELOS_ARBUSTO), [0.1, 0, 0, 1.5, 1.1, 1.3]);
-    this.colision(x - 0.6, z - 0.5, x + 0.8, z + 0.5, 1);
+    const bolas = [[0, 0.6, 0, 0.72], [0.45, 0.5, 0.25, 0.52], [-0.42, 0.5, -0.2, 0.56], [0.1, 0.85, -0.1, 0.5]];
+    for (const [bx, by, bz, radio] of bolas) {
+      this.decor(new THREE.SphereGeometry(radio, 12, 10), verde, bx, by, bz, true, grupo).scale.y = 0.85;
+    }
+    grupo.traverse((m) => m.isMesh && (m.userData.estatico = true));
+    const caja = this.colision(x - 0.8, z - 0.75, x + 0.8, z + 0.75, 1.2);
+    this.house.agregarEscondite('arbusto', grupo, caja); // te podés meter adentro (y tapa la vista)
+  }
+
+  // Tacho de basura grande con ruedas (verde, de los de la municipalidad). La tapa quedó un poco
+  // abierta y hay moscas dando vueltas: está claro que adentro no huele bien.
+  tachoDeBasura(x, z) {
+    const grupo = this.grupoEn(x, z);
+    this.decor(new THREE.BoxGeometry(0.75, 1.05, 0.7), '#2d6a4f', 0, 0.6, 0, true, grupo);
+    this.decor(new THREE.BoxGeometry(0.79, 0.06, 0.74), '#1b4332', 0, 1.1, 0, true, grupo); // borde
+    const tapa = this.decor(new THREE.BoxGeometry(0.8, 0.05, 0.76), '#1b4332', 0, 1.2, 0.04, true, grupo);
+    tapa.rotation.x = 0.25; // levantada de adelante (la bisagra está atrás)
+    for (const lado of [-1, 1]) {
+      const rueda = this.decor(new THREE.CylinderGeometry(0.08, 0.08, 0.05, 10), '#212529', lado * 0.33, 0.08, -0.3, false, grupo);
+      rueda.rotation.z = Math.PI / 2;
+    }
+    this.decor(new THREE.BoxGeometry(0.5, 0.04, 0.04), '#1b4332', 0, 1.02, -0.38, false, grupo); // manija
+    for (const [mx, my, mz] of [[0.1, 1.45, 0.2], [-0.2, 1.6, 0], [0.25, 1.7, -0.1]]) {
+      this.decor(new THREE.SphereGeometry(0.025, 6, 4), '#000000', mx, my, mz, false, grupo); // moscas
+    }
+    grupo.traverse((m) => m.isMesh && (m.userData.estatico = true));
+    const caja = this.colision(x - 0.4, z - 0.38, x + 0.4, z + 0.38, 1.15);
+    this.house.agregarEscondite('tacho', grupo, caja);
   }
 
   flor(x, z) {

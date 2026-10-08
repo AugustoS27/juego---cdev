@@ -268,6 +268,29 @@ export class Audio {
     for (let i = 0; i < 4; i++) this.ruido({ duracion: 0.15, volumen: 0.12, filtro: 4000, retraso: i * 0.18 });
   }
 
+  // --- Escondites nuevos (etapa 14C) ---
+  // Debajo de la mesa: te arrastrás por el piso
+  arrastrarse() {
+    this.ruido({ duracion: 0.35, volumen: 0.1, filtro: 700 });
+  }
+
+  // Cortina de la bañera: los ganchitos corriendo por el barral
+  cortina() {
+    for (let i = 0; i < 5; i++) this.tono({ frecuencia: 2400 + i * 150, duracion: 0.03, tipo: 'triangle', volumen: 0.04, retraso: i * 0.04 });
+  }
+
+  // Caja de cartón: "crunch" y las solapas
+  carton() {
+    this.ruido({ duracion: 0.2, volumen: 0.15, filtro: 1200 });
+    this.ruido({ duracion: 0.08, volumen: 0.12, filtro: 900, retraso: 0.25 });
+  }
+
+  // Tacho de basura: la tapa de plástico golpea y suena la bolsa
+  tacho() {
+    this.tono({ frecuencia: 180, frecuenciaFinal: 120, duracion: 0.12, tipo: 'square', volumen: 0.08 });
+    this.ruido({ duracion: 0.3, volumen: 0.1, filtro: 3000, retraso: 0.1 });
+  }
+
   // Tragaluz: rechina al abrirse
   tragaluz() {
     this.tono({ frecuencia: 380, frecuenciaFinal: 520, duracion: 0.35, tipo: 'sawtooth', volumen: 0.05 });

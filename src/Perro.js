@@ -5,14 +5,18 @@
 //   - Escuchan al doble de distancia (caminá agachado por el patio).
 //   - Cuando te persiguen, LADRAN: cada ladrido es un ruido que escuchan el dueño, la abuela y el otro perro.
 //   - Si te tienen cerca pero no te alcanzan (estás arriba de algo), se aburren y vuelven a la cucha.
+//   - Si saliste de un tacho de basura, te huelen de lejos (aunque no te vean) y van a ver qué es.
+//     Escondido no te encuentran: los arbustos del patio son tu mejor amigo.
 import * as THREE from 'three';
 import { Enemigo, ESTADO } from './Enemigo.js';
 import { ZONA_PATIO, WAYPOINTS_PATIO, CONEXIONES_PATIO } from './HouseData.js';
+import { OLFATO_PERROS } from './Escondites.js';
 
 const INTERVALO_LADRIDO = 1.4; // segundos entre ladridos mientras te persigue
 const DISTANCIA_ABURRIRSE = 2.2; // si te tiene así de cerca...
 const TIEMPO_PARA_ABURRIRSE = 5; // ...durante estos segundos y no te alcanza, se aburre
 const TIEMPO_ABURRIDO = 8; // segundos que te ignora después de aburrirse
+const INTERVALO_OLFATO = 2; // cada cuánto vuelve a buscar el olor (si sigue oliendo)
 
 // Los dos perros: nombre, dónde arrancan y sus colores
 export const PERROS = [
@@ -55,12 +59,25 @@ export class Perro extends Enemigo {
     this.tiempoCerca = 0; // cuánto hace que te tiene cerca sin alcanzarte
     this.tiempoAburrido = 0; // mientras sea > 0, te ignora
     this.tiempoBoca = 0; // para abrir la boca al ladrar
+    this.tiempoOlfato = 0;
   }
 
   update(dt) {
     this.tiempoAburrido = Math.max(0, this.tiempoAburrido - dt);
     this.tiempoBoca = Math.max(0, this.tiempoBoca - dt);
+    this.olfatear(dt);
     super.update(dt);
+  }
+
+  // Olor a basura (después del tacho): si estás a menos de OLFATO_PERROS, va hasta donde estás
+  // (o hasta el cerco, si estás afuera del patio). Al llegar cerca, te ve y te persigue.
+  olfatear(dt) {
+    this.tiempoOlfato -= dt;
+    const p = this.player;
+    if (p.olor <= 0 || p.escondido || this.estado === ESTADO.PERSEGUIR || this.tiempoAburrido > 0) return;
+    if (this.tiempoOlfato > 0 || this.position.distanceTo(p.position) > OLFATO_PERROS) return;
+    this.tiempoOlfato = INTERVALO_OLFATO;
+    this.investigar(p.position);
   }
 
   // Aburrido, no te ve (se hace el distraído)

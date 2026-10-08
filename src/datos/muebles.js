@@ -14,7 +14,10 @@
 //    modelos: [{ archivo, caja: [x, y, z, ancho, alto, prof], rot }] -> varios modelos,
 //            cada uno encajado en su propia caja (ej: la mesada son 4 módulos de cocina).
 //    Las "partes" se usan siempre para la colisión, aunque se vea el modelo.
-//    escondite: 'placard' o 'cama' -> el jugador se puede esconder ahí (con E)
+//    fijas: partes como las de "partes", pero que se ven siempre, aunque cargue el modelo
+//            (ej: la cortina de la bañera, que no viene en el modelo de Kenney)
+//    escondite: 'placard', 'cama', 'mesa', 'banera' o 'caja' -> el jugador se puede esconder ahí
+//            (con E). Cada tipo está explicado en Escondites.js
 //    colores: { nombre: color } -> colores por defecto de las partes pintadas con '$nombre'
 //            (cada mueble ubicado puede cambiarlos: ej. el color de la tela de un almohadón)
 // ============================================================
@@ -79,6 +82,7 @@ export const MUEBLES = {
     ],
   },
   mesa: {
+    escondite: 'mesa',
     modelo: M('table'),
     partes: [
       [0, 0.7, 0, 1.4, 0.08, 0.8, '#c68642'],
@@ -89,6 +93,7 @@ export const MUEBLES = {
     ],
   },
   mesaComedor: {
+    escondite: 'mesa',
     modelo: M('tableCloth'),
     partes: [
       [0, 0.7, 0, 1.6, 0.08, 1, '#c68642'],
@@ -124,10 +129,20 @@ export const MUEBLES = {
   },
   banera: {
     // La bañera de Kenney es larga en X y la nuestra en Z: la giramos 90°
+    escondite: 'banera',
     modelos: [{ archivo: M('bathtub'), caja: [0, 0, 0, 0.75, 0.56, 1.7], rot: 90 }],
     partes: [
       [0, 0, 0, 0.75, 0.55, 1.7, '#ffffff'],
       [0, 0.5, 0, 0.6, 0.06, 1.5, '#6ec6ff'],
+    ],
+    // Cortina (del lado -X, el que da al baño) colgada de un barral: cuatro paños a rayas,
+    // un poco corridos entre sí para que parezcan pliegues
+    fijas: [
+      [-0.37, 1.95, 0, 0.03, 0.03, 1.72, '#adb5bd'],
+      [-0.35, 0.62, -0.64, 0.02, 1.33, 0.44, '#90e0ef'],
+      [-0.38, 0.62, -0.21, 0.02, 1.33, 0.44, '#f8f9fa'],
+      [-0.35, 0.62, 0.21, 0.02, 1.33, 0.44, '#90e0ef'],
+      [-0.38, 0.62, 0.64, 0.02, 1.33, 0.44, '#f8f9fa'],
     ],
   },
   camaDoble: {
@@ -254,6 +269,16 @@ export const MUEBLES = {
     partes: [
       [0, 0, 0, 0.8, 0.6, 0.8, '#d4a373'],
       [0.1, 0.6, 0.05, 0.6, 0.5, 0.6, '#c68b59'],
+    ],
+  },
+  // Caja de cartón enorme (abierta): entrás agachado y cerrás las solapas
+  cajaGrande: {
+    escondite: 'caja',
+    modelo: M('cardboardBoxOpen'),
+    partes: [
+      [0, 0, 0, 1, 1.05, 1, '#d4a373'],
+      [-0.5, 1.05, 0, 0.04, 0.3, 1, '#c68b59'],
+      [0.5, 1.05, 0, 0.04, 0.3, 1, '#c68b59'],
     ],
   },
   alfombra: { solido: false, sombra: false, modelo: M('rugRectangle'), partes: [[0, 0, 0, 2.5, 0.02, 1.8, '#ffafcc']] },

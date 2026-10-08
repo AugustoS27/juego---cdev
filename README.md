@@ -15,6 +15,8 @@ Y no es el único: en el patio hay **dos perros** que oyen todo, y en el primer 
 que se hamaca en su mecedora... con una escopeta de perdigones de sal.
 Para ayudarte, hay escondidas una **zanahoria** (te deja ver un objeto a través de las paredes), unas
 **botas de lana** (pasos silenciosos) y una **bebida energética** (más rápido), que duran unos segundos.
+Y para esconderte: placards, camas, mesas, la bañera (detrás de la cortina), cajas grandes, arbustos... o el
+tacho de basura, si no te importa salir oliendo mal (los perros te huelen de lejos).
 
 > 📋 El plan de las próximas mejoras (etapas 9 a 14) está en [PLAN.md](PLAN.md).
 
@@ -63,6 +65,7 @@ Para generar la versión final: `npm run build` (queda en `dist/`).
 | `src/Exterior.js` | Jardín, cerca, cerco del patio de los perros, techos, balcón, ventanas de afuera, árboles y barrio |
 | `src/Entradas.js` | Las formas de entrar: ventana rompible, escalera, portón y macetas con la llave |
 | `src/EntradasNuevas.js` | Chimenea, ventanita del sótano, gatera, enredadera y tragaluz del ático |
+| `src/Escondites.js` | Los tipos de escondite en una tabla: textos, altura de los ojos, sonido y reglas (la mesa, el olor del tacho) |
 | `src/Especiales.js` | La escalera plegable del ático (trampilla) y el pozo que baja al túnel secreto |
 | `src/Door.js` | Puertas con bisagra (abrir, cerrar, trabar); también rejillas, la tabla del túnel y el estante secreto |
 | `src/Items.js` | Los 18 objetos, sus pistas y ubicaciones; sorteo de los 5 de cada partida |
@@ -93,7 +96,7 @@ Para generar la versión final: `npm run build` (queda en `dist/`).
 - **Navegación:** waypoints conectados; el camino con menos saltos se busca con BFS y se recorre en línea recta.
 - **Ruido:** cada ruido tiene un radio; los enemigos que estén dentro van a investigar (los perros oyen al doble de distancia, la abuela a la mitad). Los ladridos y los disparos también son ruidos: así un enemigo alerta a los otros.
 - **Puntería de la abuela:** probabilidad de acierto = según la distancia (60% a 3 m, 15% a 12 m) × según cómo te movés (corriendo ×0,6). Si justo cuando dispara no te ve, erra seguro.
-- **Escondites:** placards y camas. Escondido no te ve, pero si pasa cerca puede sospechar (40%) y revisar.
+- **Escondites:** una tabla de tipos (`Escondites.js`) y un solo sistema para todos. Escondido no te ve, pero si pasa cerca puede sospechar (40%) y revisar. Debajo de una mesa, si te mira de cerca, te ve. La "vista" desde adentro (rendijas, cortina, hojas) es una máscara de CSS encima del juego.
 - **Tensión creciente:** cada 30 s el dueño camina un 10% más rápido, y a veces traba puertas por 20 s.
 - **Entradas con precio:** cada forma de entrar tiene su costo (ruido, distancia, riesgo). Cada entrada devuelve un "resultado" (sonido, ruido, aviso, animación) y Game lo aplica.
 - **Habilidades:** `Habilidades.js` solo sabe cuáles están activas y cuánto les queda; Game le pasa el efecto al jugador (`multiplicadorVelocidad`, `pasosSilenciosos`). La zanahoria pone una copia del objeto con un material que se dibuja por encima de todo (`depthTest: false`): por eso "se ve a través" de las paredes.
@@ -108,6 +111,7 @@ Para generar la versión final: `npm run build` (queda en `dist/`).
 
 **Hecho por nosotros (con código):**
 - La casa (paredes, techo a dos aguas, balcón, garaje), el dueño, los perros, la abuela y su mecedora, los objetos, el auto, la van y las entradas.
+- Los arbustos (esferas, para poder esconderse adentro), los tachos de basura y la cortina de la bañera.
 - Las texturas de madera, cerámica, baldosas, pasto y tejas, dibujadas en un `<canvas>` (`Texturas.js`).
 - El look de dibujo animado: materiales toon de 3 tonos + bordes negros (`OutlineEffect`, tecla **B**).
 - El cielo con degradé, las nubes y el barrio de fondo.

@@ -1,6 +1,7 @@
 // El dueño de la casa: el enemigo principal. Usa el esqueleto de Enemigo.js (patrulla, investigar,
 // perseguir) con estos extras:
 //   - Si el jugador está escondido y el dueño pasa cerca, puede sospechar y revisar el escondite.
+//     Debajo de una mesa, si te mira de cerca, te ve: va derecho a sacarte (sin "moneda").
 //   - Al cruzar una puerta, a veces la cierra y la traba unos segundos para cortarle el paso al jugador.
 //   - Nunca sale de la casa (¡está en pijama!): si el ruido o el jugador están afuera,
 //     va hasta el punto de adentro más cercano.
@@ -12,6 +13,7 @@ import * as THREE from 'three';
 import { Enemigo, ESTADO } from './Enemigo.js';
 import { cargarPiezas } from './Models.js';
 import { WAYPOINTS, CONEXIONES, LIMITES_CASA, ALTURA_PISO, pisoDeAltura } from './HouseData.js';
+import { ESCONDITES, DISTANCIA_VER_DEBAJO_MESA } from './Escondites.js';
 
 const DISTANCIA_SOSPECHA = 2.5; // si pasa así de cerca de tu escondite, puede sospechar
 const PROBABILIDAD_SOSPECHA = 0.4; // 40% de revisar cada vez que pasa cerca
@@ -93,8 +95,12 @@ export class Dueno extends Enemigo {
   }
 
   // Llegó a donde investigaba. Si venía a revisar un escondite, "lo abre": ¿está el jugador adentro?
+  // Tiene que haber llegado de verdad al escondite: si es uno de afuera (un arbusto, un tacho), él
+  // solo llega hasta la pared de adentro, y desde ahí no puede abrir nada.
   alLlegarAInvestigar(llego) {
-    if (llego && this.esconditeARevisar && this.player.escondite === this.esconditeARevisar) {
+    const entrada = this.player.posicionAntesDeEsconderse;
+    const alLado = Math.hypot(entrada.x - this.position.x, entrada.z - this.position.z) < 1.5 && Math.abs(entrada.y - this.position.y) < 1;
+    if (llego && alLado && this.esconditeARevisar && this.player.escondite === this.esconditeARevisar) {
       this.encontroAlJugador = true;
     }
     this.esconditeARevisar = null;
@@ -133,6 +139,12 @@ export class Dueno extends Enemigo {
     const escondite = this.player.escondido ? this.player.escondite : null;
     if (!escondite || this.esconditeARevisar || this.estado === ESTADO.PERSEGUIR) return;
 
+    // Debajo de una mesa no hace falta la moneda: si te ve, te ve
+    if (ESCONDITES[escondite.escondite].seVeDeCerca && this.veDebajoDeLaMesa(escondite.collider)) {
+      this.revisarEscondite(escondite);
+      return;
+    }
+
     const puntoDeEntrada = this.player.posicionAntesDeEsconderse;
     const distancia = Math.hypot(puntoDeEntrada.x - this.position.x, puntoDeEntrada.z - this.position.z);
     const mismoPiso = Math.abs(puntoDeEntrada.y - this.position.y) < 1;
@@ -147,6 +159,20 @@ export class Dueno extends Enemigo {
     } else if (!cerca && distancia > DISTANCIA_SOSPECHA + 1) {
       this.yaSospecho = false;
     }
+  }
+
+  // ¿Te ve debajo de la mesa? Tiene que estar cerca, en el mismo piso, mirando hacia la mesa y sin
+  // nada en el medio (miramos hacia un punto arriba de la mesa: la mesa misma no tapa).
+  veDebajoDeLaMesa(caja) {
+    const centro = caja.getCenter(new THREE.Vector3());
+    const ojos = this.position.clone();
+    ojos.y += this.v.alturaOjos;
+    const distancia = Math.hypot(centro.x - ojos.x, centro.z - ojos.z);
+    if (distancia > DISTANCIA_VER_DEBAJO_MESA || Math.abs(caja.min.y - this.position.y) > 1) return false;
+    const haciaLaMesa = new THREE.Vector3(centro.x - ojos.x, 0, centro.z - ojos.z).normalize();
+    const mirada = new THREE.Vector3(Math.sin(this.rotacion), 0, Math.cos(this.rotacion));
+    if (haciaLaMesa.dot(mirada) < Math.cos(THREE.MathUtils.degToRad(this.v.anguloVision))) return false;
+    return this.house.hayVisionEntre(ojos, centro.setY(caja.max.y + 0.3));
   }
 
   // ------------------------------------------------------------

@@ -58,7 +58,7 @@ export class House {
     this.floors = []; // Mallas sobre las que se puede caminar
     this.puertas = []; // Objetos Door
     this.muebles = []; // { tipo, piso, grupo, collider, escondite }
-    this.escondites = []; // los muebles donde el jugador se puede esconder (placards y camas)
+    this.escondites = []; // donde el jugador se puede esconder: { escondite (tipo), grupo, collider }
     this.obstaculos = []; // Todo lo que tapa la vista (para los rayos de visión del dueño)
     this.lamparitas = []; // luces propias de la casa (algunas parpadean)
     this.conductos = []; // rectángulos de adentro de los conductos (para el ruido metálico)
@@ -598,6 +598,17 @@ export class House {
     const centro = cajaLocal.getCenter(new THREE.Vector3());
     const tamaño = cajaLocal.getSize(new THREE.Vector3());
 
+    // Las partes "fijas" van después de medir (el modelo no tiene que estirarse para cubrirlas)
+    // y quedan aunque cargue el modelo
+    for (const [px, py, pz, ancho, alto, prof, color, forma] of def.fijas || []) {
+      const parte = new THREE.Mesh(geometriaDeParte(forma, ancho, alto, prof), materialToon(colorDe(color)));
+      parte.position.set(px, py + alto / 2, pz);
+      parte.castShadow = def.sombra !== false;
+      parte.receiveShadow = true;
+      parte.userData.fija = true;
+      grupo.add(parte);
+    }
+
     const base = this.alturaDePiso(piso) + y;
     grupo.position.set(x, base, z);
     grupo.rotation.y = THREE.MathUtils.degToRad(rot);
@@ -621,7 +632,7 @@ export class House {
     }
     const mueble = { tipo, piso, grupo, collider, escondite: def.escondite || null };
     this.muebles.push(mueble);
-    if (mueble.escondite) this.escondites.push(mueble);
+    if (mueble.escondite && collider) this.escondites.push(mueble); // (la mesa del cuarto al revés no)
 
     // Cuando el mueble tenga su forma final (modelo o formas básicas), sus mallas se marcan como
     // estáticas, en la "capa" de su piso, para juntarlas con las de los otros muebles del piso
@@ -641,7 +652,7 @@ export class House {
       const carga = cargarPiezas(piezas)
         .then((modelo) => {
           modelo.traverse((hijo) => (hijo.castShadow = def.sombra !== false));
-          grupo.clear(); // sacamos las cajas
+          grupo.remove(...grupo.children.filter((parte) => !parte.userData.fija)); // sacamos las cajas
           grupo.add(modelo);
           grupo.updateMatrixWorld(true);
         })
@@ -848,6 +859,13 @@ export class House {
       if (this.colliders.some((collider) => collider !== ignorar && caja.intersectsBox(collider))) return false;
     }
     return true;
+  }
+
+  // Escondites que no son muebles de la casa (los arbustos y los tachos de afuera, ver Exterior.js).
+  // También tapan la vista de los enemigos.
+  agregarEscondite(tipo, grupo, collider) {
+    this.escondites.push({ escondite: tipo, grupo, collider });
+    this.obstaculos.push(grupo);
   }
 
   // ¿La mira del jugador apunta a un escondite cercano? Devuelve el mueble o null.

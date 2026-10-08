@@ -8,6 +8,7 @@ import { UI } from './UI.js';
 import { Items } from './Items.js';
 import { Habilidades, HABILIDADES, MULTIPLICADOR_BEBIDA } from './Habilidades.js';
 import { Efectos } from './Efectos.js';
+import { ESCONDITES } from './Escondites.js';
 import { Dueno } from './Dueno.js';
 import { Perro, PERROS } from './Perro.js';
 import { Abuela, ESTADO_ABUELA } from './Abuela.js';
@@ -390,6 +391,7 @@ export class Game {
   // Deja todo listo para una partida nueva
   reiniciar() {
     if (this.player.escondido) this.salirDelEscondite();
+    this.player.olor = 0;
     this.house.reiniciar();
     this.entradas.reiniciar();
     this.ruido.limpiar();
@@ -443,6 +445,7 @@ export class Game {
       this.forzarSiMantieneE(dt);
       for (const tipo of this.habilidades.update(dt, this.camera)) this.alTerminarHabilidad(tipo);
       this.aplicarHabilidades();
+      this.actualizarOlor(dt);
       this.player.update(dt);
       for (const enemigo of this.enemigos) enemigo.update(dt);
       this.ruido.update(dt);
@@ -458,7 +461,8 @@ export class Game {
       this.actualizarAyuda();
       this.ui.mostrarFundido(this.player.oscuridad); // (negro mientras atravesás una pared trepando)
       this.ui.actualizarHUD(this.tiempoPartida, this.nivelEnojo);
-      this.ui.mostrarHabilidades(this.habilidades.paraElHUD);
+      this.ui.mostrarHabilidades([...this.habilidades.paraElHUD, ...this.olorParaElHUD()]);
+      this.ui.mostrarOlor(this.player.olor / ESCONDITES.tacho.olor);
       const paso = this.player.tipoDePaso;
       const enConducto = this.house.enConducto(this.player.position);
       const conBotas = this.player.pasosSilenciosos;
@@ -682,17 +686,38 @@ export class Game {
     }
   }
 
+  // Cada tipo de escondite suena distinto al entrar y al salir (ver Escondites.js)
   esconderse(escondite) {
     this.player.esconderse(escondite);
     this.dueno.alEsconderseElJugador(escondite);
     this.ui.mostrarEscondite(escondite.escondite);
-    this.audio.puerta(0.4);
+    this.audio[ESCONDITES[escondite.escondite].sonido](0.4);
   }
 
   salirDelEscondite() {
+    const tipo = ESCONDITES[this.player.escondite.escondite];
     this.player.salirDelEscondite();
     this.ui.mostrarEscondite(null);
-    this.audio.puerta(0.4);
+    this.audio[tipo.sonido](0.4);
+    if (tipo.olor) {
+      // Saliste del tacho de basura: un rato oliendo mal (los perros te huelen de lejos, ver Perro.js)
+      this.player.olor = tipo.olor;
+      this.ui.mostrarAviso(`🤢 Salís oliendo a basura: durante ${tipo.olor} s los perros te huelen de lejos`, 3);
+    }
+  }
+
+  // El olor a basura se va yendo solo
+  actualizarOlor(dt) {
+    if (this.player.olor <= 0) return;
+    this.player.olor = Math.max(0, this.player.olor - dt);
+    if (this.player.olor === 0) this.ui.mostrarAviso('🧼 Ya no olés a basura (o te acostumbraste)', 2.5);
+  }
+
+  // El olor se muestra en el HUD como si fuera una habilidad (una "habilidad" bastante mala)
+  olorParaElHUD() {
+    if (this.player.olor <= 0) return [];
+    const total = ESCONDITES.tacho.olor;
+    return [{ tipo: 'olor', icono: '🤢', nombre: 'Olor a basura', color: '#90a955', restante: this.player.olor, fraccion: this.player.olor / total }];
   }
 
   // Cartel de ayuda abajo de la mira
@@ -703,7 +728,7 @@ export class Game {
     }
 
     if (this.player.escondido) {
-      const donde = this.player.escondite.escondite === 'cama' ? 'debajo de la cama' : 'en el placard';
+      const { donde } = ESCONDITES[this.player.escondite.escondite];
       this.ui.mostrarAyuda(`Escondido ${donde}... [E] Salir`);
       return;
     }
@@ -728,7 +753,7 @@ export class Game {
 
     const escondite = this.house.esconditeMirado(this.camera);
     if (escondite) {
-      this.ui.mostrarAyuda(escondite.escondite === 'cama' ? '[E] Meterse debajo de la cama' : '[E] Esconderse en el placard');
+      this.ui.mostrarAyuda(ESCONDITES[escondite.escondite].ayuda);
       return;
     }
 

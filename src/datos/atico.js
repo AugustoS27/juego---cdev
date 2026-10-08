@@ -70,6 +70,8 @@ export const ATICO = {
     { tipo: 'cajas', x: -2.5, z: -3.8, rot: 90 },
     { tipo: 'sillon', x: 4, z: 3.8, rot: 180 },
     { tipo: 'televisionVieja', x: 8.2, z: 2.5, rot: -90 },
+    // El ropero viejo del ático: por dentro es un placard más (escondite, etapa 14C)
+    { tipo: 'placard', x: -1.4, z: 2.95, rot: 180 },
     // Detalles (etapa 11C): muebles tapados con sábanas (¡parecen fantasmas!) y cajas abiertas
     { tipo: 'sabanaFantasma', x: -4, z: -1.5 },
     { tipo: 'sabanaFantasma', x: 4.2, z: -4.3 },

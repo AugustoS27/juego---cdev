@@ -1,6 +1,7 @@
 // El jugador: cámara en primera persona, movimiento con WASD, salto, agacharse y colisiones simples.
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
+import { ESCONDITES } from './Escondites.js';
 
 // Valores del jugador (fáciles de ajustar)
 const VELOCIDAD_CAMINAR = 3.5; // metros por segundo
@@ -16,7 +17,6 @@ const GRAVEDAD = 20;
 const VELOCIDAD_SALTO = 6; // salta unos 90 cm (altura = v² / 2g)
 const CAIDA_RUIDOSA = -5; // si cae más rápido que esto, el aterrizaje hace ruido
 const ESPERA_ENTRE_CHOQUES = 1; // para no generar un ruido por frame contra una pared
-const ALTURA_OJOS_ESCONDIDO = { placard: 1.5, cama: 0.2 }; // debajo de la cama se ve desde el piso
 
 // Cada tipo de paso: cada cuánto se da un paso (s). El ruido de cada uno está en Noise.js.
 const INTERVALO_PASO = { pasos: 0.5, pasosCorriendo: 0.3, pasosAgachado: 0.7 };
@@ -59,6 +59,7 @@ export class Player {
     this.escondite = null; // el mueble donde está escondido
     this.posicionAntesDeEsconderse = new THREE.Vector3();
     this.rotacionAntesDeEsconderse = new THREE.Quaternion();
+    this.olor = 0; // segundos que le quedan de olor a basura (después de esconderse en un tacho)
 
     // Game conecta estas funciones con el sonido y el sistema de ruido:
     //   alDarPaso(tipo):    tipo = 'pasos', 'pasosCorriendo' o 'pasosAgachado'
@@ -227,9 +228,10 @@ export class Player {
   // ------------------------------------------------------------
   //  ESCONDITES
   // ------------------------------------------------------------
-  // Nos metemos en el mueble y la cámara mira hacia donde estábamos parados:
+  // Nos metemos en el mueble y la cámara mira hacia donde estábamos parados. La altura de los ojos
+  // y cuánto se corren del borde dependen del tipo (ver Escondites.js), por ejemplo:
   //  - placard: los ojos quedan en la puerta del placard (espiando por las rendijas)
-  //  - cama: los ojos quedan abajo, cerca del borde (espiando desde el piso)
+  //  - cama: los ojos quedan abajo, un poco adentro del borde (espiando desde el piso)
   esconderse(escondite) {
     this.escondido = true;
     this.escondite = escondite;
@@ -241,13 +243,12 @@ export class Player {
     const caja = escondite.collider;
     const centro = caja.getCenter(new THREE.Vector3());
     const piso = caja.min.y;
-    const alturaOjos = ALTURA_OJOS_ESCONDIDO[escondite.escondite];
+    const tipo = ESCONDITES[escondite.escondite];
 
     // Punto del borde del mueble más cercano a donde estábamos parados
     const borde = caja.clampPoint(this.posicionAntesDeEsconderse, new THREE.Vector3());
     const haciaAfuera = borde.clone().sub(centro).setY(0).normalize();
-    const ajuste = escondite.escondite === 'placard' ? 0.05 : -0.3;
-    const ojos = borde.addScaledVector(haciaAfuera, ajuste).setY(piso + alturaOjos);
+    const ojos = borde.addScaledVector(haciaAfuera, tipo.borde).setY(piso + tipo.ojos);
 
     // Para el dueño, el jugador está en el centro del mueble
     this.position.set(centro.x, piso, centro.z);

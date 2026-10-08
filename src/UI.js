@@ -42,6 +42,7 @@ export class UI {
     this.apuntado = $('apuntado');
     this.bang = $('bang');
     this.fundido = $('fundido');
+    this.olor = $('olor');
     this.hollin = $('hollin');
 
     this.textoAyuda = null; // lo guardamos para no tocar el HTML si no cambió
@@ -212,7 +213,16 @@ export class UI {
     this.hollin.classList.add('mostrar');
   }
 
-  // tipo: 'placard', 'cama' o null (no está escondido)
+  // Nubecitas verdes en los bordes de la pantalla mientras olés a basura (1 = recién salido del tacho)
+  mostrarOlor(fraccion) {
+    const valor = (fraccion * 0.8).toFixed(2);
+    if (valor !== this.olorActual) {
+      this.olorActual = valor;
+      this.olor.style.opacity = valor;
+    }
+  }
+
+  // tipo: el tipo de escondite (ver Escondites.js) o null (no está escondido)
   mostrarEscondite(tipo) {
     this.vistaEscondite.className = tipo || 'oculto';
     this.mira.classList.toggle('oculto', !!tipo);
@@ -227,6 +237,7 @@ export class UI {
     this.mostrarApuntado(false);
     this.mostrarHabilidades([]);
     this.mostrarFundido(0);
+    this.mostrarOlor(0);
     this.hollin.classList.add('oculto');
     this.borrarAvisos();
   }

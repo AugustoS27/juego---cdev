@@ -3,9 +3,8 @@
 Este documento detalla las etapas para las mejoras nuevas del juego: qué se va a hacer en cada una,
 en qué orden, qué archivos se tocan, cómo se prueba y qué decisiones quedan pendientes.
 
-> **Estado actual:** etapas 1 a 13 terminadas (la 13 sumó la zanahoria, las botas de lana y la bebida energética).
-> La etapa 14 se dividió en tres: **14A** animaciones (✅), **14B** entradas nuevas (✅) y
-> **14C** escondites nuevos y cierre. Próxima: **14C**.
+> **Estado actual:** ✅ **todas las etapas terminadas** (1 a 14). La 14 se dividió en tres: **14A** animaciones,
+> **14B** entradas nuevas y **14C** escondites nuevos y cierre.
 
 ---
 
@@ -19,10 +18,10 @@ en qué orden, qué archivos se tocan, cómo se prueba y qué decisiones quedan 
 6. [Etapa 11 — La casa gigante](#etapa-11--la-casa-gigante)
 7. [Etapa 12 — Enemigos nuevos: perros y abuela](#etapa-12--enemigos-nuevos-perros-y-abuela)
 8. [Etapa 13 — Objetos de habilidad ✅](#etapa-13--objetos-de-habilidad-)
-9. [Etapa 14 — Pulido: animaciones, entradas y escondites](#etapa-14--pulido-animaciones-entradas-y-escondites)
+9. [Etapa 14 — Pulido: animaciones, entradas y escondites ✅](#etapa-14--pulido-animaciones-entradas-y-escondites-)
 10. [Riesgos y cómo los manejamos](#riesgos-y-cómo-los-manejamos)
 11. [Decisiones pendientes](#decisiones-pendientes)
-12. [Historial (etapas 1 a 13)](#historial-etapas-1-a-13)
+12. [Historial (etapas 1 a 14)](#historial-etapas-1-a-14)
 
 ---
 
@@ -53,7 +52,7 @@ Son los mismos que usamos desde el principio, porque el proyecto tiene que ser f
 | **11** | Casa gigante: pisos, sótano, ático, puentes, túneles, ventilaciones, decoración | Muy grande (se divide en 11A, 11B y 11C) | ✅ Terminada (11A, 11B y 11C) |
 | **12** | Enemigos nuevos: dos perros y la abuela con escopeta | Grande | ✅ Terminada |
 | **13** | Objetos de habilidad: zanahoria, botas de lana, bebida energética | Mediana | ✅ Terminada |
-| **14** | Pulido: animaciones, más entradas, más escondites | Grande (se divide en 14A, 14B y 14C) | 🔨 En curso (14A ✅, 14B ✅, sigue 14C) |
+| **14** | Pulido: animaciones, más entradas, más escondites | Grande (se divide en 14A, 14B y 14C) | ✅ Terminada (14A, 14B y 14C) |
 
 ---
 
@@ -553,7 +552,7 @@ enemigos, perder por disparo o mordida), `Noise.js` (ruido que escuchan todos, c
 
 ---
 
-## Etapa 14 — Pulido: animaciones, entradas y escondites
+## Etapa 14 — Pulido: animaciones, entradas y escondites ✅
 
 Se divide en tres partes, igual que la 11: **14A** animaciones, **14B** entradas nuevas y **14C** escondites
 nuevos y cierre (todas las pruebas, rendimiento y commit final).
@@ -624,6 +623,62 @@ una ayuda y un `usar()` que devuelve un "resultado"). Cada una con su precio:
 - Rendimiento (medido igual con y sin la 14B, contando las dos pasadas de los bordes): frente 1357 → 1381
   llamadas, patio 1018 → 1072, living 211 → 235. Build OK.
 
+### 14C — Escondites nuevos y cierre ✅
+
+#### Qué se hizo
+Los tipos de escondite ahora están en una tabla (`Escondites.js`): texto de ayuda, altura de los ojos, cuánto
+se corren del borde, sonido y alguna regla especial. Agregar un tipo nuevo es agregar una fila (y su "vista" en
+`style.css`). Todos usan el mismo sistema de antes y la misma regla de sospecha del dueño (40% si pasa cerca).
+
+| Escondite | Dónde | Particularidad |
+|---|---|---|
+| **Debajo de la mesa** | Mesas de la cocina, el comedor y la bodega | Si el dueño **te mira de cerca** (2,5 m, mismo piso, sin nada en el medio), te ve: va derecho a sacarte, sin moneda |
+| **Bañera con cortina** | Las dos bañeras (ahora tienen cortina a rayas) | Clásico de película: espiás por la rendija de la cortina |
+| **Caja grande** | Garaje y depósito del sótano | Ves todo marrón salvo el agujerito de la manija |
+| **Arbustos** | Los 8 del jardín y 3 nuevos en el patio | Tapan la vista (también de pie, detrás). En el patio son el único escondite: los perros no te encuentran |
+| **Tacho de basura** | Dos al lado de la tranquera del patio | Salís **oliendo a basura 25 s**: los perros te huelen a 12 m (aunque no te vean) y van a buscarte |
+| **Ropero del ático** | En el ático, al lado del caballito | Como los placards |
+
+- **Partes fijas** (`muebles.js`): la cortina de la bañera no viene en el modelo de Kenney, así que es una lista
+  aparte de formas básicas que quedan aunque cargue el modelo.
+- **Arbustos redondos:** los modelos de Kenney eran plantas de hojas finitas (no te podías esconder adentro),
+  así que ahora son cuatro esferas de 1,2 m de alto. Como son "obstáculos", también tapan la vista de los enemigos.
+- **El dueño no sale de la casa:** si va a revisar un escondite de afuera, llega solo hasta la pared de adentro.
+  Ahora tiene que estar **al lado** del escondite para encontrarte (antes alcanzaba con "llegar").
+- **Olor:** se ve en el HUD como una "habilidad" más (🤢 con su barra) y con nubecitas verdes en los bordes.
+- Consejo del menú actualizado con los escondites nuevos.
+
+#### Pruebas que se corrieron (cierre de todo el proyecto)
+- **Escondites:** los 29 (8 de antes + 21 nuevos) se pueden mirar desde algún lado, entrar (cada uno con su
+  vista y su texto) y salir al mismo lugar sin quedar trabado.
+- **Mesa:** dueño a 2,5 m de la mesa, mirándola → te encuentra en 0,4 s; de espaldas → nada (solo la moneda, que con 40%
+  también te encuentra); a 3 m o desde la cocina → nada.
+- **Arbusto del frente:** el dueño va a revisarlo, llega hasta la pared de adentro y no te encuentra.
+- **Tacho:** al salir, olor 25 s (aviso, barra en el HUD). Firulais a 8 m te huele, viene hasta el cerco, te ve y
+  te ladra; a los 25 s se te va el olor ("🧼 Ya no olés a basura").
+- **Grafos:** perros 17/17, abuela 8/8, dueño 77/78 (igual que antes: la del ático necesita la escalera
+  desplegada). El ropero del ático primero le cortaba el camino al dueño: se corrió.
+- **Nada encima de nada:** ningún lugar de objetos ni de habilidades (102) cae adentro de un escondite nuevo; los
+  patitos de goma siguen en las bañeras y se pueden agarrar.
+- **Entradas (todas otra vez):** las 13 responden; gatera agachado (3,5 s), chimenea desde el techo (¡PUF!, ruido
+  de 8 m y hollín) y tragaluz (5 s) dan lo mismo que en la 14B.
+- **Partidas simuladas:** 6 partidas con enemigos activos y un jugador que corre, salta, se agacha, se esconde y
+  aprieta E al azar: sin errores.
+- **Rendimiento final** (mismo método antes y después de la 14C, llamadas de dibujo contando sombras y bordes):
+
+  | Vista | Sin 14C | Con 14C |
+  |---|---|---|
+  | Frente | 2099 | 2128 |
+  | Oeste | 2088 | 2137 |
+  | Patio | 1989 | 1976 |
+  | Living | 1640 | 1728 |
+  | Primer piso | 1175 | 1182 |
+  | Sótano | 1123 | 1131 |
+  | Ático | 1546 | 1572 |
+
+  Entre 0% y 5% más (en el patio, menos: los arbustos de esferas se juntan en una malla y los modelos no).
+- Build OK, consola sin errores.
+
 ### Plan original
 
 ### Animaciones
@@ -687,7 +742,7 @@ Todos usan el mismo sistema de escondites de ahora (y la misma regla de sospecha
 
 ---
 
-## Historial (etapas 1 a 13)
+## Historial (etapas 1 a 14)
 
 | Etapa | Qué se hizo |
 |---|---|
@@ -706,3 +761,6 @@ Todos usan el mismo sistema de escondites de ahora (y la misma regla de sospecha
 | 11C | Empapelados, zócalos, molduras, marcos, cortinas, 36 cuadros (uno te sigue con la mirada), lámparas, detalles, telarañas, goteras, sábanas fantasma y polvo |
 | 12 | Enemigos en su propio archivo sobre un esqueleto común (`Enemigo.js`); dos perros en el patio cercado (ladran, se aburren) y la abuela con escopeta (apunta, dispara, recarga) |
 | 13 | Habilidades: zanahoria (ves un objeto a través de las paredes), botas de lana (pasos silenciosos) y bebida energética (+50% de velocidad), con barra de tiempo en el HUD |
+| 14A | Animaciones: balanceo y sacudón de cámara, objetos que vuelan a la cámara, puertas con rebote, sorpresa y parpadeo del dueño, fundidos de pantalla |
+| 14B | Cinco entradas nuevas: chimenea, ventanita del sótano, gatera, enredadera y tragaluz del ático (con trastos para subir al techo del garaje) |
+| 14C | Escondites en tabla (`Escondites.js`): mesas, bañeras con cortina, cajas, arbustos, tachos (con olor) y ropero del ático; pruebas de cierre |

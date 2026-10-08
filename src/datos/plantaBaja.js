@@ -88,7 +88,7 @@ export const PLANTA_BAJA = {
     { tipo: 'aparador', x: 8.6, z: -1, rot: -90 },
     { tipo: 'ventana', x: 8.87, z: -1, rot: -90 },
     // Baño
-    { tipo: 'banera', x: 4.2, z: -3.3, rot: 90 },
+    { tipo: 'banera', x: 4.2, z: -3.3, rot: 90 }, // (con cortina: es un escondite)
     { tipo: 'inodoro', x: 8.5, z: -5.5 },
     { tipo: 'lavamanos', x: 6, z: -5.65 },
     { tipo: 'lavarropas', x: 8.55, z: -3.6, rot: -90 },
@@ -102,6 +102,7 @@ export const PLANTA_BAJA = {
     { tipo: 'estanteria', x: -15.1, z: 1, rot: 90 },
     { tipo: 'mesaTrabajo', x: -12.3, z: -1.5 },
     { tipo: 'cajas', x: -14.6, z: 4.9 },
+    { tipo: 'cajaGrande', x: -9.75, z: -0.3 }, // escondite (etapa 14C)
     // Detalles (etapa 11C)
     { tipo: 'almohadon', x: -8.5, z: -0.7, rot: 90, y: 0.45, colores: { tela: '#ffd23f' } },
     { tipo: 'mesaConVelador', x: -8.55, z: -1.65 },
