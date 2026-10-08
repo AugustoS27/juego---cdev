@@ -24,6 +24,9 @@ export class UI {
     this.hud = $('hud');
     this.tituloBotin = $('titulo-botin');
     this.listaPistas = $('lista-pistas');
+    this.pieWalkie = $('pie-walkie');
+    this.walkie = $('walkie');
+    this.textoWalkie = $('texto-walkie');
     this.textoTiempo = $('texto-tiempo');
     this.textoPiso = $('texto-piso');
     this.rellenoEnojo = $('relleno-enojo');
@@ -71,8 +74,8 @@ export class UI {
   }
 
   // Lista de juguetes: una línea por juguete, con su ícono y su nombre (se tilda cuando lo recuperás).
-  // Arriba, el contador "🧸 Juguetes 2/3".
-  mostrarBotin(objetivos) {
+  // Abajo de cada uno, lo que te dijo Facu de dónde está (walkie.pistaCorta). Arriba, "🧸 Juguetes 2/3".
+  mostrarBotin(objetivos, walkie = null) {
     const encontrados = objetivos.filter((o) => o.encontrado).length;
     const todos = encontrados === objetivos.length;
     this.tituloBotin.textContent = todos
@@ -85,8 +88,30 @@ export class UI {
       const linea = document.createElement('li');
       linea.classList.toggle('encontrado', o.encontrado);
       linea.textContent = `${o.encontrado ? '✅' : '⬜'} ${o.objeto.icono} ${mayuscula(o.objeto.nombre)}`;
+      const pista = !o.encontrado && walkie?.pistaCorta(o);
+      if (pista) {
+        const detalle = document.createElement('div');
+        detalle.className = 'pista';
+        detalle.textContent = `📻 ${pista}`;
+        linea.appendChild(detalle);
+      }
       this.listaPistas.appendChild(linea);
     }
+  }
+
+  // El mensaje de Facu por el walkie (null = no está hablando). Solo tocamos el DOM si cambió.
+  mostrarWalkie(texto) {
+    if (texto === this.textoWalkieActual) return;
+    this.textoWalkieActual = texto;
+    this.walkie.classList.toggle('oculto', texto === null);
+    if (texto !== null) this.textoWalkie.textContent = texto;
+  }
+
+  // Abajo de la lista de juguetes: si ya se puede pedir otra pista o cuánto falta
+  mostrarEsperaPista(segundos) {
+    const texto = segundos > 0 ? `📻 Facu está mirando... (${Math.ceil(segundos)} s)` : '📻 [T] Pedirle una pista a Facu';
+    if (texto !== this.pieWalkie.textContent) this.pieWalkie.textContent = texto;
+    this.pieWalkie.classList.toggle('esperando', segundos > 0);
   }
 
   // Tiempo de la partida y barra de enojo del dueño (se llena de 0% a 100%)
@@ -238,6 +263,7 @@ export class UI {
     this.mostrarHabilidades([]);
     this.mostrarFundido(0);
     this.mostrarOlor(0);
+    this.mostrarWalkie(null);
     this.hollin.classList.add('oculto');
     this.borrarAvisos();
   }

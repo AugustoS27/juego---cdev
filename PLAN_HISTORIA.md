@@ -3,7 +3,7 @@
 Este documento es la tercera parte del plan (la segunda, etapas 9 a 14, está en [PLAN.md](PLAN.md) y está
 terminada). Acá se detalla el cambio de historia y todo lo que viene con él.
 
-> **Estado actual:** 🔨 en curso. **15A** ✅. Próxima: **15B**.
+> **Estado actual:** 🔨 en curso. **15A** ✅, **15B** ✅. Próxima: **15C**.
 
 ---
 
@@ -29,8 +29,8 @@ Hoy Tomi se cansó: se va a meter a recuperar **3 juguetes**. Su amigo **Facu** 
 | Etapa | Contenido | Tamaño | Estado |
 |---|---|---|---|
 | **15A** | Historia y juguetes: 3 juguetes (de 8), textos nuevos en todo el juego, Facu y las bicis en vez de la van | Grande | ✅ Terminada |
-| **15B** | Walkie-talkie: Facu da las pistas por radio (cada vez más precisas) y comenta lo que pasa | Mediana | ⏳ Próxima |
-| **15C** | Doña Pocha y su lanzarredes: la red vuela, te paraliza 3 s y hace ruido | Mediana | — |
+| **15B** | Walkie-talkie: Facu da las pistas por radio (cada vez más precisas) y comenta lo que pasa | Mediana | ✅ Terminada |
+| **15C** | Doña Pocha y su lanzarredes: la red vuela, te paraliza 3 s y hace ruido | Mediana | ⏳ Próxima |
 | **15D** | Diseños nuevos: Don Ernesto y Doña Pocha (más detalle y animaciones); Tomi y Facu para las cinemáticas | Mediana | — |
 | **15E** | Cinemáticas: la intro que cuenta la historia, la de victoria y la de derrota | Grande | — |
 | **15F** | Música y pasos nuevos + cierre (todas las pruebas, rendimiento, README) | Mediana | — |
@@ -105,7 +105,40 @@ Un commit por etapa (cuando se pida).
 
 ---
 
-## Etapa 15B — Walkie-talkie y pistas de Facu
+## Etapa 15B — Walkie-talkie y pistas de Facu ✅
+
+### Qué se hizo
+- **`Walkie.js` (nuevo):** la cola de mensajes, las frases (como datos) y las pistas. No dibuja nada: Game le
+  pregunta qué texto mostrar y se lo pasa a `UI.js`.
+- **Pistas en tres niveles**, armadas solas: el piso y el cuarto salen de la posición del juguete (las
+  habitaciones de `HouseData.js`); el lugar exacto es el `lugar` de la ubicación, que ahora es una frase
+  ("en la mesa con sombrilla del patio"). En el ático, que es una sola habitación, dice de qué lado.
+  Afuera dice "el patio de los perros" o "el jardín".
+- **Al empezar** (a los 1,5 s) Facu saluda y dice el nivel 1 de los tres juguetes en un solo mensaje.
+- **T:** pista más precisa del juguete que falte y del que menos se sepa. Espera de 20 s (se ve abajo de la
+  lista: "Facu está mirando... 12 s"; si apretás antes, un aviso te dice cuánto falta) y un ruido de 3 m.
+  Cuando ya dijo todo: "Ya te dije todo lo que vi, Tomi. ¡Vos podés!".
+- **HUD:** abajo de cada juguete queda anotado lo que sabés ("📻 Primer piso · cuarto de Doña Pocha").
+- **Panel del walkie** abajo a la izquierda (carita de Facu, texto letra por letra, "kshhh" al empezar y
+  terminar y una vocecita de pitidos mientras escribe).
+- **Comentarios:** al entrar a la casa (una vez), cuando te ve Don Ernesto, los perros o te apunta Doña Pocha
+  (urgentes: pasan adelante y cortan el mensaje que se estaba mostrando; cada uno como mucho cada 40 s), al
+  recuperar un juguete, con los tres ("¡Volvé a la entrada de autos!") y si pasan 90 s sin novedades
+  ("¿Estás perdido? Apretá T").
+- Las frases están escritas sin "lo/la" ni "tuyo/tuya", para que sirvan para cualquier juguete.
+- Menú: la tecla T en los controles y un consejo nuevo.
+
+### Pruebas que se corrieron
+- Las tres pistas de los 42 lugares, leídas una por una (se corrigió "la mesa del jardín", que está en el patio).
+- T: la primera da pista y hace ruido (3 m); la segunda enseguida avisa "probá en 20 s"; después de esperar,
+  sube de nivel el juguete del que menos se sabe; con todo dicho, "Ya te dije todo".
+- Un comentario urgente (te vio Don Ernesto) corta el mensaje que se estaba mostrando; repetido a los pocos
+  segundos, no se vuelve a decir.
+- Entrar a la casa, recuperar un juguete y la ayuda a los 90 s: cada uno una vez.
+- Se encontraron y corrigieron dos frases que quedaban mal con juguetes femeninos ("la consola lo tienen").
+- 6 partidas simuladas apretando T: sin errores (5 o 6 mensajes de Facu por minuto). Build OK.
+
+### Plan original
 
 ### Qué se hace
 - **Panel del walkie** abajo a la izquierda: la carita de Facu, el texto que aparece letra por letra y un

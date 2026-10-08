@@ -339,6 +339,66 @@ body {
   color: #95d5b2;
 }
 
+/* Lo que dijo Facu de dónde está cada juguete (abajo de su nombre) */
+#lista-pistas .pista {
+  margin-left: 22px;
+  color: #b8f2e6;
+  font-size: 0.92em;
+  font-style: italic;
+}
+
+/* "[T] Pedirle una pista a Facu" (o cuánto falta) */
+#pie-walkie {
+  margin-top: 6px;
+  padding-top: 5px;
+  border-top: 1px dashed rgba(255, 210, 63, 0.4);
+  color: #ffd23f;
+  font-size: 0.92em;
+}
+
+#pie-walkie.esperando {
+  color: #adb5bd;
+}
+
+/* Facu hablando por el walkie: una "radio" verde con su carita, arriba del tiempo y el enojo */
+#walkie {
+  position: absolute;
+  bottom: 112px;
+  left: 16px;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  width: min(400px, calc(100% - 32px));
+  padding: 10px 12px;
+  border: 3px solid #2a9d8f;
+  border-radius: 14px;
+  background: rgba(10, 35, 32, 0.88);
+  animation: aparecer 0.2s ease-out;
+}
+
+.cara-walkie {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #e76f51;
+  font-size: 28px;
+}
+
+.nombre-walkie {
+  color: #52ff8a;
+  font-size: 13px;
+  letter-spacing: 1px;
+}
+
+#texto-walkie {
+  color: #ffffff;
+  font-size: 15px;
+  line-height: 1.35;
+}
+
 /* Tiempo y enojo, abajo a la izquierda */
 #hud-estado {
   position: absolute;

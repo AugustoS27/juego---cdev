@@ -5,7 +5,8 @@ Juego 3D cómico en primera persona hecho con **Three.js** y **Vite** (proyecto 
 
 Sos **Tomi**, un nene del barrio. Cada vez que un juguete cae en el jardín de los vecinos, **Don Ernesto y
 Doña Pocha** se lo quedan. Hoy te cansaste: te vas a meter en su casa enorme (sótano tenebroso, tres pisos y un
-ático) para recuperar **3 juguetes** (sorteados entre 8). Sabés cuáles son, y tu amigo **Facu** te espera en la
+ático) para recuperar **3 juguetes** (sorteados entre 8). Sabés cuáles son, y tu amigo **Facu** te dice por el
+**walkie-talkie** dónde los vio con los binoculares (con **T** le pedís una pista más precisa). Él te espera en la
 entrada de autos con las bicis. Con los tres en la mochila, volvés con él y ganás. Si Don Ernesto te atrapa, perdés.
 Empezás afuera y hay muchas formas de entrar: romper una ventana, la puerta trasera que quedó abierta, una escalera al balcón,
 forzar el portón del garaje, buscar la llave escondida en una maceta, bajar por el pozo del jardín hasta un túnel secreto,
@@ -74,6 +75,7 @@ Para generar la versión final: `npm run build` (queda en `dist/`).
 | `src/Items.js` | Los 8 juguetes (hechos con formas básicas) y sus ubicaciones; sorteo de los 3 de cada partida |
 | `src/Efectos.js` | Lo que vuela hacia la cámara (con un destello) cuando agarrás algo |
 | `src/Habilidades.js` | Zanahoria, botas de lana y bebida energética: dónde aparecen, cuánto duran y el brillo de la zanahoria |
+| `src/Walkie.js` | Facu por el walkie-talkie: pistas en tres niveles (piso, cuarto, lugar), la tecla T y sus comentarios |
 | `src/Escape.js` | Facu con las dos bicis y la zona de escape (se prende con los 3 juguetes) |
 | `src/Noise.js` | Sistema de ruido con radio de alcance (lo escuchan todos los enemigos, cada uno con su oído) |
 | `src/Audio.js` | Sonidos generados con la Web Audio API (sin archivos) |

@@ -9,6 +9,7 @@ import { Items } from './Items.js';
 import { Habilidades, HABILIDADES, MULTIPLICADOR_BEBIDA } from './Habilidades.js';
 import { Efectos } from './Efectos.js';
 import { ESCONDITES } from './Escondites.js';
+import { Walkie, RADIO_RUIDO_WALKIE } from './Walkie.js';
 import { Dueno } from './Dueno.js';
 import { Perro, PERROS } from './Perro.js';
 import { Abuela, ESTADO_ABUELA } from './Abuela.js';
@@ -85,6 +86,7 @@ export class Game {
     this.ruido = new SistemaDeRuido(this.scene, this.enemigos);
     this.audio = new Audio();
     this.ui = new UI();
+    this.walkie = new Walkie(); // Facu, por radio (pistas y comentarios)
 
     // Rendimiento: todo lo que no se mueve (paredes, pisos, escalones, decoración) se junta en
     // pocas mallas, una por material. Tiene que ir DESPUÉS de crear la casa, el exterior y la van.
@@ -227,12 +229,19 @@ export class Game {
       this.ui.mostrarAviso(`🔒 ¡Don Ernesto trabó una puerta (${donde})! Se destraba en 20 s`, 4);
     };
 
+    // El walkie: "kshhh" al empezar y terminar cada mensaje, y la vocecita de Facu mientras se escribe
+    this.walkie.alEmpezarMensaje = () => this.audio.walkie();
+    this.walkie.alEscribirLetra = () => this.audio.vozFacu();
+    this.walkie.alTerminarMensaje = () => this.audio.walkie(0.5);
+    this.walkie.alCambiarPistas = () => this.ui.mostrarBotin(this.items.objetivos, this.walkie);
+
     // El dueño cambió de estado: alerta si te vio, "¿?" si escuchó algo
     this.dueno.alCambiarEstado = (nuevo, anterior) => {
       if (this.estado !== PARTIDA.JUGANDO) return;
       if (nuevo === ESTADO.PERSEGUIR) {
         this.audio.alerta();
         this.ui.mostrarAviso('❗ ¡TE VIO! ¡Corré o escondete!', 2);
+        this.walkie.comentar('persecucion', {}, true);
       } else if (nuevo === ESTADO.INVESTIGAR && anterior === ESTADO.PATRULLA) {
         this.audio.duda();
       }
@@ -247,6 +256,7 @@ export class Game {
       perro.alCambiarEstado = (nuevo) => {
         if (this.estado === PARTIDA.JUGANDO && nuevo === ESTADO.PERSEGUIR) {
           this.ui.mostrarAviso(`🐕 ¡${perro.v.nombre} te vio! Metete en la casa o subite a algo alto`, 3);
+          this.walkie.comentar('perros', {}, true);
         }
       };
       perro.alAburrirse = () => this.ui.mostrarAviso(`🥱 ${perro.v.nombre} se aburrió de ladrarte y vuelve a la cucha`, 3);
@@ -256,6 +266,7 @@ export class Game {
     this.abuela.alApuntar = () => {
       this.audio.clic(Math.max(0.5, this.volumenPorDistancia(this.abuela.position)));
       this.ui.mostrarAviso('🎯 ¡Doña Pocha te está apuntando con la escopeta! ¡Cubrite!', 2);
+      this.walkie.comentar('abuela', {}, true);
     };
     this.abuela.alDisparar = ({ acerto }) => {
       this.audio.disparo(Math.max(0.4, this.volumenPorDistancia(this.abuela.position)));
@@ -383,6 +394,7 @@ export class Game {
   configurarTeclado() {
     window.addEventListener('keydown', (e) => {
       if (e.code === 'KeyE' && this.estado === PARTIDA.JUGANDO) this.interactuar();
+      if (e.code === 'KeyT' && this.estado === PARTIDA.JUGANDO) this.pedirPista();
       if (e.code === 'KeyM') this.ui.mostrarSilencio(this.audio.alternarSilencio());
       if (e.code === 'KeyB') this.conBordes = !this.conBordes; // bordes de dibujo animado sí/no
     });
@@ -400,7 +412,9 @@ export class Game {
     this.camera.rotation.set(0, 0, 0); // mirando hacia adentro de la casa
     this.pasadizoEncontrado = false;
     this.items.sortearObjetivos();
-    // Las habilidades se reparten donde no haya un objeto del botín
+    this.walkie.reiniciar(this.items.objetivos);
+    this.yaEntroALaCasa = false; // (para que Facu lo comente una vez)
+    // Las habilidades se reparten donde no haya un juguete
     this.habilidades.reiniciar(this.items.objetivos.map((o) => o.ubicacion));
     this.aplicarHabilidades();
     this.zonaEscape.activar(false);
@@ -412,7 +426,7 @@ export class Game {
     this.tiempoParaEnojo = SEGUNDOS_POR_NIVEL;
 
     this.ui.ocultarCosasDelJuego();
-    this.ui.mostrarBotin(this.items.objetivos);
+    this.ui.mostrarBotin(this.items.objetivos, this.walkie);
     this.ui.actualizarHUD(0, 0);
   }
 
@@ -446,6 +460,7 @@ export class Game {
       for (const tipo of this.habilidades.update(dt, this.camera)) this.alTerminarHabilidad(tipo);
       this.aplicarHabilidades();
       this.actualizarOlor(dt);
+      this.walkie.update(dt);
       this.player.update(dt);
       for (const enemigo of this.enemigos) enemigo.update(dt);
       this.ruido.update(dt);
@@ -459,9 +474,12 @@ export class Game {
       this.ui.mostrarAlertaPersecucion(alerta);
       this.ui.mostrarApuntado(this.abuela.estado === ESTADO_ABUELA.APUNTAR);
       this.actualizarAyuda();
+      this.comentarSiEntro();
       this.ui.mostrarFundido(this.player.oscuridad); // (negro mientras atravesás una pared trepando)
       this.ui.actualizarHUD(this.tiempoPartida, this.nivelEnojo);
       this.ui.mostrarHabilidades([...this.habilidades.paraElHUD, ...this.olorParaElHUD()]);
+      this.ui.mostrarWalkie(this.walkie.textoVisible);
+      this.ui.mostrarEsperaPista(this.walkie.esperaPista);
       this.ui.mostrarOlor(this.player.olor / ESCONDITES.tacho.olor);
       const paso = this.player.tipoDePaso;
       const enConducto = this.house.enConducto(this.player.position);
@@ -502,7 +520,8 @@ export class Game {
     this.items.agarrar(objetivo);
     this.efectos.agarrar(objetivo.malla, '#ffd23f'); // vuela hacia la mochila con un destello dorado
     this.audio.guardar();
-    this.ui.mostrarBotin(this.items.objetivos);
+    this.ui.mostrarBotin(this.items.objetivos, this.walkie);
+    this.walkie.alRecuperar(objetivo);
 
     const { nombre, icono } = objetivo.objeto;
     if (this.items.todosEncontrados) {
@@ -513,6 +532,30 @@ export class Game {
     } else {
       const faltan = this.items.objetivos.length - this.items.cantidadEncontrados;
       this.ui.mostrarAviso(`${icono} ¡Recuperaste ${nombre}! Te ${faltan === 1 ? 'falta 1 juguete' : `faltan ${faltan} juguetes`}`, 2.5);
+    }
+  }
+
+  // ------------------------------------------------------------
+  //  WALKIE (ver Walkie.js)
+  // ------------------------------------------------------------
+  // T: le pedís a Facu una pista más precisa. Si todavía está mirando, avisa cuánto falta.
+  // Si habla, el walkie hace "kshhh": un ruidito que escuchan los enemigos que estén muy cerca.
+  pedirPista() {
+    const respuesta = this.walkie.pedirPista();
+    if (respuesta.esperar) {
+      this.ui.mostrarAviso(`📻 Facu está mirando con los binoculares... probá en ${respuesta.esperar} s`, 2);
+      return;
+    }
+    this.hacerRuido(this.player.position.clone(), RADIO_RUIDO_WALKIE);
+  }
+
+  // Facu comenta cuando entrás a la casa por primera vez
+  comentarSiEntro() {
+    if (this.yaEntroALaCasa) return;
+    const p = this.player.position;
+    if (p.x > -15.5 && p.x < 9 && p.z > -6 && p.z < 6) {
+      this.yaEntroALaCasa = true;
+      this.walkie.comentar('entrar');
     }
   }
 

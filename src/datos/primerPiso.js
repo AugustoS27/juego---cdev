@@ -11,7 +11,7 @@ export const PRIMER_PISO = {
   habitaciones: [
     { nombre: 'dormitorio', rects: [[-9, -6, -3, 6]], colorPiso: '#bde0fe', textura: 'madera', pared: 'flores', colorLampara: '#cdb4db' },
     { nombre: 'cuarto del hijo', rects: [[-3, -6, 3, 2]], colorPiso: '#caffbf', textura: 'madera', pared: 'estrellas', lampara: 'plafon' },
-    { nombre: 'cuarto de la abuela', rects: [[3, -2, 9, 2]], colorPiso: '#e9d8fd', textura: 'madera', colorParedes: '#fcefb4', pared: 'flores', colorLampara: '#ffafcc' },
+    { nombre: 'cuarto de Doña Pocha', rects: [[3, -2, 9, 2]], colorPiso: '#e9d8fd', textura: 'madera', colorParedes: '#fcefb4', pared: 'flores', colorLampara: '#ffafcc' },
     { nombre: 'baño de arriba', rects: [[3, -6, 9, -2]], colorPiso: '#a0e7e5', textura: 'ceramica', pared: 'azulejos', lampara: 'plafon' },
     { nombre: 'pasillo', rects: PASILLO_CON_HUECO, colorPiso: '#cdb4db', textura: 'madera', pared: 'rayas', lampara: 'plafon' },
   ],

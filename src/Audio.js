@@ -338,6 +338,18 @@ export class Audio {
     });
   }
 
+  // --- Walkie-talkie (etapa 15B) ---
+  // "Kshhh" de radio + el pitido del botón
+  walkie(volumen = 1) {
+    this.ruido({ duracion: 0.18, volumen: 0.12 * volumen, filtro: 5000 });
+    this.tono({ frecuencia: 1400, duracion: 0.06, tipo: 'square', volumen: 0.04 * volumen, retraso: 0.12 });
+  }
+
+  // La "vocecita" de Facu mientras aparece el texto: pitiditos cortos con altura al azar
+  vozFacu() {
+    this.tono({ frecuencia: 520 + Math.random() * 260, duracion: 0.04, tipo: 'square', volumen: 0.025 });
+  }
+
   // Timbre de bici: "¡ring ring!" (dos campanadas agudas con su eco)
   timbre() {
     for (const retraso of [0, 0.22]) {

@@ -212,6 +212,7 @@ function crearConsola() {
 //  LISTA DE JUGUETES
 //  icono: el emoji que se ve en el HUD.
 //  ubicaciones: lugares donde los vecinos lo pueden haber guardado.
+//    lugar: cómo lo dice Facu en la pista más precisa (ej: "en la mesa del jardín")
 //    piso = -1 (sótano), 0 (planta baja), 1, 2 o 3 (ático); y = altura sobre ese piso
 //    (la superficie del mueble donde está apoyado). Afuera de la casa también es piso 0.
 //    rot (opcional, en grados): gira el juguete, para que su "frente" (+Z) mire al jugador.
@@ -223,12 +224,12 @@ export const JUGUETES = [
     icono: '⚽',
     crear: crearPelota,
     ubicaciones: [
-      { lugar: 'mesa del jardín', piso: 0, x: 12.5, y: 0.78, z: -0.5 },
-      { lugar: 'frente a la cucha del perro', piso: 0, x: 15.8, y: 0, z: -7.8 },
-      { lugar: 'cama del hijo', piso: 1, x: -2.2, y: 0.66, z: -4.3 },
+      { lugar: 'en la mesa con sombrilla del patio', piso: 0, x: 12.5, y: 0.78, z: -0.5 },
+      { lugar: 'tirada frente a la cucha de los perros', piso: 0, x: 15.8, y: 0, z: -7.8 },
+      { lugar: 'en la cama del cuarto del hijo', piso: 1, x: -2.2, y: 0.66, z: -4.3 },
       { lugar: 'arriba de las cajas del garaje', piso: 0, x: -14.5, y: 1.1, z: 4.95 },
-      { lugar: 'mesa de pool', piso: 2, x: 5.9, y: 0.84, z: 0.6 },
-      { lugar: 'bañera de abajo', piso: 0, x: 4.2, y: 0.4, z: -3.3 },
+      { lugar: 'en la mesa de pool', piso: 2, x: 5.9, y: 0.84, z: 0.6 },
+      { lugar: 'adentro de la bañera de abajo', piso: 0, x: 4.2, y: 0.4, z: -3.3 },
     ],
   },
   {
@@ -236,10 +237,10 @@ export const JUGUETES = [
     icono: '🚗',
     crear: crearAutito,
     ubicaciones: [
-      { lugar: 'mesa ratona', piso: 0, x: -7, y: 0.4, z: 0.3, rot: 90 },
-      { lugar: 'mesa de trabajo del garaje', piso: 0, x: -12.8, y: 0.9, z: -1.35, rot: 90 },
-      { lugar: 'escritorio del hijo', piso: 1, x: 0.4, y: 0.78, z: -5.6, rot: 90 },
-      { lugar: 'mesa de la bodega', piso: -1, x: 7.5, y: 0.78, z: -3.6, rot: 90 },
+      { lugar: 'en la mesa ratona del living', piso: 0, x: -7, y: 0.4, z: 0.3, rot: 90 },
+      { lugar: 'en la mesa de trabajo del garaje', piso: 0, x: -12.8, y: 0.9, z: -1.35, rot: 90 },
+      { lugar: 'en el escritorio del cuarto del hijo', piso: 1, x: 0.4, y: 0.78, z: -5.6, rot: 90 },
+      { lugar: 'en la mesa de la bodega', piso: -1, x: 7.5, y: 0.78, z: -3.6, rot: 90 },
       { lugar: 'arriba de la heladera', piso: 0, x: 2.4, y: 1.9, z: -5.45, rot: 90 },
     ],
   },
@@ -248,10 +249,10 @@ export const JUGUETES = [
     icono: '🤖',
     crear: crearRobot,
     ubicaciones: [
-      { lugar: 'escritorio de la biblioteca', piso: 2, x: -8.4, y: 0.78, z: 0, rot: 90 },
-      { lugar: 'caja fuerte del cuarto secreto', piso: 2, x: -8.5, y: 0.9, z: -5.55 },
+      { lugar: 'en el escritorio de la biblioteca', piso: 2, x: -8.4, y: 0.78, z: 0, rot: 90 },
+      { lugar: 'arriba de la caja fuerte del cuarto secreto', piso: 2, x: -8.5, y: 0.9, z: -5.55 },
       { lugar: 'arriba del baúl del ático', piso: 3, x: -6, y: 0.64, z: -3.8 },
-      { lugar: 'cómoda del dormitorio', piso: 1, x: -7.8, y: 0.9, z: 5.6, rot: 180 },
+      { lugar: 'en la cómoda del dormitorio', piso: 1, x: -7.8, y: 0.9, z: 5.6, rot: 180 },
       { lugar: 'arriba de un barril de la bodega', piso: -1, x: 8.4, y: 0.9, z: -3.2 },
     ],
   },
@@ -260,11 +261,11 @@ export const JUGUETES = [
     icono: '🧸',
     crear: crearOso,
     ubicaciones: [
-      { lugar: 'cama del dormitorio', piso: 1, x: -7.4, y: 0.66, z: -0.5, rot: 90 },
-      { lugar: 'cama del cuarto de las muñecas', piso: -1, x: 4.4, y: 0.66, z: -1.35 },
-      { lugar: 'sillón viejo del ático', piso: 3, x: 4.3, y: 0.45, z: 3.6, rot: 180 },
-      { lugar: 'sillón del living', piso: 0, x: -8.3, y: 0.45, z: 0.6, rot: 90 },
-      { lugar: 'mesa de luz de Doña Pocha', piso: 1, x: 8.6, y: 0.5, z: 0.25, rot: -90 },
+      { lugar: 'en la cama del dormitorio', piso: 1, x: -7.4, y: 0.66, z: -0.5, rot: 90 },
+      { lugar: 'en la cama del cuarto de las muñecas', piso: -1, x: 4.4, y: 0.66, z: -1.35 },
+      { lugar: 'en el sillón viejo del ático', piso: 3, x: 4.3, y: 0.45, z: 3.6, rot: 180 },
+      { lugar: 'en el sillón del living', piso: 0, x: -8.3, y: 0.45, z: 0.6, rot: 90 },
+      { lugar: 'en la mesa de luz de Doña Pocha', piso: 1, x: 8.6, y: 0.5, z: 0.25, rot: -90 },
     ],
   },
   {
@@ -272,11 +273,11 @@ export const JUGUETES = [
     icono: '🦖',
     crear: crearDinosaurio,
     ubicaciones: [
-      { lugar: 'bañera de arriba', piso: 1, x: 8.5, y: 0.4, z: -4.5, rot: -90 },
-      { lugar: 'mesa de la cocina', piso: 0, x: -1, y: 0.78, z: -3.8 },
-      { lugar: 'lavarropas del sótano', piso: -1, x: -8.55, y: 0.85, z: 4.6, rot: 90 },
+      { lugar: 'adentro de la bañera de arriba', piso: 1, x: 8.5, y: 0.4, z: -4.5, rot: -90 },
+      { lugar: 'en la mesa de la cocina', piso: 0, x: -1, y: 0.78, z: -3.8 },
+      { lugar: 'arriba del lavarropas del sótano', piso: -1, x: -8.55, y: 0.85, z: 4.6, rot: 90 },
       { lugar: 'arriba del baúl del ático', piso: 3, x: 6.5, y: 0.64, z: 3.8, rot: 180 },
-      { lugar: 'mueble de la entrada', piso: 0, x: -2.4, y: 0.9, z: 5.6, rot: 180 },
+      { lugar: 'en el mueble de la entrada', piso: 0, x: -2.4, y: 0.9, z: 5.6, rot: 180 },
     ],
   },
   {
@@ -284,10 +285,10 @@ export const JUGUETES = [
     icono: '✈️',
     crear: crearAvion,
     ubicaciones: [
-      { lugar: 'aparador del comedor', piso: 0, x: 8.6, y: 0.9, z: -1, rot: -90 },
-      { lugar: 'mesa del comedor', piso: 0, x: 7, y: 0.78, z: 0 },
-      { lugar: 'cofre del cuarto secreto', piso: 2, x: -7.2, y: 0.64, z: -5.5 },
-      { lugar: 'escritorio de la biblioteca', piso: 2, x: -8.4, y: 0.78, z: 0.3, rot: 90 },
+      { lugar: 'en el aparador del comedor', piso: 0, x: 8.6, y: 0.9, z: -1, rot: -90 },
+      { lugar: 'en la mesa del comedor', piso: 0, x: 7, y: 0.78, z: 0 },
+      { lugar: 'arriba del cofre del cuarto secreto', piso: 2, x: -7.2, y: 0.64, z: -5.5 },
+      { lugar: 'en el escritorio de la biblioteca', piso: 2, x: -8.4, y: 0.78, z: 0.3, rot: 90 },
       { lugar: 'arriba de las cajas del garaje', piso: 0, x: -14.5, y: 1.1, z: 4.95, rot: 90 },
     ],
   },
@@ -296,11 +297,11 @@ export const JUGUETES = [
     icono: '🚀',
     crear: crearCohete,
     ubicaciones: [
-      { lugar: 'escritorio del hijo', piso: 1, x: 0.85, y: 0.78, z: -5.6 },
+      { lugar: 'en el escritorio del cuarto del hijo', piso: 1, x: 0.85, y: 0.78, z: -5.6 },
       { lugar: 'arriba de la tele de Doña Pocha', piso: 1, x: 8.5, y: 1, z: -1.5 },
-      { lugar: 'mesada de la cocina', piso: 0, x: -1.5, y: 0.96, z: -5.5 },
-      { lugar: 'cómoda del dormitorio', piso: 1, x: -8.2, y: 0.9, z: 5.6 },
-      { lugar: 'mesa de luz del dormitorio', piso: 1, x: -8.6, y: 0.5, z: -1.3 },
+      { lugar: 'en la mesada de la cocina', piso: 0, x: -1.5, y: 0.96, z: -5.5 },
+      { lugar: 'en la cómoda del dormitorio', piso: 1, x: -8.2, y: 0.9, z: 5.6 },
+      { lugar: 'en la mesa de luz del dormitorio', piso: 1, x: -8.6, y: 0.5, z: -1.3 },
     ],
   },
   {
@@ -308,12 +309,12 @@ export const JUGUETES = [
     icono: '🎮',
     crear: crearConsola,
     ubicaciones: [
-      { lugar: 'mueble de la tele', piso: 0, x: -3.6, y: 0.5, z: 0.25, rot: -90 },
-      { lugar: 'sillón viejo del ático', piso: 3, x: 4.3, y: 0.45, z: 3.6, rot: 180 },
-      { lugar: 'mesa de luz del dormitorio', piso: 1, x: -8.6, y: 0.5, z: 1.3, rot: 90 },
-      { lugar: 'escritorio de la biblioteca', piso: 2, x: -8.4, y: 0.78, z: -0.3, rot: 90 },
-      { lugar: 'mesa de la cocina', piso: 0, x: -1.4, y: 0.78, z: -4 },
-      { lugar: 'mochila del inodoro de arriba', piso: 1, x: 4, y: 0.85, z: -2.3 },
+      { lugar: 'en el mueble de la tele del living', piso: 0, x: -3.6, y: 0.5, z: 0.25, rot: -90 },
+      { lugar: 'en el sillón viejo del ático', piso: 3, x: 4.3, y: 0.45, z: 3.6, rot: 180 },
+      { lugar: 'en la mesa de luz del dormitorio', piso: 1, x: -8.6, y: 0.5, z: 1.3, rot: 90 },
+      { lugar: 'en el escritorio de la biblioteca', piso: 2, x: -8.4, y: 0.78, z: -0.3, rot: 90 },
+      { lugar: 'en la mesa de la cocina', piso: 0, x: -1.4, y: 0.78, z: -4 },
+      { lugar: 'arriba de la mochila del inodoro de arriba', piso: 1, x: 4, y: 0.85, z: -2.3 },
     ],
   },
 ];
