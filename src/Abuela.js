@@ -1,4 +1,5 @@
-// La abuela con escopeta (de perdigones de sal). Usa el esqueleto de Enemigo.js, pero NO te persigue:
+// Doña Pocha, la vecina (en el código le seguimos diciendo "la abuela"), con escopeta de perdigones de sal.
+// Usa el esqueleto de Enemigo.js, pero NO te persigue:
 //
 //   SENTADA  --(pasa un rato)-->  PATRULLA (da una vuelta por el pasillo y vuelve a su mecedora)
 //   cualquiera --(te ve)--> APUNTAR (1 segundo: se ve un rayito rojo y hace "clic")

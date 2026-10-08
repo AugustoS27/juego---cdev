@@ -3,6 +3,8 @@
 Este documento detalla las etapas para las mejoras nuevas del juego: qué se va a hacer en cada una,
 en qué orden, qué archivos se tocan, cómo se prueba y qué decisiones quedan pendientes.
 
+> 👉 **La etapa 15 (nueva historia: Tomi recupera sus juguetes) está en [PLAN_HISTORIA.md](PLAN_HISTORIA.md).**
+>
 > **Estado actual:** ✅ **todas las etapas terminadas** (1 a 14). La 14 se dividió en tres: **14A** animaciones,
 > **14B** entradas nuevas y **14C** escondites nuevos y cierre.
 

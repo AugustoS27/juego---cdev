@@ -1,19 +1,21 @@
-// La van negra del cómplice, estacionada en la entrada de autos del frente, y la zona de escape.
+// Facu (el amigo de Tomi) esperando con las dos bicis en la entrada de autos, y la zona de escape.
 //
-// La zona es un círculo en el piso, atrás de la van (con las puertas traseras abiertas).
-//  - Mientras faltan objetos: el círculo es gris y apagado.
-//  - Con los 5 objetos: se pone verde, late, y aparece una flecha flotando encima.
+// La zona es un círculo en el piso, al lado de Facu.
+//  - Mientras faltan juguetes: el círculo es gris y apagado.
+//  - Con los 3 juguetes: se pone verde, late, y aparece una flecha flotando encima.
 // Game pregunta en cada frame si el jugador está adentro del círculo (contiene).
+// (Facu es un muñeco simple por ahora: su diseño final va en la etapa 15D.)
 import * as THREE from 'three';
 import { materialToon } from './Materials.js';
 
-// Dónde está estacionada la van (centro) y hacia dónde mira: la trompa hacia la calle (+Z)
-const VAN = { x: -12.25, z: 16.6, ancho: 2.1, largo: 5, alto: 2.3 };
-// La zona de escape queda atrás de la van
-export const ZONA_ESCAPE = { x: VAN.x, z: VAN.z - VAN.largo / 2 - 1.5, radio: 1.3 };
-
-const COLOR_VAN = '#23232b';
-const COLOR_VIDRIO = '#4a5d6b';
+// Dónde espera Facu (mirando hacia la casa) y dónde están las bicis (con la rueda de adelante hacia la calle)
+const FACU = { x: -11.1, z: 16.2 };
+const BICIS = [
+  { x: -12.6, z: 16.9, color: '#e63946' }, // la de Tomi
+  { x: -13.6, z: 16.9, color: '#3a86ff' }, // la de Facu
+];
+// La zona de escape queda adelante de Facu y las bicis
+export const ZONA_ESCAPE = { x: -12.25, z: 14.4, radio: 1.3 };
 
 export class ZonaDeEscape {
   constructor(scene, house) {
@@ -22,96 +24,111 @@ export class ZonaDeEscape {
     this.activa = false;
     this.tiempo = 0;
 
-    this.crearVan();
+    for (const bici of BICIS) this.crearBici(bici);
+    this.crearFacu();
     this.crearZona();
   }
 
   // ------------------------------------------------------------
-  //  LA VAN (formas básicas + un cartel dibujado en un canvas)
+  //  LAS BICIS (formas básicas)
   // ------------------------------------------------------------
-  crearVan() {
-    const { x, z, ancho, largo, alto } = VAN;
+  // Un caño que va del punto a al punto b (un cilindro estirado y girado)
+  tubo(padre, a, b, radio, color) {
+    const direccion = new THREE.Vector3().subVectors(b, a);
+    const malla = new THREE.Mesh(new THREE.CylinderGeometry(radio, radio, direccion.length(), 8), materialToon(color));
+    malla.position.copy(a).add(b).multiplyScalar(0.5);
+    malla.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direccion.normalize());
+    malla.castShadow = true;
+    malla.userData.estatico = true;
+    padre.add(malla);
+    return malla;
+  }
+
+  // Bici apoyada en su patita (un poco inclinada). Las ruedas son aros (toros) parados.
+  crearBici({ x, z, color }) {
     const grupo = new THREE.Group();
     grupo.position.set(x, 0, z);
+    grupo.rotation.z = 0.12; // inclinada sobre la patita
     this.scene.add(grupo);
+    const V = (px, py, pz) => new THREE.Vector3(px, py, pz);
+    const R = 0.32; // radio de las ruedas
+    for (const rz of [-0.5, 0.5]) {
+      const rueda = new THREE.Mesh(new THREE.TorusGeometry(R, 0.035, 8, 24), materialToon('#222222'));
+      rueda.position.set(0, R, rz);
+      rueda.rotation.y = Math.PI / 2; // parada, a lo largo de la bici
+      rueda.castShadow = true;
+      rueda.userData.estatico = true;
+      grupo.add(rueda);
+      this.tubo(grupo, V(-0.04, R, rz), V(0.04, R, rz), 0.04, '#adb5bd'); // eje
+    }
+    // Cuadro: el triángulo de caños entre el pedalier, el asiento y el manubrio
+    const pedalier = V(0, 0.32, -0.02);
+    const asiento = V(0, 0.78, -0.18);
+    const manubrio = V(0, 0.85, 0.4);
+    this.tubo(grupo, pedalier, asiento, 0.025, color);
+    this.tubo(grupo, pedalier, V(0, 0.7, 0.36), 0.025, color);
+    this.tubo(grupo, V(0, 0.7, -0.15), V(0, 0.72, 0.36), 0.025, color);
+    this.tubo(grupo, pedalier, V(0, R, -0.5), 0.02, color); // hacia la rueda de atrás
+    this.tubo(grupo, asiento, V(0, R, -0.5), 0.02, color);
+    this.tubo(grupo, manubrio, V(0, R, 0.5), 0.022, '#adb5bd'); // horquilla
+    this.tubo(grupo, V(-0.25, 0.88, 0.42), V(0.25, 0.88, 0.42), 0.02, '#adb5bd'); // manubrio
+    for (const lado of [-1, 1]) this.tubo(grupo, V(lado * 0.22, 0.88, 0.42), V(lado * 0.3, 0.88, 0.42), 0.03, '#222222'); // puños
+    const sillin = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.05, 0.24), materialToon('#222222'));
+    sillin.position.copy(asiento).setY(asiento.y + 0.03);
+    sillin.userData.estatico = true;
+    grupo.add(sillin);
+    this.tubo(grupo, V(0, 0.15, 0.05), V(0.18, 0, 0.05), 0.012, '#6c757d'); // patita
+    // Colisión: una caja finita a lo largo de la bici
+    this.house.colliders.push(new THREE.Box3(new THREE.Vector3(x - 0.25, 0, z - 0.85), new THREE.Vector3(x + 0.25, 1, z + 0.85)));
+  }
 
-    // Una caja del grupo. (px, py, pz) = centro de la base, relativo a la van
-    const parte = (w, h, d, color, px, py, pz, sombra = true) => {
-      const malla = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), materialToon(color));
-      malla.position.set(px, py + h / 2, pz);
-      malla.castShadow = sombra;
-      malla.receiveShadow = true;
-      malla.userData.estatico = true; // la van no se mueve: se junta con lo demás (ver Optimizar.js)
-      grupo.add(malla);
+  // ------------------------------------------------------------
+  //  FACU (un nene con gorrita, walkie-talkie y binoculares)
+  // ------------------------------------------------------------
+  crearFacu() {
+    const grupo = new THREE.Group();
+    grupo.position.set(FACU.x, 0, FACU.z);
+    grupo.rotation.y = Math.PI; // mira hacia la casa (-Z)
+    this.scene.add(grupo);
+    const parte = (geometria, color, px, py, pz, padre = grupo) => {
+      const malla = new THREE.Mesh(geometria, materialToon(color));
+      malla.position.set(px, py, pz);
+      malla.castShadow = true;
+      padre.add(malla);
       return malla;
     };
-
-    const atras = -largo / 2; // la cola de la van (mira a la casa)
-    const adelante = largo / 2; // la trompa (mira a la calle)
-
-    // Carrocería: la caja de carga + la cabina un poco más baja con el capó
-    parte(ancho, alto - 0.4, largo - 1, COLOR_VAN, 0, 0.4, -0.5);
-    parte(ancho, 0.7, 1, COLOR_VAN, 0, 0.4, adelante - 0.5); // capó
-    parte(ancho - 0.1, 0.8, 0.05, COLOR_VIDRIO, 0, 1.15, adelante - 1.02, false); // parabrisas
+    const piel = '#f1c27d';
     for (const lado of [-1, 1]) {
-      parte(0.05, 0.6, 0.8, COLOR_VIDRIO, lado * (ancho / 2 + 0.01), 1.25, adelante - 1.5, false); // ventanillas
-      parte(0.3, 0.12, 0.05, '#fff3b0', lado * 0.7, 0.75, adelante + 0.01, false); // faros
-      parte(0.12, 0.3, 0.05, '#e63946', lado * (ancho / 2 - 0.08), 1, atras - 0.01, false); // luces traseras (en las esquinas)
+      parte(new THREE.CylinderGeometry(0.06, 0.06, 0.5, 8), '#3d5a80', lado * 0.08, 0.3, 0); // piernas (jean)
+      parte(new THREE.BoxGeometry(0.11, 0.08, 0.2), '#ffffff', lado * 0.08, 0.04, 0.03); // zapatillas
     }
-    parte(ancho + 0.1, 0.2, 0.15, '#6c757d', 0, 0.35, adelante); // paragolpes
-    parte(ancho + 0.1, 0.2, 0.15, '#6c757d', 0, 0.35, atras);
-    // Ruedas (cilindros acostados)
-    for (const [px, pz] of [[-1, 1.5], [1, 1.5], [-1, -1.5], [1, -1.5]]) {
-      const rueda = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.38, 0.3, 16), materialToon('#111111'));
-      rueda.rotation.z = Math.PI / 2;
-      rueda.position.set(px, 0.38, pz);
-      rueda.castShadow = true;
-      grupo.add(rueda);
-      const taza = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.32, 12), materialToon('#adb5bd'));
-      taza.rotation.z = Math.PI / 2;
-      taza.position.copy(rueda.position);
-      grupo.add(taza);
-    }
-
-    // "Interior" de la caja de carga, que se ve por las puertas abiertas: un panel más claro
-    // pegado a la cola (la carrocería es una caja maciza, así que simulamos el hueco)
-    parte(ancho - 0.4, alto - 0.6, 0.02, '#4a4a55', 0, 0.5, atras - 0.005, false);
-
-    // Puertas traseras abiertas de par en par (giran sobre su bisagra, en los costados)
+    parte(new THREE.CylinderGeometry(0.17, 0.15, 0.42, 12), '#2a9d8f', 0, 0.75, 0); // remera
+    parte(new THREE.SphereGeometry(0.17, 14, 10), piel, 0, 1.12, 0); // cabeza
     for (const lado of [-1, 1]) {
-      const bisagra = new THREE.Group();
-      bisagra.position.set(lado * (ancho / 2), 0.45, atras);
-      bisagra.rotation.y = lado * -1.9; // abiertas un poco más de 90°
-      grupo.add(bisagra);
-      const puerta = new THREE.Mesh(new THREE.BoxGeometry(ancho / 2, alto - 0.55, 0.06), materialToon(COLOR_VAN));
-      puerta.position.set(-lado * (ancho / 4), (alto - 0.55) / 2, 0);
-      puerta.castShadow = true;
-      bisagra.add(puerta);
-      // Colisión de la puerta abierta: una caja finita desde la bisagra hacia atrás
-      const bordeX = x + lado * (ancho / 2);
-      this.house.colliders.push(
-        new THREE.Box3(
-          new THREE.Vector3(Math.min(bordeX, bordeX + lado * 0.4), 0, z + atras - 1),
-          new THREE.Vector3(Math.max(bordeX, bordeX + lado * 0.4), alto, z + atras),
-        ),
-      );
+      parte(new THREE.SphereGeometry(0.022, 8, 6), '#222222', lado * 0.06, 1.12, 0.155); // ojos
+      parte(new THREE.SphereGeometry(0.03, 8, 6), '#f4a3a3', lado * 0.1, 1.06, 0.13); // cachetes
     }
+    const sonrisa = parte(new THREE.TorusGeometry(0.045, 0.01, 6, 12, Math.PI), '#7f2a2a', 0, 1.04, 0.155);
+    sonrisa.rotation.z = Math.PI; // la "U" de la sonrisa
+    parte(new THREE.SphereGeometry(0.175, 14, 10, 0, Math.PI * 2, 0, Math.PI / 2), '#e76f51', 0, 1.19, 0); // gorrita
+    parte(new THREE.BoxGeometry(0.2, 0.02, 0.14), '#e76f51', 0, 1.2, -0.2); // visera (para atrás)
+    parte(new THREE.CylinderGeometry(0.03, 0.03, 0.08, 8), '#222222', -0.05, 0.86, 0.17).rotation.x = Math.PI / 2; // binoculares
+    parte(new THREE.CylinderGeometry(0.03, 0.03, 0.08, 8), '#222222', 0.05, 0.86, 0.17).rotation.x = Math.PI / 2;
 
-    // Cartel en los costados (dibujado en un canvas)
-    const cartel = crearTexturaCartel();
-    for (const lado of [-1, 1]) {
-      const placa = new THREE.Mesh(new THREE.PlaneGeometry(2.95, 0.96), new THREE.MeshToonMaterial({ map: cartel, transparent: true }));
-      placa.position.set(lado * (ancho / 2 + 0.02), 1.3, -0.95);
-      placa.rotation.y = lado * (Math.PI / 2);
-      placa.userData.outlineParameters = { visible: false }; // sin borde negro alrededor del cartel
-      grupo.add(placa);
-    }
+    // Brazo izquierdo colgando; el derecho levanta el walkie (y saluda cuando tenés todo)
+    parte(new THREE.CylinderGeometry(0.045, 0.045, 0.4, 8), '#2a9d8f', -0.21, 0.75, 0).rotation.z = -0.15;
+    this.brazoFacu = new THREE.Group();
+    this.brazoFacu.position.set(0.2, 0.92, 0);
+    grupo.add(this.brazoFacu);
+    parte(new THREE.CylinderGeometry(0.045, 0.045, 0.38, 8), '#2a9d8f', 0, -0.18, 0, this.brazoFacu);
+    parte(new THREE.SphereGeometry(0.05, 8, 6), piel, 0, -0.38, 0, this.brazoFacu);
+    parte(new THREE.BoxGeometry(0.06, 0.13, 0.04), '#ffd23f', 0, -0.4, 0.04, this.brazoFacu); // walkie
+    parte(new THREE.CylinderGeometry(0.006, 0.006, 0.12, 6), '#222222', 0.015, -0.28, 0.04, this.brazoFacu); // antena
+    this.brazoFacu.rotation.x = -2.3; // walkie a la altura de la boca
 
-    // Colisión: la van entera es una caja (el jugador no la atraviesa)
     this.house.colliders.push(
-      new THREE.Box3(new THREE.Vector3(x - ancho / 2, 0, z + atras), new THREE.Vector3(x + ancho / 2, alto, z + adelante)),
+      new THREE.Box3(new THREE.Vector3(FACU.x - 0.3, 0, FACU.z - 0.3), new THREE.Vector3(FACU.x + 0.3, 1.4, FACU.z + 0.3)),
     );
-    grupo.updateMatrixWorld(true);
   }
 
   // ------------------------------------------------------------
@@ -147,7 +164,7 @@ export class ZonaDeEscape {
     this.scene.add(this.aro, this.disco, this.flecha);
   }
 
-  // Prende (tenés todo) o apaga (faltan objetos) la zona
+  // Prende (tenés todo) o apaga (faltan juguetes) la zona
   activar(activa) {
     this.activa = activa;
     const color = activa ? '#52ff8a' : '#8d99ae';
@@ -158,9 +175,10 @@ export class ZonaDeEscape {
     this.flecha.visible = activa;
   }
 
-  // Animación: si está activa, el círculo "late" y la flecha sube y baja
+  // Animación: si está activa, el círculo "late", la flecha sube y baja y Facu te saluda con el walkie
   update(dt) {
     this.tiempo += dt;
+    this.brazoFacu.rotation.set(this.activa ? -2.9 : -2.3, 0, this.activa ? Math.sin(this.tiempo * 8) * 0.4 : 0);
     if (!this.activa) return;
     const latido = (Math.sin(this.tiempo * 5) + 1) / 2; // de 0 a 1
     this.materialAro.opacity = 0.6 + latido * 0.4;
@@ -174,23 +192,4 @@ export class ZonaDeEscape {
     const distancia = Math.hypot(posicion.x - ZONA_ESCAPE.x, posicion.z - ZONA_ESCAPE.z);
     return distancia < ZONA_ESCAPE.radio && posicion.y < 1;
   }
-}
-
-// El cartel de la van: letras blancas sobre fondo transparente
-function crearTexturaCartel() {
-  const canvas = document.createElement('canvas');
-  canvas.width = 512;
-  canvas.height = 166;
-  const ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#ffffff';
-  ctx.textAlign = 'center';
-  ctx.font = 'bold 44px sans-serif';
-  ctx.fillText('NO SOMOS', 256, 52);
-  ctx.fillText('LADRONES S.A.', 256, 102);
-  ctx.font = 'italic 26px sans-serif';
-  ctx.fillStyle = '#ffd23f';
-  ctx.fillText('Mudanzas rápidas · Sin preguntas', 256, 146);
-  const textura = new THREE.CanvasTexture(canvas);
-  textura.colorSpace = THREE.SRGBColorSpace;
-  return textura;
 }

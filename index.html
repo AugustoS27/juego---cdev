@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>El Ladrón Torpe</title>
+    <title>Operación Juguetes</title>
     <link rel="stylesheet" href="/style.css" />
   </head>
   <body>
@@ -20,10 +20,10 @@
     <!-- Olor a basura (después de esconderte en un tacho) -->
     <div id="olor"></div>
 
-    <!-- Borde rojo que late mientras un enemigo te persigue (o la abuela te apunta) -->
+    <!-- Borde rojo que late mientras un enemigo te persigue (o Doña Pocha te apunta) -->
     <div id="alerta-persecucion" class="oculto"></div>
 
-    <!-- Mira roja de la escopeta de la abuela (mientras te apunta) y el "¡BANG!" del disparo -->
+    <!-- Mira roja de la escopeta de Doña Pocha (mientras te apunta) y el "¡BANG!" del disparo -->
     <div id="apuntado" class="oculto">🎯</div>
     <div id="bang" class="oculto">¡BANG!</div>
 
@@ -39,9 +39,9 @@
 
     <!-- ============ HUD ============ -->
     <div id="hud" class="oculto">
-      <!-- Botín: las pistas de los 5 objetos (se tildan al encontrarlos), arriba a la izquierda -->
+      <!-- Los 3 juguetes que hay que recuperar (se tildan al encontrarlos), arriba a la izquierda -->
       <div id="hud-botin">
-        <div id="titulo-botin">🎒 Botín 0/5</div>
+        <div id="titulo-botin">🧸 Juguetes 0/3</div>
         <ul id="lista-pistas"></ul>
       </div>
       <!-- Tiempo y enojo del dueño, abajo a la izquierda -->
@@ -64,16 +64,16 @@
     <!-- ============ PANTALLAS ============ -->
     <!-- Menú principal -->
     <div id="pantalla-menu" class="pantalla">
-      <h1>El Ladrón Torpe</h1>
-      <p class="subtitulo">Entraste a robar a una casa... pero sos bastante torpe.</p>
+      <h1>Operación Juguetes</h1>
+      <p class="subtitulo">Los vecinos se quedaron con tus juguetes. Hoy los vas a recuperar.</p>
 
       <div class="columnas">
         <div class="tarjeta">
           <h2>🎯 Objetivo</h2>
           <p>
-            Cada partida te toca robar <b>5 objetos</b>. Leé las pistas (son acertijos),
-            encontralos en la casa y agarralos con <b>E</b>. Con los cinco en la bolsa,
-            <b>escapá en la van negra</b> que te espera en el frente.
+            Don Ernesto y Doña Pocha se quedan con todo lo que cae en su jardín. Metete en su casa y
+            recuperá <b>tus 3 juguetes</b> (los ves arriba a la izquierda): agarralos con <b>E</b>.
+            Con los tres en la mochila, <b>volvé a la entrada de autos</b>, donde Facu te espera con las bicis.
           </p>
         </div>
         <div class="tarjeta">
@@ -82,7 +82,7 @@
             <li><b>WASD</b> moverse · <b>Mouse</b> mirar</li>
             <li><b>Shift</b> correr (¡hace ruido!)</li>
             <li><b>Espacio</b> saltar · <b>C</b> agacharse (más lento pero silencioso)</li>
-            <li><b>E</b> puertas, esconderse, agarrar y usar habilidades</li>
+            <li><b>E</b> puertas, esconderse, agarrar juguetes y usar habilidades</li>
             <li><b>M</b> sonido · <b>B</b> bordes · <b>Esc</b> pausa</li>
           </ul>
         </div>
@@ -92,23 +92,23 @@
             <li>Empezás afuera: hay como diez formas de entrar. ¡Mirá bien el jardín (y los techos)!</li>
             <li>Correr, abrir puertas y chocar cosas hace ruido.</li>
             <li>Escondete en placards, camas, mesas, la bañera, cajas, arbustos... pero si te ve entrar, te encuentra. (¿Y el tacho de basura? Funciona, pero salís con olor.)</li>
-            <li>Cada 30 s el dueño se enoja más y camina más rápido.</li>
-            <li>Puerta roja = el dueño la trabó. Se abre sola en 20 s.</li>
+            <li>👴 Cada 30 s Don Ernesto se enoja más y camina más rápido.</li>
+            <li>Puerta roja = Don Ernesto la trabó. Se abre sola en 20 s.</li>
             <li>🐕 En el patio hay dos perros: ven poco pero oyen mucho. No saben saltar.</li>
-            <li>👵 La abuela del primer piso tiene escopeta (de sal): si te apunta, ¡cubrite!</li>
+            <li>👵 Doña Pocha, en el primer piso, tiene escopeta (de sal): si te apunta, ¡cubrite!</li>
             <li>🥕🧦🥤 Hay una zanahoria, unas botas de lana y una bebida energética escondidas: ¡te ayudan un rato!</li>
           </ul>
         </div>
       </div>
 
-      <button data-accion="jugar">¡A robar!</button>
+      <button data-accion="jugar">¡A jugar!</button>
       <p class="creditos">Modelos 3D de muebles y naturaleza: Kenney.nl (CC0) · El resto hecho con código</p>
     </div>
 
     <!-- Pausa -->
     <div id="pantalla-pausa" class="pantalla escondida">
       <h1>Pausa</h1>
-      <p>El dueño también se tomó un descanso... por ahora.</p>
+      <p>Don Ernesto también se tomó un descanso... por ahora.</p>
       <div class="botones">
         <button data-accion="continuar">Continuar</button>
         <button data-accion="reiniciar" class="secundario">Reiniciar</button>
@@ -118,7 +118,7 @@
 
     <!-- Victoria -->
     <div id="pantalla-victoria" class="pantalla escondida">
-      <h1>¡Lo lograste!</h1>
+      <h1>¡Juguetes recuperados!</h1>
       <p id="texto-victoria"></p>
       <p id="estadisticas-victoria" class="estadisticas"></p>
       <div class="botones">

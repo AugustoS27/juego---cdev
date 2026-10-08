@@ -1,5 +1,5 @@
 // Objetos de habilidad: cosas repartidas por la casa y el patio que te dan una ventaja por un rato.
-//   🥕 Zanahoria:         revela dónde está UNO de los objetos que te faltan (brilla a través de las paredes)
+//   🥕 Zanahoria:         revela dónde está UNO de los juguetes que te faltan (brilla a través de las paredes)
 //   🧦 Botas de lana:     tus pasos no hacen ruido (ni corriendo)
 //   🥤 Bebida energética: caminás y corrés un 50% más rápido
 //
@@ -13,12 +13,12 @@ import * as THREE from 'three';
 import { materialToon } from './Materials.js';
 import { ALTURA_PISO } from './HouseData.js';
 
-const DISTANCIA_PARA_AGARRAR = 2.5; // metros (igual que los objetos del botín)
-const DISTANCIA_MINIMA_A_UN_OBJETIVO = 0.8; // para no caer en el mismo lugar que un objeto del botín
+const DISTANCIA_PARA_AGARRAR = 2.5; // metros (igual que los juguetes)
+const DISTANCIA_MINIMA_A_UN_OBJETIVO = 0.8; // para no caer en el mismo lugar que un juguete
 export const MULTIPLICADOR_BEBIDA = 1.5; // la bebida te hace un 50% más rápido
 
 // ------------------------------------------------------------
-//  Cómo se ve cada una (formas básicas, un poco agrandadas como los objetos del botín).
+//  Cómo se ve cada una (formas básicas, un poco agrandadas como los juguetes).
 //  La base queda en y = 0, así se apoya sobre el mueble.
 // ------------------------------------------------------------
 function malla(geometria, color, x = 0, y = 0, z = 0) {
@@ -85,7 +85,7 @@ export const HABILIDADES = {
     duracion: 20,
     color: '#ff8c00',
     crear: crearZanahoria,
-    ayuda: '[E] Comer la zanahoria (te deja ver un objeto a través de las paredes)',
+    ayuda: '[E] Comer la zanahoria (te deja ver uno de tus juguetes a través de las paredes)',
   },
   botas: {
     nombre: 'Botas de lana',
@@ -125,7 +125,7 @@ export const LUGARES_HABILIDAD = [
   { lugar: 'mesa de trabajo del garaje', piso: 0, x: -12.3, y: 0.9, z: -1.35 },
   { lugar: 'cama del dormitorio', piso: 1, x: -7.4, y: 0.66, z: 0 },
   { lugar: 'escritorio del hijo', piso: 1, x: 0.4, y: 0.78, z: -5.6 },
-  { lugar: 'mesa de luz de la abuela', piso: 1, x: 8.6, y: 0.5, z: 0.25 },
+  { lugar: 'mesa de luz de Doña Pocha', piso: 1, x: 8.6, y: 0.5, z: 0.25 },
   { lugar: 'conducto del primer piso', piso: 1, x: 7.5, y: 0, z: -2.7 },
   { lugar: 'escritorio de la biblioteca', piso: 2, x: -8.4, y: 0.78, z: 0 },
   { lugar: 'mesa de pool', piso: 2, x: 6.8, y: 0.84, z: 0.3 },

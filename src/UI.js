@@ -70,21 +70,21 @@ export class UI {
     this.hud.classList.toggle('oculto', !visible);
   }
 
-  // Lista del botín: una línea por objeto. Si ya lo agarraste se tilda y muestra su nombre;
-  // si no, muestra la pista (el acertijo). Arriba, el contador "🎒 Botín 2/5".
+  // Lista de juguetes: una línea por juguete, con su ícono y su nombre (se tilda cuando lo recuperás).
+  // Arriba, el contador "🧸 Juguetes 2/3".
   mostrarBotin(objetivos) {
     const encontrados = objetivos.filter((o) => o.encontrado).length;
     const todos = encontrados === objetivos.length;
     this.tituloBotin.textContent = todos
-      ? '🚐 ¡Tenés todo! Escapá en la van negra del frente'
-      : `🎒 Botín ${encontrados}/${objetivos.length}`;
+      ? '🚲 ¡Los tenés todos! Volvé con Facu (entrada de autos)'
+      : `🧸 Juguetes ${encontrados}/${objetivos.length}`;
     this.tituloBotin.classList.toggle('listo', todos);
 
     this.listaPistas.innerHTML = '';
     for (const o of objetivos) {
       const linea = document.createElement('li');
       linea.classList.toggle('encontrado', o.encontrado);
-      linea.textContent = o.encontrado ? `✅ ${mayuscula(o.objeto.nombre)}` : `⬜ ${o.objeto.pista}`;
+      linea.textContent = `${o.encontrado ? '✅' : '⬜'} ${o.objeto.icono} ${mayuscula(o.objeto.nombre)}`;
       this.listaPistas.appendChild(linea);
     }
   }
@@ -245,24 +245,24 @@ export class UI {
   // ------------------------------------------------------------
   //  PANTALLAS DE FIN DE PARTIDA
   // ------------------------------------------------------------
-  // nombres: lo que te llevaste (ej: ['las llaves', 'el mate', ...])
+  // nombres: los juguetes que recuperaste (ej: ['la pelota de fútbol', 'el robot', ...])
   mostrarVictoria(nombres, segundos, nivelEnojo) {
     const lista = `${nombres.slice(0, -1).join(', ')} y ${nombres.at(-1)}`;
-    this.textoVictoria.textContent = `Te escapaste en la van con ${lista}. ¡Qué ladrón tan profesional (y torpe)!`;
-    this.estadisticasVictoria.textContent = `⏱ Tiempo: ${formatearTiempo(segundos)} · 😠 Enojo del dueño: ${nivelEnojo}/${NIVEL_MAXIMO_ENOJO}`;
+    this.textoVictoria.textContent = `Recuperaste ${lista}. Facu y vos se fueron en bici mientras Don Ernesto gritaba desde la puerta. ¡Misión cumplida!`;
+    this.estadisticasVictoria.textContent = `⏱ Tiempo: ${formatearTiempo(segundos)} · 😠 Enojo de Don Ernesto: ${nivelEnojo}/${NIVEL_MAXIMO_ENOJO}`;
     this.terminarPartida('victoria');
   }
 
   // Si no se pasa un texto, elige una frase cómica al azar
   mostrarDerrota(texto, segundos, nivelEnojo) {
     const frases = [
-      'El dueño te dio un palazo con el palo de amasar. Mañana vas a tener un chichón.',
-      'Te agarró en pijama y todo. Qué vergüenza profesional.',
-      'Y pensar que solo querías llevarte una cosita...',
-      'El dueño llamó a la policía. Y a su mamá. Y a la tuya.',
+      'Don Ernesto te agarró de una oreja y te llevó hasta tu casa. Tu mamá ya está enterada.',
+      '"¡Y no vuelvas más!" Y encima ahora también se quedó con tu gorrita.',
+      'Don Ernesto llamó a tu mamá. Estás castigado sin tele hasta el año que viene.',
+      '"¡Lo que entra en mi casa es mío!" Por suerte, a vos te devolvió... de una oreja.',
     ];
     this.textoDerrota.textContent = texto || frases[Math.floor(Math.random() * frases.length)];
-    this.estadisticasDerrota.textContent = `⏱ Duraste: ${formatearTiempo(segundos)} · 😠 Enojo del dueño: ${nivelEnojo}/${NIVEL_MAXIMO_ENOJO}`;
+    this.estadisticasDerrota.textContent = `⏱ Duraste: ${formatearTiempo(segundos)} · 😠 Enojo de Don Ernesto: ${nivelEnojo}/${NIVEL_MAXIMO_ENOJO}`;
     this.terminarPartida('derrota');
   }
 

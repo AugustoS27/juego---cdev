@@ -1,5 +1,5 @@
-// El dueño de la casa: el enemigo principal. Usa el esqueleto de Enemigo.js (patrulla, investigar,
-// perseguir) con estos extras:
+// Don Ernesto, el vecino (en el código le seguimos diciendo "el dueño" de la casa): el enemigo principal.
+// Usa el esqueleto de Enemigo.js (patrulla, investigar, perseguir) con estos extras:
 //   - Si el jugador está escondido y el dueño pasa cerca, puede sospechar y revisar el escondite.
 //     Debajo de una mesa, si te mira de cerca, te ve: va derecho a sacarte (sin "moneda").
 //   - Al cruzar una puerta, a veces la cierra y la traba unos segundos para cortarle el paso al jugador.

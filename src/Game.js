@@ -224,7 +224,7 @@ export class Game {
     this.dueno.alTrabarPuerta = (puerta) => {
       this.audio.traba(Math.max(0.3, this.volumenPorDistancia(puerta.centro)));
       const donde = NOMBRES_PISOS[puerta.piso].toLowerCase();
-      this.ui.mostrarAviso(`🔒 ¡El dueño trabó una puerta (${donde})! Se destraba en 20 s`, 4);
+      this.ui.mostrarAviso(`🔒 ¡Don Ernesto trabó una puerta (${donde})! Se destraba en 20 s`, 4);
     };
 
     // El dueño cambió de estado: alerta si te vio, "¿?" si escuchó algo
@@ -255,7 +255,7 @@ export class Game {
     // Abuela: "clic" al apuntar, ¡BANG! al disparar (ruido enorme) y ruiditos al recargar
     this.abuela.alApuntar = () => {
       this.audio.clic(Math.max(0.5, this.volumenPorDistancia(this.abuela.position)));
-      this.ui.mostrarAviso('🎯 ¡La abuela te está apuntando con la escopeta! ¡Cubrite!', 2);
+      this.ui.mostrarAviso('🎯 ¡Doña Pocha te está apuntando con la escopeta! ¡Cubrite!', 2);
     };
     this.abuela.alDisparar = ({ acerto }) => {
       this.audio.disparo(Math.max(0.4, this.volumenPorDistancia(this.abuela.position)));
@@ -322,9 +322,9 @@ export class Game {
     if (this.tiempoDesdeAvisoRuido <= 3 || this.estado !== PARTIDA.JUGANDO) return;
     let aviso = null;
     if (oyeron.includes(this.dueno)) {
-      if (fuente === this.abuela) aviso = '💥 ¡El escopetazo despertó a todos! El dueño viene a ver...';
-      else if (fuente) aviso = '🐕 ¡Los ladridos alertaron al dueño! Viene a ver...';
-      else aviso = '👂 El dueño escuchó algo y viene a ver...';
+      if (fuente === this.abuela) aviso = '💥 ¡El escopetazo despertó a todos! Don Ernesto viene a ver...';
+      else if (fuente) aviso = '🐕 ¡Los ladridos alertaron a Don Ernesto! Viene a ver...';
+      else aviso = '👂 Don Ernesto escuchó algo y viene a ver...';
     } else if (!fuente && this.perros.some((perro) => oyeron.includes(perro))) {
       aviso = '🐕 Los perros escucharon algo... ¡andá agachado por el patio!';
     }
@@ -338,7 +338,7 @@ export class Game {
   //  PANTALLAS Y TECLADO
   // ------------------------------------------------------------
   // Cómo se pasa de una pantalla a otra:
-  //  - "¡A robar!" / "Reiniciar": partida nueva y se bloquea el mouse.
+  //  - "¡A jugar!" / "Reiniciar": partida nueva y se bloquea el mouse.
   //  - Al bloquearse el mouse se empieza (o se sigue) jugando.
   //  - Esc: el navegador libera el mouse y aparece la pausa.
   //  - "Menú": vuelve al menú principal.
@@ -494,24 +494,25 @@ export class Game {
     this.nivelEnojo++;
     this.dueno.multiplicadorVelocidad = 1 + this.nivelEnojo * AUMENTO_POR_NIVEL;
     this.audio.enojo();
-    this.ui.mostrarAviso(`😠 El dueño está cada vez más enojado: ¡ahora camina más rápido! (nivel ${this.nivelEnojo})`, 3);
+    this.ui.mostrarAviso(`😠 Don Ernesto está cada vez más enojado: ¡ahora camina más rápido! (nivel ${this.nivelEnojo})`, 3);
   }
 
-  // El jugador agarró uno de los objetos: va a la bolsa
+  // Tomi recuperó uno de sus juguetes: va a la mochila
   agarrarObjeto(objetivo) {
     this.items.agarrar(objetivo);
-    this.efectos.agarrar(objetivo.malla, '#ffd23f'); // vuela hacia la bolsa con un destello dorado
+    this.efectos.agarrar(objetivo.malla, '#ffd23f'); // vuela hacia la mochila con un destello dorado
     this.audio.guardar();
     this.ui.mostrarBotin(this.items.objetivos);
 
+    const { nombre, icono } = objetivo.objeto;
     if (this.items.todosEncontrados) {
-      // ¡Tenés los cinco! Se prende la zona de escape
+      // ¡Los tres! Se prende la zona de escape
       this.zonaEscape.activar(true);
       this.audio.todoListo();
-      this.ui.mostrarAviso('🚐 ¡Tenés todo! Corré a la van negra del frente para escapar', 5);
+      this.ui.mostrarAviso(`${icono} ¡Recuperaste ${nombre}! Ya tenés los tres: volvé a la entrada de autos, Facu te espera con las bicis 🚲`, 5);
     } else {
       const faltan = this.items.objetivos.length - this.items.cantidadEncontrados;
-      this.ui.mostrarAviso(`🎒 ¡Agarraste ${objetivo.objeto.nombre}! Te ${faltan === 1 ? 'falta 1' : `faltan ${faltan}`}`, 2.5);
+      this.ui.mostrarAviso(`${icono} ¡Recuperaste ${nombre}! Te ${faltan === 1 ? 'falta 1 juguete' : `faltan ${faltan} juguetes`}`, 2.5);
     }
   }
 
@@ -531,7 +532,7 @@ export class Game {
       this.ui.mostrarAviso(
         revelado
           ? `🥕 ¡Ñam! Durante ${duracion} s ves ${revelado.objeto.nombre} a través de las paredes (buscá el brillo naranja)`
-          : '🥕 ¡Ñam! Rica, pero ya tenés todo el botín',
+          : '🥕 ¡Ñam! Rica, pero ya tenés todos tus juguetes',
         4,
       );
     } else if (tipo === 'botas') {
@@ -559,7 +560,7 @@ export class Game {
     this.player.pasosSilenciosos = this.habilidades.estaActiva('botas');
   }
 
-  // ¿El jugador llegó a la zona de escape (atrás de la van)?
+  // ¿El jugador llegó a la zona de escape (donde lo espera Facu)?
   revisarZonaDeEscape() {
     const adentro = this.zonaEscape.contiene(this.player.position);
     if (adentro && this.items.todosEncontrados) {
@@ -567,28 +568,28 @@ export class Game {
     } else if (adentro && !this.estabaEnLaZona) {
       // Llegó antes de tiempo: avisamos una vez (al entrar), no en cada frame
       const faltan = this.items.objetivos.length - this.items.cantidadEncontrados;
-      this.ui.mostrarAviso(`🚐 Tu cómplice no arranca sin el botín completo: te ${faltan === 1 ? 'falta 1 objeto' : `faltan ${faltan} objetos`}`, 3);
+      this.ui.mostrarAviso(`🚲 Facu: "¡Todavía no! Te ${faltan === 1 ? 'falta 1 juguete' : `faltan ${faltan} juguetes`}"`, 3);
     }
     this.estabaEnLaZona = adentro;
   }
 
-  // El jugador escapó en la van con los cinco objetos
+  // Tomi volvió con Facu y los tres juguetes
   ganar() {
     this.estado = PARTIDA.VICTORIA; // primero el estado, así "unlock" no muestra la pausa
     this.player.controls.unlock();
-    this.audio.motor();
+    this.audio.timbre();
     this.audio.victoria();
     const nombres = this.items.objetivos.map((o) => o.objeto.nombre);
     this.ui.mostrarVictoria(nombres, this.tiempoPartida, this.nivelEnojo);
   }
 
-  // Te atrapó un enemigo (o la abuela te dio): cada uno tiene su frase
+  // Te atrapó un enemigo (o Doña Pocha te dio): cada uno tiene su frase
   perder(enemigo) {
-    let texto = null; // (null = una frase del dueño al azar, ver UI.mostrarDerrota)
+    let texto = null; // (null = una frase de Don Ernesto al azar, ver UI.mostrarDerrota)
     if (enemigo === this.dueno && this.dueno.encontroAlJugador) {
-      texto = '¡Te encontró escondido! Resulta que no eras tan invisible...';
+      texto = '¡Don Ernesto te encontró escondido! "¿Jugando a las escondidas en MI casa?"';
     } else if (enemigo === this.abuela) {
-      texto = '¡PUM! La abuela te dio con un perdigón de sal. Arde, pero más arde el orgullo.';
+      texto = '¡PUM! Doña Pocha te dio con un perdigón de sal. Arde, pero más arde el orgullo.';
     } else if (this.perros.includes(enemigo)) {
       texto = `${enemigo.v.nombre} te mordió el pantalón y no lo suelta. Te fuiste en calzoncillos.`;
       this.audio.ladrido(1);
@@ -763,7 +764,7 @@ export class Game {
     } else if (puerta.conLlave) {
       this.ui.mostrarAyuda('Cerrada con llave. ¿Habrá una llave de repuesto escondida por acá?');
     } else if (puerta.trabada) {
-      this.ui.mostrarAyuda(`🔒 Trabada por el dueño (${Math.ceil(puerta.tiempoTrabada)} s)`);
+      this.ui.mostrarAyuda(`🔒 Trabada por Don Ernesto (${Math.ceil(puerta.tiempoTrabada)} s)`);
     } else if (puerta.estilo === 'rejilla') {
       this.ui.mostrarAyuda(puerta.abierta ? '[E] Cerrar la rejilla' : '[E] Abrir la rejilla del conducto (entrá agachado)');
     } else if (puerta.estilo === 'tabla') {

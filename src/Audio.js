@@ -6,7 +6,7 @@
 // y cada efecto (paso, puerta, alerta...) es una combinación de esos ladrillos.
 //
 // Los navegadores no dejan sonar nada hasta que el usuario hace click,
-// por eso el audio arranca recién con iniciar() (al tocar "¡A robar!").
+// por eso el audio arranca recién con iniciar() (al tocar "¡A jugar!").
 
 // Melodías de fondo: listas de frecuencias (Hz). 0 = silencio.
 const MUSICA_SIGILO = [110, 0, 131, 0, 147, 131, 110, 0, 98, 0, 110, 0, 131, 147, 165, 0];
@@ -296,8 +296,8 @@ export class Audio {
     this.tono({ frecuencia: 380, frecuenciaFinal: 520, duracion: 0.35, tipo: 'sawtooth', volumen: 0.05 });
   }
 
-  // --- Botín ---
-  // Guardar un objeto en la bolsa: "¡bling!" de dos notas + roce de la bolsa
+  // --- Juguetes ---
+  // Guardar un juguete en la mochila: "¡bling!" de dos notas + roce de la mochila
   guardar() {
     this.ruido({ duracion: 0.15, volumen: 0.12, filtro: 900 });
     this.tono({ frecuencia: 988, duracion: 0.1, tipo: 'square', volumen: 0.08, retraso: 0.05 });
@@ -331,20 +331,22 @@ export class Audio {
     this.tono({ frecuencia: 523, duracion: 0.25, tipo: 'triangle', volumen: 0.15, retraso: 0.13 });
   }
 
-  // ¡Tenés los cinco! Fanfarria cortita que sube
+  // ¡Tenés los tres! Fanfarria cortita que sube
   todoListo() {
     [523, 659, 784, 1047, 784, 1047].forEach((f, i) => {
       this.tono({ frecuencia: f, duracion: i === 5 ? 0.5 : 0.12, tipo: 'triangle', volumen: 0.22, retraso: i * 0.1 });
     });
   }
 
-  // El motor de la van arrancando: "brrrum" que sube
-  motor() {
-    this.tono({ frecuencia: 55, frecuenciaFinal: 140, duracion: 1.4, tipo: 'sawtooth', volumen: 0.15 });
-    this.ruido({ duracion: 1.2, volumen: 0.25, filtro: 250 });
+  // Timbre de bici: "¡ring ring!" (dos campanadas agudas con su eco)
+  timbre() {
+    for (const retraso of [0, 0.22]) {
+      this.tono({ frecuencia: 2093, duracion: 0.35, tipo: 'sine', volumen: 0.18, retraso });
+      this.tono({ frecuencia: 2637, duracion: 0.3, tipo: 'sine', volumen: 0.08, retraso });
+    }
   }
 
-  // Gruñido del dueño cuando se enoja más
+  // Gruñido de Don Ernesto cuando se enoja más
   enojo() {
     this.tono({ frecuencia: 110, frecuenciaFinal: 70, duracion: 0.6, tipo: 'sawtooth', volumen: 0.12 });
   }

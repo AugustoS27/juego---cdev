@@ -1,24 +1,27 @@
-# El Ladrón Torpe
+# Operación Juguetes
 
 Juego 3D cómico en primera persona hecho con **Three.js** y **Vite** (proyecto universitario).
+(Antes se llamaba *El Ladrón Torpe*: en la etapa 15 cambiamos la historia.)
 
-Sos un ladrón torpe que tiene que meterse en una casa enorme: sótano tenebroso, tres pisos y un ático.
+Sos **Tomi**, un nene del barrio. Cada vez que un juguete cae en el jardín de los vecinos, **Don Ernesto y
+Doña Pocha** se lo quedan. Hoy te cansaste: te vas a meter en su casa enorme (sótano tenebroso, tres pisos y un
+ático) para recuperar **3 juguetes** (sorteados entre 8). Sabés cuáles son, y tu amigo **Facu** te espera en la
+entrada de autos con las bicis. Con los tres en la mochila, volvés con él y ganás. Si Don Ernesto te atrapa, perdés.
 Empezás afuera y hay muchas formas de entrar: romper una ventana, la puerta trasera que quedó abierta, una escalera al balcón,
 forzar el portón del garaje, buscar la llave escondida en una maceta, bajar por el pozo del jardín hasta un túnel secreto,
 tirarte por la chimenea, colarte por la ventanita del sótano o por la gatera, trepar la enredadera o subir al techo del
 garaje saltando por los trastos para llegar al tragaluz del ático.
 Adentro hay conductos de ventilación, un pasadizo detrás de un estante de la biblioteca, una escalera plegable al ático
-y un puente sin baranda. Adentro tenés que robar **5 objetos**
-(sorteados entre 18): de cada uno solo sabés una pista (un acertijo). Con los cinco en la bolsa, escapás en la
-**van negra** de tu cómplice, que te espera en el frente. Si el dueño te atrapa, perdés.
-Y no es el único: en el patio hay **dos perros** que oyen todo, y en el primer piso vive **la abuela**,
+y un puente sin baranda.
+Y Don Ernesto no es el único: en el patio hay **dos perros** que oyen todo, y en el primer piso vive **Doña Pocha**,
 que se hamaca en su mecedora... con una escopeta de perdigones de sal.
-Para ayudarte, hay escondidas una **zanahoria** (te deja ver un objeto a través de las paredes), unas
+Para ayudarte, hay escondidas una **zanahoria** (te deja ver uno de tus juguetes a través de las paredes), unas
 **botas de lana** (pasos silenciosos) y una **bebida energética** (más rápido), que duran unos segundos.
 Y para esconderte: placards, camas, mesas, la bañera (detrás de la cortina), cajas grandes, arbustos... o el
 tacho de basura, si no te importa salir oliendo mal (los perros te huelen de lejos).
 
-> 📋 El plan de las próximas mejoras (etapas 9 a 14) está en [PLAN.md](PLAN.md).
+> 📋 Los planes: etapas 9 a 14 en [PLAN.md](PLAN.md) (terminadas) y la nueva historia (etapa 15) en
+> [PLAN_HISTORIA.md](PLAN_HISTORIA.md).
 
 ## Cómo correrlo
 
@@ -53,9 +56,9 @@ Para generar la versión final: `npm run build` (queda en `dist/`).
 | `src/Game.js` | El "director": crea todo, conecta las partes, loop principal y estados de la partida |
 | `src/Player.js` | Movimiento WASD, colisiones AABB, gravedad, ruido al correr, escondites; velocidad y ruido modificables (habilidades) |
 | `src/Enemigo.js` | El "esqueleto" de todos los enemigos: máquina de estados, visión, oído, navegación por waypoints y zona |
-| `src/Dueno.js` | El dueño: toda la casa, traba puertas, revisa escondites, se enoja con el tiempo |
+| `src/Dueno.js` | Don Ernesto ("el dueño" en el código): toda la casa, traba puertas, revisa escondites, se enoja con el tiempo |
 | `src/Perro.js` | Los dos perros del patio: rapidísimos, ven poco, oyen el doble, ladran y se aburren |
-| `src/Abuela.js` | La abuela: se hamaca, apunta 1 s, dispara (con puntería que depende de la distancia) y recarga |
+| `src/Abuela.js` | Doña Pocha ("la abuela" en el código): se hamaca, apunta 1 s, dispara (con puntería que depende de la distancia) y recarga |
 | `src/House.js` | Construye la casa desde los datos y responde consultas (colisiones, suelo, visión) |
 | `src/HouseData.js` | Junta los datos de todos los pisos; escaleras, techo, entradas |
 | `src/datos/` | La casa como datos: un archivo por piso (habitaciones, paredes, puertas, muebles, luces, waypoints), el patio de los perros, el catálogo de muebles y lo común |
@@ -68,10 +71,10 @@ Para generar la versión final: `npm run build` (queda en `dist/`).
 | `src/Escondites.js` | Los tipos de escondite en una tabla: textos, altura de los ojos, sonido y reglas (la mesa, el olor del tacho) |
 | `src/Especiales.js` | La escalera plegable del ático (trampilla) y el pozo que baja al túnel secreto |
 | `src/Door.js` | Puertas con bisagra (abrir, cerrar, trabar); también rejillas, la tabla del túnel y el estante secreto |
-| `src/Items.js` | Los 18 objetos, sus pistas y ubicaciones; sorteo de los 5 de cada partida |
+| `src/Items.js` | Los 8 juguetes (hechos con formas básicas) y sus ubicaciones; sorteo de los 3 de cada partida |
 | `src/Efectos.js` | Lo que vuela hacia la cámara (con un destello) cuando agarrás algo |
 | `src/Habilidades.js` | Zanahoria, botas de lana y bebida energética: dónde aparecen, cuánto duran y el brillo de la zanahoria |
-| `src/Escape.js` | La van negra y la zona de escape (se prende con los 5 objetos) |
+| `src/Escape.js` | Facu con las dos bicis y la zona de escape (se prende con los 3 juguetes) |
 | `src/Noise.js` | Sistema de ruido con radio de alcance (lo escuchan todos los enemigos, cada uno con su oído) |
 | `src/Audio.js` | Sonidos generados con la Web Audio API (sin archivos) |
 | `src/UI.js` | HUD, avisos y pantallas (menú, pausa, victoria, derrota) |
@@ -101,7 +104,7 @@ Para generar la versión final: `npm run build` (queda en `dist/`).
 - **Entradas con precio:** cada forma de entrar tiene su costo (ruido, distancia, riesgo). Cada entrada devuelve un "resultado" (sonido, ruido, aviso, animación) y Game lo aplica.
 - **Habilidades:** `Habilidades.js` solo sabe cuáles están activas y cuánto les queda; Game le pasa el efecto al jugador (`multiplicadorVelocidad`, `pasosSilenciosos`). La zanahoria pone una copia del objeto con un material que se dibuja por encima de todo (`depthTest: false`): por eso "se ve a través" de las paredes.
 - **Animaciones con curvas:** las puertas no giran a velocidad fija, siguen una función del tiempo (se pasan un poco y vuelven). El sacudón de la cámara al aterrizar es un resorte: una fuerza la devuelve a su lugar y un freno evita que rebote mucho.
-- **Botín sorteado:** se mezclan los 18 objetos, se toman 5 y a cada uno se le elige una ubicación que no esté
+- **Juguetes sorteados:** se mezclan los 8 juguetes, se toman 3 y a cada uno se le elige una ubicación que no esté
   pegada a la de otro. Así cada partida es distinta.
 
 ## Gráficos: assets + creaciones propias
@@ -110,7 +113,7 @@ Para generar la versión final: `npm run build` (queda en `dist/`).
 (dominio público). Están en `public/models/muebles` y `public/models/naturaleza`, con su licencia.
 
 **Hecho por nosotros (con código):**
-- La casa (paredes, techo a dos aguas, balcón, garaje), el dueño, los perros, la abuela y su mecedora, los objetos, el auto, la van y las entradas.
+- La casa (paredes, techo a dos aguas, balcón, garaje), Don Ernesto, los perros, Doña Pocha y su mecedora, los juguetes, el auto, Facu, las bicis y las entradas.
 - Los arbustos (esferas, para poder esconderse adentro), los tachos de basura y la cortina de la bañera.
 - Las texturas de madera, cerámica, baldosas, pasto y tejas, dibujadas en un `<canvas>` (`Texturas.js`).
 - El look de dibujo animado: materiales toon de 3 tonos + bordes negros (`OutlineEffect`, tecla **B**).
