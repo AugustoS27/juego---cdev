@@ -19,6 +19,7 @@
 import * as THREE from 'three';
 import { Enemigo, ESTADO } from './Enemigo.js';
 import { Redes } from './Red.js';
+import { crearDonaPocha } from './Personajes.js';
 import { ABUELA, WAYPOINTS, CONEXIONES, ALTURA_PISO, pisoDeAltura } from './HouseData.js';
 
 export const ESTADO_ABUELA = {
@@ -308,60 +309,19 @@ export class Abuela extends Enemigo {
   // ------------------------------------------------------------
   //  MODELO Y ANIMACIÓN
   // ------------------------------------------------------------
-  // Una abuelita petisa: rodete gris, anteojos, saquito rosa y pantuflas. Mira hacia +Z.
+  // Doña Pocha (ver Personajes.js): guardamos sus partes para animarlas
   crearCuerpo() {
-    const cuerpo = new THREE.Group();
-    const parte = (geometria, color, x, y, z, padre = cuerpo) => this.parte(padre, geometria, color, x, y, z);
-    const piel = '#f5c9a6';
-
-    this.piernas = [-0.09, 0.09].map((x) => {
-      const cadera = new THREE.Group();
-      cadera.position.set(x, 0.55, 0);
-      cuerpo.add(cadera);
-      parte(new THREE.CylinderGeometry(0.06, 0.06, 0.5, 8), '#e9c9a0', 0, -0.26, 0, cadera); // medias
-      parte(new THREE.BoxGeometry(0.13, 0.08, 0.24), '#6d597a', 0, -0.52, 0.04, cadera); // pantuflas
-      return cadera;
-    });
-
-    // Pollera larga, saquito y delantal
-    parte(new THREE.CylinderGeometry(0.2, 0.3, 0.5, 14), '#6a4c93', 0, 0.62, 0);
-    parte(new THREE.CylinderGeometry(0.19, 0.21, 0.42, 14), '#ffafcc', 0, 1.06, 0);
-    parte(new THREE.BoxGeometry(0.26, 0.4, 0.02), '#ffffff', 0, 0.75, 0.22);
-
-    // Cabeza, rodete, anteojos y cachetes colorados
-    parte(new THREE.SphereGeometry(0.16, 14, 10), piel, 0, 1.4, 0);
-    parte(new THREE.SphereGeometry(0.17, 14, 10), '#d9d9d9', 0, 1.46, -0.03).scale.set(1, 0.8, 1);
-    parte(new THREE.SphereGeometry(0.09, 10, 8), '#d9d9d9', 0, 1.58, -0.12); // rodete
-    for (const lado of [-1, 1]) {
-      parte(new THREE.TorusGeometry(0.045, 0.01, 6, 14), '#343a40', lado * 0.06, 1.42, 0.15); // anteojos
-      parte(new THREE.SphereGeometry(0.02, 6, 5), '#000000', lado * 0.06, 1.42, 0.155);
-      parte(new THREE.SphereGeometry(0.035, 8, 6), '#ff8fab', lado * 0.1, 1.35, 0.12);
-    }
-    parte(new THREE.SphereGeometry(0.04, 8, 6), '#f4a582', 0, 1.37, 0.16); // nariz
-
-    // Brazos y lanzarredes: todo en un grupo que sube a la altura de los ojos cuando apunta
-    this.brazos = new THREE.Group();
-    this.brazos.position.set(0, 1.18, 0);
-    cuerpo.add(this.brazos);
-    for (const lado of [-1, 1]) {
-      const brazo = parte(new THREE.CylinderGeometry(0.05, 0.05, 0.4, 8), '#ffafcc', lado * 0.16, -0.05, 0.14, this.brazos);
-      brazo.rotation.x = Math.PI / 2 - 0.3;
-      parte(new THREE.SphereGeometry(0.055, 8, 6), piel, lado * 0.12, -0.08, 0.32, this.brazos);
-    }
-    // El lanzarredes: un tubo verde con boca ancha, empuñadura y la red asomando por la boca
-    this.lanzador = new THREE.Group();
-    this.lanzador.position.set(0.05, -0.06, 0.25);
-    this.brazos.add(this.lanzador);
-    const tubo = parte(new THREE.CylinderGeometry(0.06, 0.05, 0.5, 12), '#2a9d8f', 0, 0.03, 0.15, this.lanzador);
-    tubo.rotation.x = Math.PI / 2;
-    parte(new THREE.TorusGeometry(0.065, 0.015, 6, 14), '#1b4332', 0, 0.03, 0.4, this.lanzador); // boca
-    parte(new THREE.BoxGeometry(0.04, 0.12, 0.05), '#6d4c41', 0, -0.06, 0.0, this.lanzador); // empuñadura
-    parte(new THREE.BoxGeometry(0.015, 0.04, 0.02), '#e63946', 0, -0.03, 0.05, this.lanzador); // gatillo
-    this.redCargada = parte(new THREE.SphereGeometry(0.055, 10, 8), '#f1e3c6', 0, 0.03, 0.41, this.lanzador); // la red, hecha un bollo
-    this.punta = new THREE.Object3D(); // la boca del tubo (de acá salen el rayo, el aire y la red)
-    this.punta.position.set(0, 0.03, 0.46);
-    this.lanzador.add(this.punta);
-    return cuerpo;
+    const partes = crearDonaPocha();
+    this.piernas = partes.piernas;
+    this.brazos = partes.brazos;
+    this.cabeza = partes.cabeza;
+    this.ojos = partes.ojos;
+    this.lanzador = partes.lanzador;
+    this.punta = partes.punta;
+    this.redCargada = partes.redCargada;
+    this.tejido = partes.tejido;
+    this.tiempoParaParpadear = 3;
+    return partes.cuerpo;
   }
 
   // Mecedora de madera con almohadón (mira hacia +Z). "hamaca" es la parte que se balancea.
@@ -386,8 +346,19 @@ export class Abuela extends Enemigo {
   }
 
   animarCuerpo(dt, caminando) {
-    // Sentada: piernas para adelante, más bajita y hamacándose con la silla
+    // Parpadea cada 2 a 5 segundos
+    this.tiempoParaParpadear -= dt;
+    if (this.tiempoParaParpadear < -0.12) this.tiempoParaParpadear = 2 + Math.random() * 3;
+    for (const ojo of this.ojos) ojo.scale.y = this.tiempoParaParpadear < 0 ? 0.15 : 1;
+
+    // Sentada teje (las agujas van y vienen) y el lanzarredes descansa; si no, lo tiene en la mano
     const sentada = this.sentada;
+    this.tejido.visible = sentada;
+    this.lanzador.visible = !sentada;
+    this.tejido.rotation.z = sentada ? Math.sin(this.tiempoTotal * 7) * 0.15 : 0;
+    this.cabeza.rotation.x = sentada ? 0.25 : 0; // sentada mira para abajo, al tejido
+
+    // Sentada: piernas para adelante, más bajita y hamacándose con la silla
     this.cuerpo.position.y = sentada ? -0.1 : 0;
     const balanceo = caminando ? Math.sin(this.tiempoAnimacion) * 0.35 : 0;
     this.piernas.forEach((pierna, i) => (pierna.rotation.x = sentada ? -1.35 : i === 0 ? balanceo : -balanceo));

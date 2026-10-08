@@ -8,10 +8,12 @@
 //   - Si llega a la escalera plegable del ático y está plegada, la despliega.
 //   - Cada 30 segundos se enoja más y camina más rápido (lo maneja Game con multiplicadorVelocidad).
 //   - Animaciones: parpadea, pega un salto de sorpresa cuando te ve (y se queda duro medio segundo:
-//     es tu ventaja para arrancar) y se rasca la cabeza mientras busca.
+//     es tu ventaja para arrancar), se rasca la cabeza y gira la cabeza mientras busca, y se pone
+//     colorado de bronca cuando te persigue.
 import * as THREE from 'three';
 import { Enemigo, ESTADO } from './Enemigo.js';
 import { cargarPiezas } from './Models.js';
+import { crearDonErnesto } from './Personajes.js';
 import { WAYPOINTS, CONEXIONES, LIMITES_CASA, ALTURA_PISO, pisoDeAltura } from './HouseData.js';
 import { ESCONDITES, DISTANCIA_VER_DEBAJO_MESA } from './Escondites.js';
 
@@ -21,6 +23,7 @@ const PROBABILIDAD_TRABAR = 0.35; // 35% de trabar cada puerta que cruza
 const TIEMPO_TRABA = 20; // segundos que queda trabada la puerta
 const DURACION_SORPRESA = 0.5; // segundos del salto de sorpresa (no se mueve mientras tanto)
 const DURACION_PARPADEO = 0.12;
+const COLOR_ENOJADO = new THREE.Color('#ff6b6b');
 
 // Si ponés acá la ruta a un modelo GLTF (ej: '/models/dueno.glb') se usa ese modelo.
 // Si es null o no carga, queda el muñeco hecho con formas básicas.
@@ -215,56 +218,15 @@ export class Dueno extends Enemigo {
   // ------------------------------------------------------------
   //  MODELO Y ANIMACIÓN
   // ------------------------------------------------------------
-  // Un señor en bata, pantuflas y gorro de dormir, con un palo de amasar. Mira hacia +Z.
+  // Don Ernesto (ver Personajes.js): guardamos sus partes con bisagra para animarlas
   crearCuerpo() {
-    const cuerpo = new THREE.Group();
-    const parte = (geometria, color, x, y, z, padre = cuerpo) => this.parte(padre, geometria, color, x, y, z);
-    const piel = '#ffcc99';
-
-    // Piernas: cada una cuelga de un "pivote" en la cadera, así se pueden balancear
-    this.piernas = [-0.12, 0.12].map((x) => {
-      const cadera = new THREE.Group();
-      cadera.position.set(x, 0.7, 0);
-      cuerpo.add(cadera);
-      parte(new THREE.CylinderGeometry(0.09, 0.09, 0.62, 10), '#4c6ef5', 0, -0.33, 0, cadera); // pijama
-      parte(new THREE.BoxGeometry(0.16, 0.1, 0.3), '#ff8fab', 0, -0.65, 0.05, cadera); // pantufla
-      return cadera;
-    });
-
-    // Bata y cinturón
-    parte(new THREE.CylinderGeometry(0.26, 0.34, 0.75, 14), '#9b5de5', 0, 1.075, 0);
-    parte(new THREE.CylinderGeometry(0.315, 0.315, 0.06, 14), '#f15bb5', 0, 1.0, 0);
-
-    // Brazos (también con pivote en el hombro)
-    this.brazos = [-0.32, 0.32].map((x) => {
-      const hombro = new THREE.Group();
-      hombro.position.set(x, 1.38, 0);
-      cuerpo.add(hombro);
-      parte(new THREE.CylinderGeometry(0.07, 0.07, 0.55, 8), '#9b5de5', 0, -0.27, 0, hombro);
-      parte(new THREE.SphereGeometry(0.08, 10, 8), piel, 0, -0.57, 0, hombro);
-      return hombro;
-    });
-    // Palo de amasar en la mano derecha
-    const palo = parte(new THREE.CylinderGeometry(0.045, 0.045, 0.55, 10), '#c68642', 0, -0.6, 0.15, this.brazos[1]);
-    palo.rotation.x = Math.PI / 2;
-
-    // Cabeza con nariz grande, ojos, cejas enojadas y bigote
-    parte(new THREE.SphereGeometry(0.2, 16, 12), piel, 0, 1.62, 0);
-    parte(new THREE.SphereGeometry(0.07, 10, 8), '#ff9e80', 0, 1.6, 0.2);
-    this.ojos = []; // (para parpadear: se aplastan en Y)
-    for (const lado of [-1, 1]) {
-      this.ojos.push(parte(new THREE.SphereGeometry(0.045, 10, 8), '#ffffff', lado * 0.08, 1.68, 0.16));
-      this.ojos.push(parte(new THREE.SphereGeometry(0.022, 8, 6), '#000000', lado * 0.08, 1.68, 0.2));
-      const ceja = parte(new THREE.BoxGeometry(0.1, 0.025, 0.02), '#5d4037', lado * 0.08, 1.75, 0.18);
-      ceja.rotation.z = lado * 0.35;
-    }
-    parte(new THREE.BoxGeometry(0.24, 0.05, 0.05), '#5d4037', 0, 1.53, 0.18);
-
-    // Gorro de dormir con pompón
-    const gorro = parte(new THREE.ConeGeometry(0.19, 0.34, 12), '#e4572e', 0, 1.92, 0);
-    gorro.rotation.z = -0.35;
-    parte(new THREE.SphereGeometry(0.06, 10, 8), '#ffffff', 0.06, 2.08, 0);
-
+    const { cuerpo, piernas, brazos, cabeza, ojos, cara } = crearDonErnesto();
+    this.piernas = piernas;
+    this.brazos = brazos;
+    this.cabeza = cabeza;
+    this.ojos = ojos; // (para parpadear: se aplastan en Y)
+    this.cara = cara;
+    this.colorCara = cara.color.clone();
     return cuerpo;
   }
 
@@ -277,6 +239,7 @@ export class Dueno extends Enemigo {
         this.piernas = [];
         this.brazos = [];
         this.ojos = [];
+        this.cabeza = null;
       })
       .catch(() => console.warn(`No se pudo cargar ${URL_MODELO}: queda el dueño hecho con formas básicas`));
   }
@@ -284,6 +247,16 @@ export class Dueno extends Enemigo {
   // Balanceo de piernas y brazos al caminar. Persiguiendo: levanta el palo de amasar y lo agita (¡cómico!)
   animarCuerpo(dt, caminando) {
     this.parpadear(dt);
+
+    // Colorado de bronca mientras te persigue (el color de la cara va y viene de a poco)
+    const objetivo = this.estado === ESTADO.PERSEGUIR ? COLOR_ENOJADO : this.colorCara;
+    this.cara?.color.lerp(objetivo, Math.min(1, dt * 3));
+    // Buscando (quieto): gira la cabeza de un lado al otro; si no, mira para adelante
+    if (this.cabeza) {
+      const buscando = this.estado === ESTADO.INVESTIGAR && !caminando;
+      const giro = buscando ? Math.sin(this.tiempoTotal * 1.8) * 0.7 : 0;
+      this.cabeza.rotation.y += (giro - this.cabeza.rotation.y) * Math.min(1, dt * 5);
+    }
 
     // Salto de sorpresa: el cuerpo sube y baja (medio seno) con los dos brazos para arriba
     if (this.sorpresa > 0) {

@@ -3,7 +3,7 @@
 Este documento es la tercera parte del plan (la segunda, etapas 9 a 14, está en [PLAN.md](PLAN.md) y está
 terminada). Acá se detalla el cambio de historia y todo lo que viene con él.
 
-> **Estado actual:** 🔨 en curso. **15A** ✅, **15B** ✅, **15C** ✅. Próxima: **15D**.
+> **Estado actual:** 🔨 en curso. **15A** ✅, **15B** ✅, **15C** ✅, **15D** ✅. Próxima: **15E**.
 
 ---
 
@@ -31,8 +31,8 @@ Hoy Tomi se cansó: se va a meter a recuperar **3 juguetes**. Su amigo **Facu** 
 | **15A** | Historia y juguetes: 3 juguetes (de 8), textos nuevos en todo el juego, Facu y las bicis en vez de la van | Grande | ✅ Terminada |
 | **15B** | Walkie-talkie: Facu da las pistas por radio (cada vez más precisas) y comenta lo que pasa | Mediana | ✅ Terminada |
 | **15C** | Doña Pocha y su lanzarredes: la red vuela, te paraliza 3 s y hace ruido | Mediana | ✅ Terminada |
-| **15D** | Diseños nuevos: Don Ernesto y Doña Pocha (más detalle y animaciones); Tomi y Facu para las cinemáticas | Mediana | ⏳ Próxima |
-| **15E** | Cinemáticas: la intro que cuenta la historia, la de victoria y la de derrota | Grande | — |
+| **15D** | Diseños nuevos: Don Ernesto y Doña Pocha (más detalle y animaciones); Tomi y Facu para las cinemáticas | Mediana | ✅ Terminada |
+| **15E** | Cinemáticas: la intro que cuenta la historia, la de victoria y la de derrota | Grande | ⏳ Próxima |
 | **15F** | Música y pasos nuevos + cierre (todas las pruebas, rendimiento, README) | Mediana | — |
 
 Igual que antes: **una etapa por vez**, se prueba, se muestra y se espera la confirmación antes de seguir.
@@ -207,7 +207,40 @@ Un commit por etapa (cuando se pida).
 
 ---
 
-## Etapa 15D — Diseños nuevos de los personajes
+## Etapa 15D — Diseños nuevos de los personajes ✅
+
+### Qué se hizo
+- **`Personajes.js` (nuevo):** los cuatro personajes, hechos con formas básicas (cápsulas, esferas, cilindros)
+  y telas dibujadas en un canvas (a cuadros, a rayas, con lunares, tejida). Cada función devuelve las partes
+  "con bisagra" (piernas, brazos, cabeza) para que las anime quien lo use.
+- **Don Ernesto:** pelado con un solo pelito arriba y mechones blancos, cejas tupidas enojadas, anteojos,
+  bigotazo, nariz de papa, orejas; bata a cuadros con solapas, cinturón con moño y bolsillos, panza, pijama a
+  rayas y pantuflas con pompón; el palo de amasar con manijas. **Animaciones nuevas:** se pone colorado de
+  bronca mientras te persigue (el color de la cara cambia de a poco) y gira la cabeza de un lado al otro cuando
+  busca (además de lo de antes: parpadear, sorpresa, rascarse la cabeza, agitar el palo).
+- **Doña Pocha:** pañuelo con lunares atado arriba y ruleros asomando, anteojos violetas enormes (ojos grandes),
+  cachetes, sonrisa, saquito tejido con botones y cuello de puntilla, pollera con lunares y pantuflas de conejito.
+  **Animaciones nuevas:** sentada **teje** (agujas que van y vienen, bufanda a medio hacer y ovillo) mirando para
+  abajo, y cuando se levanta (o te ve) agarra el lanzarredes; parpadea.
+- **Tomi y Facu** (para las cinemáticas): cabezones, ojos grandes con brillito, pecas, gorrita, remera, bermudas
+  y zapatillas. Tomi con mochila azul y una estrella en la remera; Facu con la gorra para atrás, binoculares y
+  el walkie (ya está esperando en la entrada de autos con el diseño nuevo).
+- Las cajas de choque, la altura de los ojos y los caminos de los enemigos no cambiaron.
+- **Rendimiento:** las partes chiquitas (pupilas, pecas, botones, anteojos) no hacen sombra y las mínimas no llevan
+  borde; Facu, que no se mueve (salvo el brazo), se junta con el resto del escenario.
+
+### Pruebas que se corrieron
+- Capturas de los cuatro de frente, de cerca y de costado; Doña Pocha tejiendo en la mecedora; Don Ernesto
+  colorado persiguiendo con el palo en alto. Se corrigieron las pecas de los nenes (de lejos parecían barba),
+  las solapas de la bata (muy gruesas) y se le agregaron hombros a Don Ernesto.
+- Doña Pocha sigue viendo, apuntando y lanzando; Don Ernesto sigue viendo y persiguiendo.
+- Rendimiento (mismo método, con y sin la 15D): la primera versión sumaba 6% a 18% de llamadas de dibujo, por
+  las sombras de las piezas chiquitas. Con los arreglos: frente 2167 → 2254, oeste 2137 → 2285, patio
+  2058 → 2183, living 1692 → 1782, primer piso 1197 → 1230, sótano 1153 → 1142, ático 1565 → 1598, cuarto de
+  Doña Pocha 1828 → 1898 y mirando a Facu 900 → 861 (entre -4% y +7%).
+- 6 partidas simuladas: sin errores. Build OK.
+
+### Plan original
 
 ### Qué se hace
 Siguen hechos con formas básicas (estilo dibujito, con bordes), pero con más detalle y mejores proporciones:

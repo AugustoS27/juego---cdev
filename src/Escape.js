@@ -4,9 +4,9 @@
 //  - Mientras faltan juguetes: el círculo es gris y apagado.
 //  - Con los 3 juguetes: se pone verde, late, y aparece una flecha flotando encima.
 // Game pregunta en cada frame si el jugador está adentro del círculo (contiene).
-// (Facu es un muñeco simple por ahora: su diseño final va en la etapa 15D.)
 import * as THREE from 'three';
 import { materialToon } from './Materials.js';
+import { crearFacu } from './Personajes.js';
 
 // Dónde espera Facu (mirando hacia la casa) y dónde están las bicis (con la rueda de adelante hacia la calle)
 const FACU = { x: -11.1, z: 16.2 };
@@ -83,49 +83,21 @@ export class ZonaDeEscape {
   }
 
   // ------------------------------------------------------------
-  //  FACU (un nene con gorrita, walkie-talkie y binoculares)
+  //  FACU (ver Personajes.js): espera mirando hacia la casa, con el walkie a la altura de la boca
   // ------------------------------------------------------------
   crearFacu() {
-    const grupo = new THREE.Group();
-    grupo.position.set(FACU.x, 0, FACU.z);
-    grupo.rotation.y = Math.PI; // mira hacia la casa (-Z)
-    this.scene.add(grupo);
-    const parte = (geometria, color, px, py, pz, padre = grupo) => {
-      const malla = new THREE.Mesh(geometria, materialToon(color));
-      malla.position.set(px, py, pz);
-      malla.castShadow = true;
-      padre.add(malla);
-      return malla;
-    };
-    const piel = '#f1c27d';
-    for (const lado of [-1, 1]) {
-      parte(new THREE.CylinderGeometry(0.06, 0.06, 0.5, 8), '#3d5a80', lado * 0.08, 0.3, 0); // piernas (jean)
-      parte(new THREE.BoxGeometry(0.11, 0.08, 0.2), '#ffffff', lado * 0.08, 0.04, 0.03); // zapatillas
-    }
-    parte(new THREE.CylinderGeometry(0.17, 0.15, 0.42, 12), '#2a9d8f', 0, 0.75, 0); // remera
-    parte(new THREE.SphereGeometry(0.17, 14, 10), piel, 0, 1.12, 0); // cabeza
-    for (const lado of [-1, 1]) {
-      parte(new THREE.SphereGeometry(0.022, 8, 6), '#222222', lado * 0.06, 1.12, 0.155); // ojos
-      parte(new THREE.SphereGeometry(0.03, 8, 6), '#f4a3a3', lado * 0.1, 1.06, 0.13); // cachetes
-    }
-    const sonrisa = parte(new THREE.TorusGeometry(0.045, 0.01, 6, 12, Math.PI), '#7f2a2a', 0, 1.04, 0.155);
-    sonrisa.rotation.z = Math.PI; // la "U" de la sonrisa
-    parte(new THREE.SphereGeometry(0.175, 14, 10, 0, Math.PI * 2, 0, Math.PI / 2), '#e76f51', 0, 1.19, 0); // gorrita
-    parte(new THREE.BoxGeometry(0.2, 0.02, 0.14), '#e76f51', 0, 1.2, -0.2); // visera (para atrás)
-    parte(new THREE.CylinderGeometry(0.03, 0.03, 0.08, 8), '#222222', -0.05, 0.86, 0.17).rotation.x = Math.PI / 2; // binoculares
-    parte(new THREE.CylinderGeometry(0.03, 0.03, 0.08, 8), '#222222', 0.05, 0.86, 0.17).rotation.x = Math.PI / 2;
-
-    // Brazo izquierdo colgando; el derecho levanta el walkie (y saluda cuando tenés todo)
-    parte(new THREE.CylinderGeometry(0.045, 0.045, 0.4, 8), '#2a9d8f', -0.21, 0.75, 0).rotation.z = -0.15;
-    this.brazoFacu = new THREE.Group();
-    this.brazoFacu.position.set(0.2, 0.92, 0);
-    grupo.add(this.brazoFacu);
-    parte(new THREE.CylinderGeometry(0.045, 0.045, 0.38, 8), '#2a9d8f', 0, -0.18, 0, this.brazoFacu);
-    parte(new THREE.SphereGeometry(0.05, 8, 6), piel, 0, -0.38, 0, this.brazoFacu);
-    parte(new THREE.BoxGeometry(0.06, 0.13, 0.04), '#ffd23f', 0, -0.4, 0.04, this.brazoFacu); // walkie
-    parte(new THREE.CylinderGeometry(0.006, 0.006, 0.12, 6), '#222222', 0.015, -0.28, 0.04, this.brazoFacu); // antena
+    const facu = crearFacu();
+    facu.cuerpo.position.set(FACU.x, 0, FACU.z);
+    facu.cuerpo.rotation.y = Math.PI; // mira hacia la casa (-Z)
+    this.scene.add(facu.cuerpo);
+    this.brazoFacu = facu.brazoWalkie;
     this.brazoFacu.rotation.x = -2.3; // walkie a la altura de la boca
-
+    // Facu no se mueve (salvo el brazo del walkie): todo lo demás se junta con el resto (ver Optimizar.js)
+    const delBrazo = new Set();
+    this.brazoFacu.traverse((m) => delBrazo.add(m));
+    facu.cuerpo.traverse((m) => {
+      if (m.isMesh && !delBrazo.has(m)) m.userData.estatico = true;
+    });
     this.house.colliders.push(
       new THREE.Box3(new THREE.Vector3(FACU.x - 0.3, 0, FACU.z - 0.3), new THREE.Vector3(FACU.x + 0.3, 1.4, FACU.z + 0.3)),
     );

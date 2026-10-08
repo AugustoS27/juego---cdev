@@ -61,6 +61,7 @@ Para generar la versión final: `npm run build` (queda en `dist/`).
 | `src/Dueno.js` | Don Ernesto ("el dueño" en el código): toda la casa, traba puertas, revisa escondites, se enoja con el tiempo |
 | `src/Perro.js` | Los dos perros del patio: rapidísimos, ven poco, oyen el doble, ladran y se aburren |
 | `src/Abuela.js` | Doña Pocha ("la abuela" en el código): se hamaca, apunta 1 s, lanza una red (con puntería que depende de la distancia) y recarga |
+| `src/Personajes.js` | Los personajes con formas básicas y telas dibujadas: Don Ernesto, Doña Pocha, Tomi y Facu |
 | `src/Red.js` | Las redes del lanzarredes: vuelan, te enredan si te tocan o quedan tiradas donde pegan |
 | `src/House.js` | Construye la casa desde los datos y responde consultas (colisiones, suelo, visión) |
 | `src/HouseData.js` | Junta los datos de todos los pisos; escaleras, techo, entradas |
@@ -119,6 +120,8 @@ Para generar la versión final: `npm run build` (queda en `dist/`).
 **Hecho por nosotros (con código):**
 - La casa (paredes, techo a dos aguas, balcón, garaje), Don Ernesto, los perros, Doña Pocha y su mecedora, los juguetes, el auto, Facu, las bicis y las entradas.
 - Los arbustos (esferas, para poder esconderse adentro), los tachos de basura y la cortina de la bañera.
+- Los personajes (`Personajes.js`): cápsulas, esferas y cilindros con telas dibujadas en un canvas (la bata a
+  cuadros, el pijama a rayas, la pollera con lunares, el saquito tejido).
 - Las texturas de madera, cerámica, baldosas, pasto y tejas, dibujadas en un `<canvas>` (`Texturas.js`).
 - El look de dibujo animado: materiales toon de 3 tonos + bordes negros (`OutlineEffect`, tecla **B**).
 - El cielo con degradé, las nubes y el barrio de fondo.
