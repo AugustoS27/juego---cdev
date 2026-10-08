@@ -3,8 +3,8 @@
 Este documento detalla las etapas para las mejoras nuevas del juego: qué se va a hacer en cada una,
 en qué orden, qué archivos se tocan, cómo se prueba y qué decisiones quedan pendientes.
 
-> **Estado actual:** etapas 1 a 12 terminadas (la 12 sumó los perros y la abuela).
-> Próxima: **etapa 13** (objetos de habilidad).
+> **Estado actual:** etapas 1 a 13 terminadas (la 13 sumó la zanahoria, las botas de lana y la bebida energética).
+> Próxima: **etapa 14** (pulido: animaciones, entradas y escondites).
 
 ---
 
@@ -17,11 +17,11 @@ en qué orden, qué archivos se tocan, cómo se prueba y qué decisiones quedan 
 5. [Etapa 10 — Cinco objetos y escapar ✅](#etapa-10--cinco-objetos-y-escapar-)
 6. [Etapa 11 — La casa gigante](#etapa-11--la-casa-gigante)
 7. [Etapa 12 — Enemigos nuevos: perros y abuela](#etapa-12--enemigos-nuevos-perros-y-abuela)
-8. [Etapa 13 — Objetos de habilidad](#etapa-13--objetos-de-habilidad)
+8. [Etapa 13 — Objetos de habilidad ✅](#etapa-13--objetos-de-habilidad-)
 9. [Etapa 14 — Pulido: animaciones, entradas y escondites](#etapa-14--pulido-animaciones-entradas-y-escondites)
 10. [Riesgos y cómo los manejamos](#riesgos-y-cómo-los-manejamos)
 11. [Decisiones pendientes](#decisiones-pendientes)
-12. [Historial (etapas 1 a 12)](#historial-etapas-1-a-12)
+12. [Historial (etapas 1 a 13)](#historial-etapas-1-a-13)
 
 ---
 
@@ -51,8 +51,8 @@ Son los mismos que usamos desde el principio, porque el proyecto tiene que ser f
 | **10** | Cinco objetos para robar + zona de escape | Mediana | ✅ Terminada |
 | **11** | Casa gigante: pisos, sótano, ático, puentes, túneles, ventilaciones, decoración | Muy grande (se divide en 11A, 11B y 11C) | ✅ Terminada (11A, 11B y 11C) |
 | **12** | Enemigos nuevos: dos perros y la abuela con escopeta | Grande | ✅ Terminada |
-| **13** | Objetos de habilidad: zanahoria, botas de lana, bebida energética | Mediana | ⏳ Próxima |
-| **14** | Pulido: animaciones, más entradas, más escondites | Grande | Pendiente |
+| **13** | Objetos de habilidad: zanahoria, botas de lana, bebida energética | Mediana | ✅ Terminada |
+| **14** | Pulido: animaciones, más entradas, más escondites | Grande | ⏳ Próxima |
 
 ---
 
@@ -492,8 +492,40 @@ enemigos, perder por disparo o mordida), `Noise.js` (ruido que escuchan todos, c
 
 ---
 
-## Etapa 13 — Objetos de habilidad
+## Etapa 13 — Objetos de habilidad ✅
 
+### Qué se hizo
+- **`Habilidades.js` (nuevo):** las tres habilidades (cómo se ven, cuánto duran) y 17 lugares posibles entre
+  la casa y el patio. En cada partida hay **una de cada una**, en un lugar sorteado que nunca coincide con un
+  objeto del botín. Flotan, giran despacito y tienen un aro de su color que brilla debajo.
+- Se usan apenas las agarrás con **E** (sin inventario). Al agarrar suena un "power-up" y al terminarse,
+  un "uh-oh".
+- 🥕 **Zanahoria (20 s):** elige al azar uno de los objetos que te faltan y pone encima una **copia naranja que
+  se dibuja por encima de todo** (`depthTest: false`), con un halo y un haz de luz hacia arriba. El halo crece
+  con la distancia, así se ve aunque esté lejos o en otro piso. Si agarrás ese objeto, se termina antes.
+  La copia no la tocan los rayos: no se puede agarrar el objeto a través de la pared.
+- 🧦 **Botas de lana (30 s):** tus pasos no hacen ruido, ni corriendo, ni en la chapa de los conductos (saltar,
+  aterrizar o chocar sí). El ruidómetro dice "🧦 Botas de lana".
+- 🥤 **Bebida energética (15 s):** caminás, corrés y te movés agachado **un 50% más rápido** (corriendo, 9,75 m/s:
+  más que los perros).
+- `Player.js` tiene ahora `multiplicadorVelocidad` y `pasosSilenciosos`; Game los cambia según lo que esté activo.
+- **HUD:** abajo a la derecha, una fila por habilidad activa con ícono, barrita que se vacía y segundos;
+  titila los últimos 3 s.
+- La zanahoria quedó hecha con formas básicas (el modelo `crop_carrot` de Kenney no estaba en el proyecto).
+
+### Pruebas que se corrieron
+- Duración: zanahoria 20 s, botas 30 s y bebida 15 s; después se apagan (y la zanahoria saca el brillo).
+- Zanahoria: en 1000 partidas con objetos ya agarrados al azar, **nunca** señaló uno ya agarrado; con todo el
+  botín, no queda activa. Si agarrás el objeto revelado, se termina.
+- Botas: con el dueño a 2 m, caminando, corriendo y en el conducto **no escucha nada** (sin botas, sí).
+  Firulais a 3 m, tampoco.
+- Bebida: caminando 3,5 → 5,25 m/s, corriendo 6,5 → 9,75, agachado 1,8 → 2,7 (x1,5 en los tres).
+- 2000 sorteos: ninguna habilidad cayó encima de un objeto del botín ni de otra habilidad.
+- Las tres se pueden mirar y agarrar con E en su lugar (también la del conducto, agachado).
+- Partida simulada con las tres activas: sin errores; el juego sigue en ~2 ms por frame sin contar el dibujo.
+  Build OK.
+
+### Plan original
 **Objetivo:** objetos repartidos por la casa y el patio que dan ventajas por un tiempo.
 
 | Objeto | Efecto | Duración | Cómo se ve |
@@ -579,11 +611,11 @@ Todos usan el mismo sistema de escondites de ahora (y la misma regla de sospecha
 | ~~¿Cuántos objetos en total?~~ | ✅ Decidido: 18 tipos, se sortean 5 | Etapa 10 |
 | ~~¿Los perros pueden entrar por la puerta trasera?~~ | ✅ Decidido: no, se quedan en el patio (cercado) | Etapa 12 |
 | ¿Linterna para el sótano? | Por ahora no hace falta: las lamparitas alcanzan para ver. Se revisa al jugar | Etapa 11 |
-| ¿Habilidades con inventario o al agarrar? | Al agarrar (más simple) | Etapa 13 |
+| ~~¿Habilidades con inventario o al agarrar?~~ | ✅ Decidido: al agarrar (más simple) | Etapa 13 |
 
 ---
 
-## Historial (etapas 1 a 12)
+## Historial (etapas 1 a 13)
 
 | Etapa | Qué se hizo |
 |---|---|
@@ -601,3 +633,4 @@ Todos usan el mismo sistema de escondites de ahora (y la misma regla de sospecha
 | 11B | Conductos de ventilación, túnel secreto desde un pozo, puente en el ático, escalera plegable (trampilla) y pasadizo secreto en la biblioteca |
 | 11C | Empapelados, zócalos, molduras, marcos, cortinas, 36 cuadros (uno te sigue con la mirada), lámparas, detalles, telarañas, goteras, sábanas fantasma y polvo |
 | 12 | Enemigos en su propio archivo sobre un esqueleto común (`Enemigo.js`); dos perros en el patio cercado (ladran, se aburren) y la abuela con escopeta (apunta, dispara, recarga) |
+| 13 | Habilidades: zanahoria (ves un objeto a través de las paredes), botas de lana (pasos silenciosos) y bebida energética (+50% de velocidad), con barra de tiempo en el HUD |

@@ -11,6 +11,8 @@ y un puente sin baranda. Adentro tenés que robar **5 objetos**
 **van negra** de tu cómplice, que te espera en el frente. Si el dueño te atrapa, perdés.
 Y no es el único: en el patio hay **dos perros** que oyen todo, y en el primer piso vive **la abuela**,
 que se hamaca en su mecedora... con una escopeta de perdigones de sal.
+Para ayudarte, hay escondidas una **zanahoria** (te deja ver un objeto a través de las paredes), unas
+**botas de lana** (pasos silenciosos) y una **bebida energética** (más rápido), que duran unos segundos.
 
 > 📋 El plan de las próximas mejoras (etapas 9 a 14) está en [PLAN.md](PLAN.md).
 
@@ -34,7 +36,7 @@ Para generar la versión final: `npm run build` (queda en `dist/`).
 | Shift | Correr (hace ruido) |
 | Espacio | Saltar (se puede subir arriba de los muebles) |
 | C (mantener) | Agacharse: más lento pero casi sin ruido |
-| E | Abrir/cerrar puertas y rejillas, esconderse, agarrar objetos, usar el pozo y la escalera del ático |
+| E | Abrir/cerrar puertas y rejillas, esconderse, agarrar objetos y habilidades, usar el pozo y la escalera del ático |
 | M | Activar/desactivar sonido |
 | B | Activar/desactivar los bordes de dibujo animado |
 | Esc | Pausa |
@@ -45,7 +47,7 @@ Para generar la versión final: `npm run build` (queda en `dist/`).
 |---|---|
 | `src/main.js` | Punto de entrada: crea el juego |
 | `src/Game.js` | El "director": crea todo, conecta las partes, loop principal y estados de la partida |
-| `src/Player.js` | Movimiento WASD, colisiones AABB, gravedad, ruido al correr, escondites |
+| `src/Player.js` | Movimiento WASD, colisiones AABB, gravedad, ruido al correr, escondites; velocidad y ruido modificables (habilidades) |
 | `src/Enemigo.js` | El "esqueleto" de todos los enemigos: máquina de estados, visión, oído, navegación por waypoints y zona |
 | `src/Dueno.js` | El dueño: toda la casa, traba puertas, revisa escondites, se enoja con el tiempo |
 | `src/Perro.js` | Los dos perros del patio: rapidísimos, ven poco, oyen el doble, ladran y se aburren |
@@ -61,6 +63,7 @@ Para generar la versión final: `npm run build` (queda en `dist/`).
 | `src/Especiales.js` | La escalera plegable del ático (trampilla) y el pozo que baja al túnel secreto |
 | `src/Door.js` | Puertas con bisagra (abrir, cerrar, trabar); también rejillas, la tabla del túnel y el estante secreto |
 | `src/Items.js` | Los 18 objetos, sus pistas y ubicaciones; sorteo de los 5 de cada partida |
+| `src/Habilidades.js` | Zanahoria, botas de lana y bebida energética: dónde aparecen, cuánto duran y el brillo de la zanahoria |
 | `src/Escape.js` | La van negra y la zona de escape (se prende con los 5 objetos) |
 | `src/Noise.js` | Sistema de ruido con radio de alcance (lo escuchan todos los enemigos, cada uno con su oído) |
 | `src/Audio.js` | Sonidos generados con la Web Audio API (sin archivos) |
@@ -89,6 +92,7 @@ Para generar la versión final: `npm run build` (queda en `dist/`).
 - **Escondites:** placards y camas. Escondido no te ve, pero si pasa cerca puede sospechar (40%) y revisar.
 - **Tensión creciente:** cada 30 s el dueño camina un 10% más rápido, y a veces traba puertas por 20 s.
 - **Entradas con precio:** cada forma de entrar tiene su costo (ruido, distancia, riesgo). Cada entrada devuelve un "resultado" (sonido, ruido, aviso, animación) y Game lo aplica.
+- **Habilidades:** `Habilidades.js` solo sabe cuáles están activas y cuánto les queda; Game le pasa el efecto al jugador (`multiplicadorVelocidad`, `pasosSilenciosos`). La zanahoria pone una copia del objeto con un material que se dibuja por encima de todo (`depthTest: false`): por eso "se ve a través" de las paredes.
 - **Botín sorteado:** se mezclan los 18 objetos, se toman 5 y a cada uno se le elige una ubicación que no esté
   pegada a la de otro. Así cada partida es distinta.
 

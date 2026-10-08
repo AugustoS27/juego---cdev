@@ -93,6 +93,11 @@ export class Audio {
       this.ruido({ duracion: 0.06, volumen: 0.1, filtro: 3000 });
       return;
     }
+    if (tipo === 'lana') {
+      // Con las botas de lana: apenas un roce de tela
+      this.ruido({ duracion: 0.08, volumen: 0.02, filtro: 250 });
+      return;
+    }
     const volumen = { pasosAgachado: 0.04, pasos: 0.12, pasosCorriendo: 0.35 }[tipo] ?? 0.12;
     this.ruido({ duracion: 0.07, volumen, filtro: tipo === 'pasosCorriendo' ? 900 : 500 });
   }
@@ -244,6 +249,33 @@ export class Audio {
     this.ruido({ duracion: 0.15, volumen: 0.12, filtro: 900 });
     this.tono({ frecuencia: 988, duracion: 0.1, tipo: 'square', volumen: 0.08, retraso: 0.05 });
     this.tono({ frecuencia: 1319, duracion: 0.25, tipo: 'square', volumen: 0.08, retraso: 0.13 });
+  }
+
+  // --- Habilidades ---
+  // Al agarrar una: su sonido propio y después un "power-up" de tres notas que suben
+  habilidad(tipo) {
+    if (tipo === 'zanahoria') {
+      // ¡Crunch, crunch, crunch!
+      for (let i = 0; i < 3; i++) this.ruido({ duracion: 0.07, volumen: 0.25, filtro: 3500, retraso: i * 0.13 });
+    } else if (tipo === 'botas') {
+      // Fffff: lana suavecita
+      this.ruido({ duracion: 0.35, volumen: 0.15, filtro: 350 });
+    } else if (tipo === 'bebida') {
+      // Pssst (la lata) y glup, glup, glup
+      this.ruido({ duracion: 0.2, volumen: 0.2, filtro: 6000 });
+      for (let i = 0; i < 3; i++) {
+        this.tono({ frecuencia: 260, frecuenciaFinal: 140, duracion: 0.09, tipo: 'sine', volumen: 0.25, retraso: 0.25 + i * 0.14 });
+      }
+    }
+    [523, 784, 1047].forEach((f, i) => {
+      this.tono({ frecuencia: f, duracion: 0.12, tipo: 'triangle', volumen: 0.15, retraso: 0.5 + i * 0.08 });
+    });
+  }
+
+  // Se terminó una habilidad: dos notas que bajan ("uh-oh")
+  finHabilidad() {
+    this.tono({ frecuencia: 784, duracion: 0.12, tipo: 'triangle', volumen: 0.15 });
+    this.tono({ frecuencia: 523, duracion: 0.25, tipo: 'triangle', volumen: 0.15, retraso: 0.13 });
   }
 
   // ¡Tenés los cinco! Fanfarria cortita que sube

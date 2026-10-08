@@ -28,6 +28,8 @@ export class UI {
     this.textoPiso = $('texto-piso');
     this.rellenoEnojo = $('relleno-enojo');
     this.hudSonido = $('hud-sonido');
+    this.hudHabilidades = $('hud-habilidades');
+    this.filasHabilidad = new Map(); // tipo -> { elemento, relleno, segundos } (una fila por habilidad activa)
 
     // Cosas que aparecen encima del juego
     this.mira = $('mira');
@@ -94,6 +96,30 @@ export class UI {
     if (nombre !== this.textoPiso.textContent) this.textoPiso.textContent = nombre;
   }
 
+  // Habilidades activas (abajo a la derecha): ícono, barrita que se vacía y segundos que quedan.
+  // lista: [{ tipo, icono, nombre, color, restante, fraccion }] (ver Habilidades.paraElHUD)
+  // Las filas se crean una sola vez y después solo se actualizan (tocar el HTML en cada frame es caro).
+  mostrarHabilidades(lista) {
+    for (const h of lista) {
+      let fila = this.filasHabilidad.get(h.tipo);
+      if (!fila) {
+        fila = crearFilaHabilidad(h);
+        this.filasHabilidad.set(h.tipo, fila);
+        this.hudHabilidades.appendChild(fila.elemento);
+      }
+      fila.relleno.style.width = `${h.fraccion * 100}%`;
+      const segundos = `${Math.ceil(h.restante)} s`;
+      if (fila.segundos.textContent !== segundos) fila.segundos.textContent = segundos;
+      fila.elemento.classList.toggle('por-terminar', h.restante < 3); // titila cuando se está por acabar
+    }
+    // Las que ya no están activas, se borran
+    for (const [tipo, fila] of this.filasHabilidad) {
+      if (lista.some((h) => h.tipo === tipo)) continue;
+      fila.elemento.remove();
+      this.filasHabilidad.delete(tipo);
+    }
+  }
+
   mostrarSilencio(silenciado) {
     this.hudSonido.textContent = silenciado ? '🔇 [M] Sonido' : '🔊 [M] Sonido';
   }
@@ -121,7 +147,8 @@ export class UI {
 
   // Ruidómetro: "radio" es el alcance del ruido de tus pasos ahora mismo (0 = quieto).
   // enConducto: adentro de un conducto de chapa todo suena más (aunque vayas agachado)
-  mostrarRuido(radio, agachado = false, enConducto = false) {
+  // conBotas: con las botas de lana no hacés ruido (radio 0) y lo aclaramos
+  mostrarRuido(radio, agachado = false, enConducto = false, conBotas = false) {
     const porcentaje = (radio / RADIO_MAXIMO_PASOS) * 100;
     let texto = agachado ? '🦶 Agachado' : '🤫 Silencio';
     let color = '#52b788'; // verde
@@ -138,6 +165,7 @@ export class UI {
       texto = '🔩 ¡La chapa suena!';
       color = '#f4a261'; // naranja
     }
+    if (conBotas) texto = '🧦 Botas de lana';
     if (texto !== this.textoRuidoActual) {
       this.textoRuidoActual = texto;
       this.textoRuido.textContent = texto;
@@ -176,6 +204,7 @@ export class UI {
     this.mostrarRuido(0);
     this.mostrarAlertaPersecucion(false);
     this.mostrarApuntado(false);
+    this.mostrarHabilidades([]);
     this.borrarAvisos();
   }
 
@@ -208,6 +237,19 @@ export class UI {
     this.mostrarHUD(false);
     this.mostrarPantalla(pantalla);
   }
+}
+
+// Arma la fila del HUD de una habilidad:  🥕 Zanahoria [=====   ] 12 s
+function crearFilaHabilidad({ icono, nombre, color }) {
+  const elemento = document.createElement('div');
+  elemento.className = 'habilidad';
+  elemento.innerHTML = `<span class="icono"></span><span class="nombre"></span>
+    <span class="barra"><span class="relleno"></span></span><span class="segundos"></span>`;
+  elemento.querySelector('.icono').textContent = icono;
+  elemento.querySelector('.nombre').textContent = nombre;
+  const relleno = elemento.querySelector('.relleno');
+  relleno.style.background = color;
+  return { elemento, relleno, segundos: elemento.querySelector('.segundos') };
 }
 
 // "el mate" -> "El mate"

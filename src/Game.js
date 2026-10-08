@@ -6,6 +6,7 @@ import { House } from './House.js';
 import { Player } from './Player.js';
 import { UI } from './UI.js';
 import { Items } from './Items.js';
+import { Habilidades, HABILIDADES, MULTIPLICADOR_BEBIDA } from './Habilidades.js';
 import { Dueno } from './Dueno.js';
 import { Perro, PERROS } from './Perro.js';
 import { Abuela, ESTADO_ABUELA } from './Abuela.js';
@@ -70,6 +71,7 @@ export class Game {
     this.entradas = new Entradas(this.scene, this.house);
     this.player = new Player(this.camera, document.body, this.house);
     this.items = new Items(this.scene);
+    this.habilidades = new Habilidades(this.scene, this.house);
     this.zonaEscape = new ZonaDeEscape(this.scene, this.house);
     this.decoracion = new Decoracion(this.scene, this.house);
     // Los enemigos: el dueño (toda la casa), dos perros (el patio) y la abuela (su piso)
@@ -175,7 +177,12 @@ export class Game {
     // Cada paso del jugador suena y hace ruido según cómo se mueve
     // (agachado casi nada, caminando un poco, corriendo mucho: ver RADIO_RUIDO en Noise.js).
     // Adentro de un conducto de ventilación, cualquier paso suena a chapa.
+    // Con las botas de lana puestas, los pasos no hacen ruido (ni corriendo, ni en la chapa).
     this.player.alDarPaso = (tipo) => {
+      if (this.player.pasosSilenciosos) {
+        this.audio.paso('lana');
+        return;
+      }
       if (this.house.enConducto(this.player.position)) tipo = 'conducto';
       this.audio.paso(tipo);
       this.hacerRuido(this.player.position, RADIO_RUIDO[tipo]);
@@ -385,6 +392,9 @@ export class Game {
     this.camera.rotation.set(0, 0, 0); // mirando hacia adentro de la casa
     this.pasadizoEncontrado = false;
     this.items.sortearObjetivos();
+    // Las habilidades se reparten donde no haya un objeto del botín
+    this.habilidades.reiniciar(this.items.objetivos.map((o) => o.ubicacion));
+    this.aplicarHabilidades();
     this.zonaEscape.activar(false);
     this.estabaEnLaZona = false;
     for (const enemigo of this.enemigos) enemigo.reiniciar();
@@ -424,6 +434,8 @@ export class Game {
       this.house.update(dt);
       this.entradas.update(dt);
       this.forzarSiMantieneE(dt);
+      for (const tipo of this.habilidades.update(dt, this.camera)) this.alTerminarHabilidad(tipo);
+      this.aplicarHabilidades();
       this.player.update(dt);
       for (const enemigo of this.enemigos) enemigo.update(dt);
       this.ruido.update(dt);
@@ -438,10 +450,12 @@ export class Game {
       this.ui.mostrarApuntado(this.abuela.estado === ESTADO_ABUELA.APUNTAR);
       this.actualizarAyuda();
       this.ui.actualizarHUD(this.tiempoPartida, this.nivelEnojo);
+      this.ui.mostrarHabilidades(this.habilidades.paraElHUD);
       const paso = this.player.tipoDePaso;
       const enConducto = this.house.enConducto(this.player.position);
-      const radio = paso ? RADIO_RUIDO[enConducto ? 'conducto' : paso] : 0;
-      this.ui.mostrarRuido(radio, this.player.agachado, enConducto);
+      const conBotas = this.player.pasosSilenciosos;
+      const radio = paso && !conBotas ? RADIO_RUIDO[enConducto ? 'conducto' : paso] : 0;
+      this.ui.mostrarRuido(radio, this.player.agachado, enConducto, conBotas);
 
       // ¿Te atrapó alguien?
       const atrapo = this.enemigos.find((enemigo) => enemigo.atrapoAlJugador());
@@ -486,6 +500,49 @@ export class Game {
       const faltan = this.items.objetivos.length - this.items.cantidadEncontrados;
       this.ui.mostrarAviso(`🎒 ¡Agarraste ${objetivo.objeto.nombre}! Te ${faltan === 1 ? 'falta 1' : `faltan ${faltan}`}`, 2.5);
     }
+  }
+
+  // ------------------------------------------------------------
+  //  HABILIDADES (ver Habilidades.js)
+  // ------------------------------------------------------------
+  // Agarraste una: se activa en el momento
+  usarHabilidad(habilidad) {
+    const { tipo } = habilidad;
+    const { duracion } = HABILIDADES[tipo];
+    this.habilidades.agarrar(habilidad);
+    this.audio.habilidad(tipo);
+
+    if (tipo === 'zanahoria') {
+      const revelado = this.habilidades.revelar(this.items.objetivos);
+      this.ui.mostrarAviso(
+        revelado
+          ? `🥕 ¡Ñam! Durante ${duracion} s ves ${revelado.objeto.nombre} a través de las paredes (buscá el brillo naranja)`
+          : '🥕 ¡Ñam! Rica, pero ya tenés todo el botín',
+        4,
+      );
+    } else if (tipo === 'botas') {
+      this.ui.mostrarAviso(`🧦 Te pusiste las botas de lana: ${duracion} s de pasos silenciosos (¡hasta corriendo!)`, 3);
+    } else if (tipo === 'bebida') {
+      this.ui.mostrarAviso(`🥤 ¡Glup glup! Durante ${duracion} s vas un 50% más rápido`, 3);
+    }
+    this.aplicarHabilidades();
+  }
+
+  // Se terminó el efecto de una habilidad
+  alTerminarHabilidad(tipo) {
+    this.audio.finHabilidad();
+    const avisos = {
+      zanahoria: '🥕 Se terminó el efecto de la zanahoria',
+      botas: '🧦 Se te salieron las botas de lana: ¡tus pasos vuelven a sonar!',
+      bebida: '🥤 Se te pasó el efecto de la bebida: volvés a tu velocidad normal',
+    };
+    this.ui.mostrarAviso(avisos[tipo], 2.5);
+  }
+
+  // Le pasa al jugador los efectos de las habilidades activas
+  aplicarHabilidades() {
+    this.player.multiplicadorVelocidad = this.habilidades.estaActiva('bebida') ? MULTIPLICADOR_BEBIDA : 1;
+    this.player.pasosSilenciosos = this.habilidades.estaActiva('botas');
   }
 
   // ¿El jugador llegó a la zona de escape (atrás de la van)?
@@ -537,7 +594,7 @@ export class Game {
     return this.house.puertaCercana(this.player.position, this.direccionMirada);
   }
 
-  // Prioridad: salir del escondite > agarrar un objeto > entradas > esconderse > puerta
+  // Prioridad: salir del escondite > agarrar un objeto > habilidad > entradas > esconderse > puerta
   interactuar() {
     if (this.player.animacion) return; // trepando no se puede hacer otra cosa
 
@@ -549,6 +606,12 @@ export class Game {
     const objetivo = this.items.objetivoMirado(this.camera);
     if (objetivo) {
       this.agarrarObjeto(objetivo);
+      return;
+    }
+
+    const habilidad = this.habilidades.mirada(this.camera);
+    if (habilidad) {
+      this.usarHabilidad(habilidad);
       return;
     }
 
@@ -633,6 +696,12 @@ export class Game {
     const objetivo = this.items.objetivoMirado(this.camera);
     if (objetivo) {
       this.ui.mostrarAyuda(`[E] Agarrar ${objetivo.objeto.nombre}`);
+      return;
+    }
+
+    const habilidad = this.habilidades.mirada(this.camera);
+    if (habilidad) {
+      this.ui.mostrarAyuda(HABILIDADES[habilidad.tipo].ayuda);
       return;
     }
 

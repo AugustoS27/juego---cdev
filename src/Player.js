@@ -37,6 +37,10 @@ export class Player {
     this.agachado = false;
     this.alturaOjos = ALTURA_OJOS; // se acerca de a poco a la altura de parado o agachado
 
+    // Habilidades (ver Habilidades.js): Game las cambia mientras duran
+    this.multiplicadorVelocidad = 1; // con la bebida energética: 1.5
+    this.pasosSilenciosos = false; // con las botas de lana: los pasos no hacen ruido
+
     this.animacion = null; // movimiento automático (trepar, subir la escalera) o null
 
     // Escondite
@@ -170,7 +174,8 @@ export class Player {
     }
     this.tiempoParaPaso -= dt;
     if (this.tiempoParaPaso <= 0) {
-      this.tiempoParaPaso = INTERVALO_PASO[tipo];
+      // (más rápido = pasos más seguidos)
+      this.tiempoParaPaso = INTERVALO_PASO[tipo] / this.multiplicadorVelocidad;
       this.alDarPaso?.(tipo);
     }
   }
@@ -252,6 +257,7 @@ export class Player {
     let velocidad = VELOCIDAD_CAMINAR;
     if (this.agachado) velocidad = VELOCIDAD_AGACHADO;
     else if (this.estaCorriendo) velocidad = VELOCIDAD_CORRER;
+    velocidad *= this.multiplicadorVelocidad; // (la bebida energética también vale agachado)
     // normalize(): que ir en diagonal no sea más rápido
     this.movimiento.normalize().multiplyScalar(velocidad * dt);
 
