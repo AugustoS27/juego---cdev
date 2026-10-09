@@ -10,6 +10,12 @@
     <!-- Acá Three.js mete el <canvas> del juego -->
     <div id="app"></div>
 
+    <!-- Atmósfera (etapa 16B): bordes oscuros (más cerrados si hay un enemigo cerca) y grano de película.
+         Van primero: todo lo demás queda por encima. -->
+    <div id="vineta"></div>
+    <div id="vineta-cerca"></div>
+    <div id="grano"></div>
+
     <!-- Lo que se ve desde el escondite (rendijas del placard o la parte de abajo de la cama).
          Va primero para que los carteles de ayuda queden por encima. -->
     <div id="vista-escondite" class="oculto"></div>

@@ -4,7 +4,7 @@ Este documento es la cuarta parte del plan (la tercera, la historia nueva, está
 [PLAN_HISTORIA.md](PLAN_HISTORIA.md)). La etapa 15F (música, pasos y cierre) no se hizo por separado: queda
 adentro de esta etapa, que cambia el sonido de punta a punta.
 
-> **Estado actual:** 🔨 en curso. Confirmado por el usuario (con cambios, ver "Decisiones"). **16A** ✅. Próxima: **16B**.
+> **Estado actual:** 🔨 en curso. Confirmado por el usuario (con cambios, ver "Decisiones"). **16A** ✅ **16B** ✅. Próxima: **16C**.
 
 ---
 
@@ -35,8 +35,8 @@ Lo que pidió el usuario y dónde se hace cada cosa:
 | Etapa | Contenido | Tamaño | Estado |
 |---|---|---|---|
 | **16A** | Día y noche: se sortea (o se elige) el turno; cielo, sol/luna, niebla, farolas y ventanas encendidas; la linterna de Tomi (de noche); **el menú nuevo con la casa de fondo y relámpagos** | Grande | ✅ Terminada |
-| **16B** | Luces y atmósfera: lámparas de verdad en los cuartos, más contraste, viñeta y grano en la pantalla, tormenta con relámpagos (de noche) | Grande | ⏳ Próxima |
-| **16C** | Cortes de luz (de noche): **solo los provoca el jugador** con el tablero de luz del garaje | Mediana | — |
+| **16B** | Luces y atmósfera: lámparas de verdad en los cuartos, más contraste, viñeta y grano en la pantalla, tormenta con relámpagos (de noche) | Grande | ✅ Terminada |
+| **16C** | Cortes de luz (de noche): **solo los provoca el jugador** con el tablero de luz del garaje | Mediana | ⏳ Próxima |
 | **16D** | Sonido real: eco según el cuarto, sonido que viene de un lado, pasos según el piso, ruidos de la casa (crujidos, reloj, viento, grillos), el corazón y la respiración de Tomi; **comparar sonidos grabados (CC0) contra sintetizados** | Grande | — |
 | **16E** | Música tensa y adaptativa: capas que se suman según lo cerca que esté el peligro, golpes de susto, tema de persecución, caja de música en el menú | Mediana | — |
 | **16F** | Habitaciones extrañas y oscuras + sustos: cuartos nuevos y objetos que se mueven solos | Grande | — |
@@ -132,9 +132,44 @@ Un commit por etapa (cuando se pida).
 
 ---
 
-## Etapa 16B — Luces y atmósfera
+## Etapa 16B — Luces y atmósfera ✅
 
-### Qué se hace
+### Qué se hizo
+- **`Lamparas.js` (nuevo): las lámparas alumbran de verdad.** Un grupo fijo de 6 focos que apuntan para abajo y se
+  mudan a las lámparas más cercanas al jugador, en su piso (las de techo, las de pie y el velador). Cada foco tira un
+  círculo de luz cálida en el piso y los rincones quedan oscuros. Para que no se "pase" a otro cuarto (no tienen
+  sombra): el círculo no pasa de la pared más cercana y la luz no llega hasta el piso de abajo. Las bombitas y los
+  plafones comparten material (para poder apagarlos todos juntos en la 16C).
+- **Más contraste:** de día, menos luz pareja adentro (el "sol" de adentro y la luz ambiente bajaron) y las lámparas
+  hacen el resto; de noche, las lámparas son la luz principal. El tono de sombra del dibujito es más oscuro (más de
+  noche): `Materials.ponerContraste`, sin rearmar materiales.
+- **`Atmosfera.js` (nuevo):**
+  - La luz que entra por las ventanas: una mancha en el piso con la forma de los cuatro vidrios (cálida de día, azul
+    de luna de noche). Las ventanas de los cuartos son de mentira, así que la luz también es "pintada".
+  - El vidrio de las ventanas de adentro: celeste de día, azul oscuro de noche y, con tormenta, con gotas que chorrean.
+  - Lluvia afuera (rayitas alrededor del jugador, que no caen adentro de la casa ni del garaje).
+  - Polvo en el aire que solo se ve en el haz de la linterna.
+- **Tormenta:** la mitad de las noches. Relámpagos cada 10 a 25 s en la partida (las ventanas y la mancha del piso se
+  prenden de golpe, también desde adentro; en el sótano no se ven), trueno con retraso y la lluvia que se escucha
+  (más sorda adentro, casi nada en el sótano). De día, cada tanto, un relámpago lejano (débil, trueno bajito y tarde).
+  Las noches sin tormenta, noche clara con luna.
+- **Efectos de pantalla (CSS):** viñeta (más fuerte de noche), grano de película suave y, con un enemigo a menos de
+  9 m en tu piso, los bordes se cierran. Solo se les cambia la opacidad (lo más barato de animar).
+
+### Pruebas que se corrieron
+- Capturas de noche: living (lámpara del techo, de pie y velador), dormitorio del primer piso, pasillo, sótano con y
+  sin linterna (con el polvo), el frente con lluvia y relámpago, el living durante un relámpago y el menú con lluvia.
+  De día: living y cocina. En todas se ve por dónde ir.
+- Se ajustó: de noche las lámparas estaban muy fuertes (todo el cuarto parejo, poco miedo): bajaron a 75%. La mancha de
+  las ventanas casi no se notaba: subió. La luz de las lámparas llegaba demasiado abajo (se podía ver en el piso de
+  abajo por el hueco de la escalera): ahora llega apenas 1 m más abajo del piso.
+- Partidas simuladas: noche con tormenta (2 relámpagos), día (1 lejano), noche clara (ninguno); sin errores.
+- Bordes de la pantalla con Don Ernesto a 12 / 7 / 4 / 2 m: 0 / 0,28 / 0,71 / 0,85.
+- Rendimiento: con y sin las 6 luces nuevas, el tiempo por cuadro es el mismo (la diferencia queda dentro de lo que
+  varía entre una medición y otra). Dibujos: iguales o menos que antes (frente ~2240, Facu ~905, living ~1150,
+  patio ~1300). La lluvia y el polvo suman un dibujo cada uno, solo cuando se ven. Build OK.
+
+### Plan original
 - **Lámparas de verdad:** hoy los cuartos se iluminan con un "sol" de adentro; las lámparas del techo son de
   adorno. Ahora cada lámpara alumbra de verdad (luz cálida que cae en círculo, con rincones oscuros). Para que
   no se ponga lento, hay un **grupo fijo de luces** (unas 6) que se van mudando a las lámparas más cercanas al

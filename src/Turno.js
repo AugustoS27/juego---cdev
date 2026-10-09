@@ -18,13 +18,24 @@ export const TURNOS = {
     hemisferio: { cielo: '#ffffff', suelo: '#fff1e0' },
     afuera: { color: '#ffd9a8', intensidad: 0.95, posicion: [26, 20, 18] },
     // Luces de adentro según el piso donde está el jugador (ver Game.actualizarLuces)
-    luz: { sol: 1.55, relleno: 0.6, cielo: 0.8, ambiente: 0.26 },
+    luz: { sol: 1.1, relleno: 0.35, cielo: 0.6, ambiente: 0.16 }, // (16B: menos luz pareja, más contraste)
     luzPorPiso: {
       [-1]: { sol: 0.4, relleno: 0.13, cielo: 0.32, ambiente: 0.1 },
-      3: { sol: 1.1, relleno: 0.4, cielo: 0.65, ambiente: 0.22 },
+      3: { sol: 0.8, relleno: 0.28, cielo: 0.5, ambiente: 0.14 },
     },
     // Cuánto ven los enemigos (multiplica su distancia de visión): de día, normal
     vision: { sinLinterna: 1, conLinterna: 1, perros: 1 },
+    // --- Etapa 16B ---
+    // Las lámparas de los cuartos (ver Lamparas.js): de día alumbran menos (ya entra luz por las ventanas)
+    lamparas: { intensidad: 0.6 },
+    // La luz que entra por las ventanas (la mancha en el piso) y el vidrio (ver Atmosfera.js)
+    ventanas: { mancha: '#fff0c8', opacidad: 0.3, vidrio: '#9be7ff', brilloVidrio: '#000000', intensidadBrillo: 0 },
+    // Los 3 tonos del dibujito (sombra, medio, luz): ver Materials.ponerContraste
+    contraste: [65, 165, 255],
+    // Efectos de pantalla (ver UI.mostrarAtmosfera): bordes oscuros y grano de película
+    pantalla: { vineta: 0.3, grano: 0.04 },
+    // Tormenta (relámpagos y lluvia en la partida): de día está lejos (solo algún trueno a lo lejos)
+    tormenta: 0,
   },
   noche: {
     nombre: 'De noche',
@@ -42,6 +53,12 @@ export const TURNOS = {
     },
     // A oscuras ven menos... salvo que tengas la linterna prendida (ven el haz). Los perros ven bien de noche.
     vision: { sinLinterna: 0.55, conLinterna: 1.2, perros: 0.85 },
+    lamparas: { intensidad: 0.75 },
+    // De noche entra la luz azul de la luna, y el vidrio brilla un poquito (el reflejo del cielo)
+    ventanas: { mancha: '#6d86d8', opacidad: 0.4, vidrio: '#28324f', brilloVidrio: '#3c4f8f', intensidadBrillo: 0.35 },
+    contraste: [45, 150, 255], // (las caras a la sombra, más oscuras)
+    pantalla: { vineta: 0.7, grano: 0.08 },
+    tormenta: 0.5, // la mitad de las noches hay tormenta
   },
 };
 

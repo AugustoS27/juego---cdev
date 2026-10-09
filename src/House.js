@@ -2,7 +2,7 @@
 // escaleras, muebles, el ático y las lamparitas. También responde preguntas como
 // "¿esta caja choca con algo?" o "¿qué altura tiene el suelo acá?".
 import * as THREE from 'three';
-import { materialToon, materialConTextura } from './Materials.js';
+import { materialToon, materialConTextura, materialVidrioAdentro } from './Materials.js';
 import { textura } from './Texturas.js';
 import { cargarPiezas } from './Models.js';
 import { Door } from './Door.js';
@@ -584,9 +584,11 @@ export class House {
     const def = MUEBLES[tipo];
     const grupo = new THREE.Group();
     const colorDe = (color) => (color.startsWith('$') ? colores[color.slice(1)] ?? def.colores?.[color.slice(1)] ?? '#ffffff' : color);
+    // '@vidrio': el vidrio de las ventanas de adentro (un material propio, que cambia con el turno)
+    const materialDe = (color) => (color === '@vidrio' ? materialVidrioAdentro : materialToon(colorDe(color)));
 
     for (const [px, py, pz, ancho, alto, prof, color, forma] of def.partes) {
-      const parte = new THREE.Mesh(geometriaDeParte(forma, ancho, alto, prof), materialToon(colorDe(color)));
+      const parte = new THREE.Mesh(geometriaDeParte(forma, ancho, alto, prof), materialDe(color));
       parte.position.set(px, py + alto / 2, pz);
       parte.castShadow = def.sombra !== false;
       parte.receiveShadow = true;

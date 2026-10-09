@@ -2,7 +2,8 @@
 // es para que la casa se vea "vivida".
 //
 //   - Marcos blancos alrededor de las puertas.
-//   - Una lámpara en el techo de cada cuarto (colgante, plafón o tubo), según los datos.
+//   - Una lámpara en el techo de cada cuarto (colgante, plafón o tubo), según los datos. Desde la etapa 16B
+//     alumbran de verdad: quedan anotadas en this.lamparas y Lamparas.js les pone luces.
 //   - Cuadros en las paredes (ver Cuadros.js), incluido uno en el sótano que te sigue con la mirada.
 //   - Sótano: telarañas en las esquinas del techo y goteras (gotas que caen sobre un charco, con sonido).
 //   - Ático: polvo flotando en el aire.
@@ -28,6 +29,12 @@ export class Decoracion {
     this.pupilas = []; // las del cuadro que te sigue con la mirada
     this.gotas = [];
     this.alCaerGota = null; // alCaerGota(posicion): Game le pone el sonido
+    this.lamparas = []; // { x, y, z, piso, radio }: dónde va la luz de cada lámpara del techo (ver Lamparas.js)
+    // Las bombitas y los plafones comparten material: así se pueden "apagar" todos juntos (cortes de luz)
+    this.materialFoco = new THREE.MeshBasicMaterial({ color: '#fff3b0' });
+    this.materialPlafon = materialToon('#fffaf0').clone();
+    this.materialPlafon.emissive.set('#ffe9b0');
+    this.materialPlafon.emissiveIntensity = 0.7;
 
     this.crearMarcosDePuertas();
     this.crearLamparas();
@@ -83,13 +90,18 @@ export class Decoracion {
       const [x1, z1, x2, z2] = hab.rects[0];
       const [x, z] = hab.lamparaEn ?? [(x1 + x2) / 2, (z1 + z2) / 2];
       const techo = this.techo(hab.piso);
-      const foco = new THREE.MeshBasicMaterial({ color: '#fff3b0' }); // siempre "prendido"
+      const foco = this.materialFoco;
+      // La luz sale de la bombita (en la colgante) o de abajo del plafón o del tubo. Su círculo en el piso
+      // no pasa de la pared más cercana (más 25 cm): sin sombras, la luz se pasaría al cuarto de al lado.
+      const [r1, r2, r3, r4] = hab.rects.find(([a, b, c, d]) => x >= a && x <= c && z >= b && z <= d) ?? hab.rects[0];
+      const radio = Math.min(3.2, Math.min(x - r1, r3 - x, z - r2, r4 - z) + 0.25);
+      this.lamparas.push({ x, y: techo - (tipo === 'colgante' ? 0.8 : 0.12), z, piso: hab.piso, radio });
       if (tipo === 'colgante') {
         this.pieza(new THREE.CylinderGeometry(0.012, 0.012, 0.5, 6), '#222222', x, techo - 0.25, z);
         this.pieza(new THREE.ConeGeometry(0.3, 0.28, 16), hab.colorLampara ?? '#f4a261', x, techo - 0.62, z);
         this.pieza(new THREE.SphereGeometry(0.07, 10, 8), foco, x, techo - 0.78, z);
       } else if (tipo === 'plafon') {
-        this.pieza(new THREE.SphereGeometry(0.3, 16, 8), '#fffaf0', x, techo, z).scale.set(1, 0.3, 1);
+        this.pieza(new THREE.SphereGeometry(0.3, 16, 8), this.materialPlafon, x, techo, z).scale.set(1, 0.3, 1);
       } else if (tipo === 'tubo') {
         this.pieza(new THREE.BoxGeometry(1.3, 0.06, 0.2), '#dee2e6', x, techo - 0.03, z);
         this.pieza(new THREE.BoxGeometry(1.2, 0.05, 0.08), foco, x, techo - 0.08, z);

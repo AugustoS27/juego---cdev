@@ -14,6 +14,13 @@ function crearGradiente() {
 
 const gradiente = crearGradiente();
 
+// Contraste (etapa 16B): los 3 tonos se pueden cambiar en cualquier momento (de noche, el tono de sombra
+// es más oscuro). Cambiar la textura no cuesta nada: los materiales no se rearman.
+export function ponerContraste(tonos) {
+  gradiente.image.data.set(tonos);
+  gradiente.needsUpdate = true;
+}
+
 // Guardamos los materiales ya creados para no repetir uno por cada caja del mismo color.
 const cache = new Map();
 
@@ -23,6 +30,13 @@ export function materialToon(color) {
   }
   return cache.get(color);
 }
+
+// El vidrio de las ventanas de adentro (las de los cuartos): uno solo para todas, así Atmosfera.js le
+// cambia el color según el turno y le pone gotas cuando llueve. Tiene una textura blanca de entrada
+// (sacar o poner una textura obliga a rearmar el material; cambiarla por otra, no).
+const blanco = new THREE.DataTexture(new Uint8Array([255, 255, 255, 255]), 1, 1);
+blanco.needsUpdate = true;
+export const materialVidrioAdentro = new THREE.MeshToonMaterial({ color: '#9be7ff', map: blanco, gradientMap: gradiente });
 
 // Material toon con una textura (ej: la madera del piso). El color "tiñe" la textura.
 export function materialConTextura(color, textura) {

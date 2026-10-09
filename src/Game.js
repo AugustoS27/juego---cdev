@@ -22,6 +22,9 @@ import { ZonaDeEscape } from './Escape.js';
 import { Cinematica } from './Cinematica.js';
 import { Escenas } from './Escenas.js';
 import { TURNOS, sortearTurno, Linterna } from './Turno.js';
+import { Lamparas } from './Lamparas.js';
+import { Atmosfera } from './Atmosfera.js';
+import { ponerContraste } from './Materials.js';
 import { juntarMallasEstaticas } from './Optimizar.js';
 import { Decoracion } from './Decoracion.js';
 import { ALTURA_PISO, INICIO_JUGADOR, TECHO, PISO_MINIMO, NOMBRES_PISOS, ZONA_PATIO, pisoDeAltura } from './HouseData.js';
@@ -82,6 +85,9 @@ export class Game {
     this.efectos = new Efectos(this.scene); // lo que vuela hacia la cámara al agarrar algo
     this.zonaEscape = new ZonaDeEscape(this.scene, this.house);
     this.decoracion = new Decoracion(this.scene, this.house);
+    // Etapa 16B: las lámparas que alumbran de verdad y la atmósfera (luz de las ventanas, lluvia, polvo)
+    this.lamparas = new Lamparas(this.scene, this.decoracion.lamparas);
+    this.atmosfera = new Atmosfera(this.scene);
     // Los enemigos: el dueño (toda la casa), dos perros (el patio) y la abuela (su piso)
     this.dueno = new Dueno(this.scene, this.house, this.player);
     this.perros = PERROS.map((datos) => new Perro(this.scene, this.house, this.player, datos));
@@ -106,7 +112,10 @@ export class Game {
     this.ponerTurno(sortearTurno(this.eleccionTurno));
     this.tiempoMenu = 0;
     this.tiempoRelampago = -1; // segundos desde que empezó el relámpago (-1: no hay)
+    this.relampagoLejano = false;
     this.proximoRelampago = 3;
+    this.cercania = 0; // qué tan cerca está el enemigo más cercano (0 a 1): cierra los bordes de la pantalla
+    this.jugadorAdentro = false;
 
     // Rendimiento: todo lo que no se mueve (paredes, pisos, escalones, decoración) se junta en
     // pocas mallas, una por material. Tiene que ir DESPUÉS de crear la casa, el exterior y la van.
@@ -218,6 +227,11 @@ export class Game {
     this.dueno.ponerLinterna(turno === 'noche');
     this.linterna.prender(false);
     this.ui.mostrarTurno(this.datosTurno);
+    // Etapa 16B: algunas noches hay tormenta (relámpagos y lluvia)
+    this.tormenta = Math.random() < this.datosTurno.tormenta;
+    this.lamparas.ponerTurno(this.datosTurno.lamparas);
+    this.atmosfera.ponerTurno(this.datosTurno, this.tormenta);
+    ponerContraste(this.datosTurno.contraste);
     this.actualizarLuces(1); // (de golpe)
   }
 
@@ -266,10 +280,35 @@ export class Game {
     }
   }
 
-  // Relámpago: un destello que titila (dos o tres veces) y se apaga; el trueno llega un poco después
-  relampago() {
+  // Relámpago: un destello que titila (dos o tres veces) y se apaga; el trueno llega un poco después.
+  // lejano: la tormenta está lejos (de día): un destello débil y el trueno más tarde y más bajito.
+  relampago(lejano = false) {
     this.tiempoRelampago = 0;
-    this.audio.trueno(0.4 + Math.random() * 1.2);
+    this.relampagoLejano = lejano;
+    if (lejano) this.audio.trueno(2.5 + Math.random() * 2.5, 0.45);
+    else this.audio.trueno(0.4 + Math.random() * 1.2);
+  }
+
+  // En la partida: las noches de tormenta, un relámpago cada 10 a 25 s; de día, uno lejano cada tanto.
+  // (Las noches sin tormenta, nada: noche clara con luna)
+  actualizarTormenta(dt) {
+    this.proximoRelampago -= dt;
+    if (this.proximoRelampago > 0) return;
+    if (this.tormenta) {
+      this.relampago();
+      this.proximoRelampago = 10 + Math.random() * 15;
+    } else if (this.turno === 'dia') {
+      this.relampago(true);
+      this.proximoRelampago = 35 + Math.random() * 35;
+    } else {
+      this.proximoRelampago = 999;
+    }
+  }
+
+  // Cuánto se ve el relámpago donde está el jugador: afuera, todo; adentro, menos; en el sótano, nada
+  luzDeRelampagoAca() {
+    if (this.estado !== PARTIDA.JUGANDO || !this.jugadorAdentro) return 1;
+    return pisoDeAltura(this.player.position.y) === -1 ? 0 : 0.4;
   }
 
   actualizarRelampago(dt) {
@@ -281,8 +320,29 @@ export class Game {
     else if (t < 0.25) fuerza = 0.8;
     else if (t < 0.65) fuerza = ((0.65 - t) / 0.4) * 0.5;
     else this.tiempoRelampago = -1;
-    this.luzRelampago.intensity = fuerza * (this.turno === 'noche' ? 3 : 1.8);
-    this.ui.mostrarRelampago(fuerza);
+    if (this.relampagoLejano) fuerza *= 0.35;
+    const aca = this.luzDeRelampagoAca();
+    this.luzRelampago.intensity = fuerza * aca * (this.turno === 'noche' ? 3 : 1.8);
+    this.ui.mostrarRelampago(fuerza * aca);
+    // Las ventanas se prenden de golpe (aunque estés adentro: por ahí entra el destello)
+    this.atmosfera.relampago(aca > 0 ? fuerza : 0);
+  }
+
+  // Los efectos de pantalla (ver UI.mostrarAtmosfera): los bordes se cierran si hay un enemigo cerca
+  // (en tu mismo piso, a menos de 9 m)
+  actualizarPantalla(dt) {
+    let cercania = 0;
+    if (this.estado === PARTIDA.JUGANDO) {
+      const piso = pisoDeAltura(this.player.position.y);
+      for (const enemigo of this.enemigos) {
+        if (!enemigo.modelo.visible || pisoDeAltura(enemigo.position.y) !== piso) continue;
+        const distancia = enemigo.position.distanceTo(this.player.position);
+        cercania = Math.max(cercania, THREE.MathUtils.clamp((9 - distancia) / 6, 0, 1));
+      }
+    }
+    this.cercania += (cercania - this.cercania) * Math.min(1, dt * 3);
+    const { vineta, grano } = this.datosTurno.pantalla;
+    this.ui.mostrarAtmosfera({ vineta, cerca: this.cercania * 0.85, grano });
   }
 
   // ------------------------------------------------------------
@@ -470,6 +530,7 @@ export class Game {
     this.house.mostrarPisosCercanos(piso);
     const p = this.player.position;
     const enLaCasa = p.x > -15.5 && p.x < 9 && p.z > -6 && p.z < 6; // (casa + garaje)
+    this.jugadorAdentro = enLaCasa && !afuera;
     let donde = enLaCasa ? NOMBRES_PISOS[piso] : 'Afuera';
     if (!enLaCasa && this.enElPatio(p)) donde = '🐕 Patio de los perros';
     if (this.house.enTunel(p)) donde = 'Túnel secreto';
@@ -478,6 +539,8 @@ export class Game {
 
     const objetivo = this.datosTurno.luzPorPiso[piso] || this.datosTurno.luz;
     const t = Math.min(1, dt * 3);
+    // Las lámparas: las luces se mudan a las más cercanas (ver Lamparas.js)
+    this.lamparas.actualizar(dt, p, piso);
     this.solInterior.intensity += (objetivo.sol - this.solInterior.intensity) * t;
     this.luzRelleno.intensity += (objetivo.relleno - this.luzRelleno.intensity) * t;
     this.luzCielo.intensity += (objetivo.cielo - this.luzCielo.intensity) * t;
@@ -632,6 +695,7 @@ export class Game {
     this.tiempoPartida = 0;
     this.nivelEnojo = 0;
     this.tiempoParaEnojo = SEGUNDOS_POR_NIVEL;
+    this.proximoRelampago = 6 + Math.random() * 6;
     this.linterna.prender(false);
     this.ui.mostrarLinterna(false);
 
@@ -695,6 +759,11 @@ export class Game {
 
     this.actualizarRelampago(dt);
     this.actualizarLinternas();
+    this.atmosfera.update(dt, this.camera, this.linterna);
+    this.actualizarPantalla(dt);
+    // La lluvia se escucha más sorda adentro (y casi nada en el sótano)
+    const enElSotano = this.jugadorAdentro && pisoDeAltura(this.player.position.y) === -1;
+    this.audio.lluvia(this.tormenta ? (enElSotano ? 0.4 : 1) : 0, this.jugadorAdentro);
     if (this.estado === PARTIDA.MENU) this.actualizarMenu(dt);
 
     if (this.estado === PARTIDA.CINE) {
@@ -706,6 +775,7 @@ export class Game {
       this.tiempoPartida += dt;
       this.tiempoDesdeAvisoRuido += dt;
       this.actualizarDificultad(dt);
+      this.actualizarTormenta(dt);
 
       this.house.update(dt);
       this.entradas.update(dt);

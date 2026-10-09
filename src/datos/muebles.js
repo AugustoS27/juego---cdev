@@ -290,7 +290,7 @@ export const MUEBLES = {
     colores: { tela: '#e76f51' },
     partes: [
       [0, 1, 0, 1.4, 1.2, 0.06, '#ffffff'],
-      [0, 1.1, 0.01, 1.2, 1, 0.06, '#9be7ff'],
+      [0, 1.1, 0.01, 1.2, 1, 0.06, '@vidrio'], // (ver materialVidrioAdentro en Materials.js)
       [0, 2.3, 0.08, 2, 0.04, 0.04, '#6d4c41'], // barral
       [-0.88, 0.75, 0.08, 0.34, 1.55, 0.05, '$tela'], // cortinas
       [0.88, 0.75, 0.08, 0.34, 1.55, 0.05, '$tela'],

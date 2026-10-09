@@ -226,6 +226,59 @@ body {
 }
 
 /* Pantalla negra: Game le cambia la opacidad (al atravesar una pared trepando) */
+/* Atmósfera (etapa 16B). Solo se les cambia la opacidad desde UI.js (es lo más barato de animar) */
+#vineta,
+#vineta-cerca,
+#grano {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+}
+
+#vineta {
+  background: radial-gradient(ellipse at center, rgba(4, 2, 12, 0) 45%, rgba(4, 2, 12, 0.55) 80%, rgba(4, 2, 12, 0.95) 120%);
+}
+
+/* Con un enemigo cerca, los bordes se cierran */
+#vineta-cerca {
+  background: radial-gradient(ellipse at center, rgba(4, 2, 12, 0) 28%, rgba(4, 2, 12, 0.7) 70%, rgba(4, 2, 12, 1) 105%);
+}
+
+#grano {
+  overflow: hidden;
+}
+
+/* El grano: una imagen de ruido (la arma UI.js) más grande que la pantalla, que salta de lugar */
+#grano::before {
+  content: '';
+  position: absolute;
+  inset: -50%;
+  background-image: var(--ruido);
+  animation: grano 0.5s steps(5) infinite;
+}
+
+@keyframes grano {
+  0% {
+    transform: translate(0, 0);
+  }
+  20% {
+    transform: translate(-7%, 4%);
+  }
+  40% {
+    transform: translate(5%, -9%);
+  }
+  60% {
+    transform: translate(-3%, 8%);
+  }
+  80% {
+    transform: translate(9%, 2%);
+  }
+  100% {
+    transform: translate(-5%, -6%);
+  }
+}
+
 #fundido {
   position: fixed;
   inset: 0;

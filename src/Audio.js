@@ -418,10 +418,11 @@ export class Audio {
 
   // Trueno: un "crack" seco y después un retumbar largo y grave que se va apagando.
   // (Usa su propia fuente de ruido en bucle: el buffer de ruido dura 1 s y el trueno dura más)
-  trueno(retraso = 0) {
+  // volumen: 1 = cerca (fuerte); un trueno lejano suena más bajito y más sordo
+  trueno(retraso = 0, volumen = 1) {
     if (!this.ctx) return;
     const inicio = this.ctx.currentTime + retraso;
-    this.ruido({ duracion: 0.25, volumen: 0.35, filtro: 2500, retraso });
+    this.ruido({ duracion: 0.25, volumen: 0.35 * volumen * volumen, filtro: 2500 * volumen, retraso });
     const fuente = this.ctx.createBufferSource();
     fuente.buffer = this.bufferRuido;
     fuente.loop = true;
@@ -431,12 +432,35 @@ export class Audio {
     filtro.frequency.exponentialRampToValueAtTime(90, inicio + 3);
     const vol = this.ctx.createGain();
     vol.gain.setValueAtTime(0.0001, inicio);
-    vol.gain.exponentialRampToValueAtTime(0.7, inicio + 0.15);
-    vol.gain.exponentialRampToValueAtTime(0.25, inicio + 1.2);
+    vol.gain.exponentialRampToValueAtTime(0.7 * volumen, inicio + 0.15);
+    vol.gain.exponentialRampToValueAtTime(0.25 * volumen, inicio + 1.2);
     vol.gain.exponentialRampToValueAtTime(0.0001, inicio + 3.5);
     fuente.connect(filtro).connect(vol).connect(this.salida);
     fuente.start(inicio, Math.random() * 0.5);
     fuente.stop(inicio + 3.6);
+  }
+
+  // Lluvia (etapa 16B): un "shhhh" que no para (ruido en bucle, filtrado). volumen: de 0 a 1.
+  // adentro: la lluvia se escucha más sorda (a través de las paredes y el techo).
+  // Se llama cada frame: los cambios se hacen de a poco.
+  lluvia(volumen, adentro = false) {
+    if (!this.ctx) return;
+    if (!this.fuenteLluvia) {
+      if (volumen <= 0) return;
+      this.fuenteLluvia = this.ctx.createBufferSource();
+      this.fuenteLluvia.buffer = this.bufferRuido;
+      this.fuenteLluvia.loop = true;
+      this.filtroLluvia = this.ctx.createBiquadFilter();
+      this.filtroLluvia.type = 'lowpass';
+      this.filtroLluvia.Q.value = 0.3;
+      this.volumenLluvia = this.ctx.createGain();
+      this.volumenLluvia.gain.value = 0;
+      this.fuenteLluvia.connect(this.filtroLluvia).connect(this.volumenLluvia).connect(this.salida);
+      this.fuenteLluvia.start();
+    }
+    const ahora = this.ctx.currentTime;
+    this.volumenLluvia.gain.setTargetAtTime(volumen * (adentro ? 0.12 : 0.2), ahora, 0.4);
+    this.filtroLluvia.frequency.setTargetAtTime(adentro ? 700 : 3200, ahora, 0.4);
   }
 
   // Timbre de bici: "¡ring ring!" (dos campanadas agudas con su eco)

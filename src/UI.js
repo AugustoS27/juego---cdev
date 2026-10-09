@@ -23,6 +23,11 @@ export class UI {
     this.lineaLinterna = $('linea-linterna');
     this.estadoLinterna = $('estado-linterna');
     this.relampago = $('relampago');
+    this.vineta = $('vineta');
+    this.vinetaCerca = $('vineta-cerca');
+    this.grano = $('grano');
+    this.grano.style.setProperty('--ruido', `url(${imagenDeRuido()})`);
+    this.atmosfera = {}; // (los últimos valores puestos: para no tocar el estilo si no cambió)
     this.botonesTurno = [...document.querySelectorAll('[data-turno]')];
     this.textoVictoria = $('texto-victoria');
     this.estadisticasVictoria = $('estadisticas-victoria');
@@ -315,6 +320,20 @@ export class UI {
   }
 
   // El destello del relámpago (0 = nada, 1 = todo blanco)
+  // Atmósfera: bordes oscuros (vineta), cuánto se cierran por un enemigo cerca (cerca) y grano (de 0 a 1)
+  mostrarAtmosfera({ vineta, cerca, grano }) {
+    this.ponerOpacidad(this.vineta, 'vineta', vineta);
+    this.ponerOpacidad(this.vinetaCerca, 'cerca', cerca);
+    this.ponerOpacidad(this.grano, 'grano', grano);
+  }
+
+  ponerOpacidad(elemento, clave, valor) {
+    const texto = valor.toFixed(2);
+    if (this.atmosfera[clave] === texto) return;
+    this.atmosfera[clave] = texto;
+    elemento.style.opacity = texto;
+  }
+
   mostrarRelampago(fuerza) {
     const valor = (fuerza * 0.55).toFixed(2);
     if (valor !== this.relampagoActual) {
@@ -390,4 +409,20 @@ function formatearTiempo(segundos) {
   const min = Math.floor(segundos / 60);
   const seg = String(Math.floor(segundos % 60)).padStart(2, '0');
   return `${min}:${seg}`;
+}
+
+// El grano de película: una imagen de 128 x 128 con puntitos claros y oscuros al azar
+function imagenDeRuido() {
+  const lienzo = document.createElement('canvas');
+  lienzo.width = 128;
+  lienzo.height = 128;
+  const ctx = lienzo.getContext('2d');
+  const imagen = ctx.createImageData(128, 128);
+  for (let i = 0; i < imagen.data.length; i += 4) {
+    const v = Math.random() < 0.5 ? 0 : 255;
+    imagen.data[i] = imagen.data[i + 1] = imagen.data[i + 2] = v;
+    imagen.data[i + 3] = Math.random() * 255;
+  }
+  ctx.putImageData(imagen, 0, 0);
+  return lienzo.toDataURL();
 }
