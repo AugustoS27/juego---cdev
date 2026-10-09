@@ -389,7 +389,7 @@ body {
 /* Facu hablando por el walkie: una "radio" verde con su carita, arriba del tiempo y el enojo */
 #walkie {
   position: absolute;
-  bottom: 112px;
+  bottom: 140px; /* (arriba del recuadro del piso, el turno, el tiempo y el enojo) */
   left: 16px;
   display: flex;
   gap: 10px;
@@ -639,6 +639,16 @@ body.en-cine #mira {
   font-size: 20px;
 }
 
+/* El destello blanco de los relámpagos */
+#relampago {
+  position: fixed;
+  inset: 0;
+  background: #e8eeff;
+  opacity: 0;
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+
 /* ============ PANTALLAS ============ */
 .pantalla {
   position: fixed;
@@ -784,4 +794,65 @@ body.en-cine #mira {
 /* Clase para ocultar cualquier pantalla */
 .oculto {
   display: none !important;
+}
+
+/* ============ MENÚ (etapa 16A) ============ */
+/* El menú deja ver la casa de fondo: oscuro solo del lado del panel */
+.pantalla.menu {
+  align-items: flex-start;
+  background: linear-gradient(to right, rgba(8, 4, 20, 0.88) 0%, rgba(8, 4, 20, 0.6) 32%, rgba(8, 4, 20, 0) 60%);
+}
+
+.panel-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  width: min(440px, 100%);
+  padding-left: clamp(0px, 4vw, 48px);
+  text-align: left;
+}
+
+.panel-menu h1 {
+  line-height: 1.05;
+}
+
+.botones.columna {
+  flex-direction: column;
+  align-items: stretch;
+  max-width: 320px;
+}
+
+.elegir-turno {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 16px;
+  opacity: 0.95;
+}
+
+.opciones-turno {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.opciones-turno button {
+  padding: 8px 12px;
+  font-size: 15px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  box-shadow: none;
+  border: 2px solid transparent;
+}
+
+.opciones-turno button.elegido {
+  border-color: #ffd23f;
+  background: rgba(255, 210, 63, 0.22);
+}
+
+/* Celular / ventana angosta: el panel ocupa todo el ancho */
+@media (max-width: 640px) {
+  .pantalla.menu {
+    background: rgba(8, 4, 20, 0.75);
+  }
 }

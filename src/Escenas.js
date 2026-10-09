@@ -109,6 +109,20 @@ export class Escenas {
     this.bermudaRota = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.2, 0.05), this.tomi.bermudas[0].material);
     this.bermudaRota.position.set(0, -0.1, 0.16);
     this.bermudaRota.rotation.x = 0.4;
+    // Ojos que brillan (los perros en el menú, de noche): dos puntitos amarillos sobre los ojos de cada uno
+    const materialBrillo = new THREE.MeshBasicMaterial({ color: '#fff27a' });
+    this.ojosQueBrillan = this.perros.map((perro) => {
+      const ojos = new THREE.Group();
+      for (const lado of [-1, 1]) {
+        const ojo = new THREE.Mesh(new THREE.SphereGeometry(0.028, 8, 6), materialBrillo);
+        ojo.position.set(lado * 0.07, 0.05, 0.16);
+        ojo.userData.outlineParameters = { visible: false };
+        ojos.add(ojo);
+      }
+      ojos.visible = false;
+      perro.cabeza.add(ojos);
+      return ojos;
+    });
     this.limpiar();
   }
 
@@ -126,6 +140,7 @@ export class Escenas {
     }
     this.pelota.visible = false;
     this.scene.add(this.pelota); // (por si quedó en la mano de Don Ernesto)
+    for (const ojos of this.ojosQueBrillan || []) ojos.visible = false;
     this.bermudaRota.removeFromParent();
     for (const malla of this.tomi.bermudas) malla.visible = true;
     for (const malla of this.tomi.calzoncillos) malla.visible = false;
@@ -134,6 +149,44 @@ export class Escenas {
     pocha.tejido.visible = false;
     pocha.brazos.position.y = 1.18;
     pocha.lanzador.rotation.x = 0.5;
+  }
+
+  // ------------------------------------------------------------
+  //  MENÚ (etapa 16A): la casa de fondo con los vecinos y los perros mirando hacia la calle.
+  //  Don Ernesto en la puerta abierta (con la luz del porche), Doña Pocha en el balcón con el
+  //  lanzarredes y los perros asomados al cerco del patio. Game llama a animarMenu en cada frame.
+  // ------------------------------------------------------------
+  // noche: a los perros les brillan los ojos en la oscuridad
+  prepararMenu(noche = false) {
+    const { ernesto, pocha, perros } = this;
+    this.esconderTodos();
+    this.abrirPuerta();
+    ubicar(ernesto, -1, 6.35, A_LA_CALLE);
+    ubicar(pocha, -5.6, 7.65, A_LA_CALLE + 0.2, 3.0);
+    // (asomados detrás de los arbustos del frente: desde el cerco del patio no se llegaban a ver)
+    ubicar(perros[0], 6.5, 7.7, -0.3);
+    ubicar(perros[1], 8.6, 7.6, -0.5);
+    for (const ojos of this.ojosQueBrillan) ojos.visible = noche;
+  }
+
+  animarMenu(s) {
+    const { ernesto, pocha, perros } = this;
+    // Don Ernesto mira de un lado al otro (vigilando la calle) y golpea el palo de amasar contra la mano
+    ernesto.cabeza.rotation.y = Math.sin(s * 0.45) * 0.45;
+    ernesto.brazos[1].rotation.x = -0.9 + Math.max(0, Math.sin(s * 3)) * 0.35;
+    ernesto.brazos[0].rotation.x = -0.6;
+    // Doña Pocha se balancea y cada tanto levanta el lanzarredes para apuntar
+    const apunta = Math.sin(s * 0.35) > 0.6;
+    pocha.brazos.position.y = apunta ? 1.3 : 1.18;
+    pocha.lanzador.rotation.x = apunta ? -0.1 : 0.5;
+    pocha.cabeza.rotation.y = apunta ? 0 : Math.sin(s * 0.6 + 1) * 0.35;
+    pocha.cuerpo.rotation.z = Math.sin(s * 1.2) * 0.03;
+    // Los perros: la cola, y de vez en cuando paran las orejas (levantan la cabeza)
+    perros.forEach((perro, i) => {
+      perro.cola.rotation.z = Math.sin(s * (6 + i * 3)) * 0.5;
+      perro.cabeza.rotation.x = Math.sin(s * 0.7 + i * 2) > 0.5 ? -0.25 : 0.1;
+      perro.cabeza.rotation.y = Math.sin(s * 0.4 + i) * 0.3;
+    });
   }
 
   // Deja todo como antes de la cinemática: actores ocultos, Facu y las bicis en su lugar, la puerta
@@ -160,7 +213,7 @@ export class Escenas {
   //  Doña Pocha con el lanzarredes) y Tomi y Facu arman el plan. ~42 s.
   //  objetivos: los 3 juguetes de esta partida (Tomi dice cuáles son)
   // ------------------------------------------------------------
-  intro(objetivos) {
+  intro(objetivos, turno = 'dia') {
     const { tomi, ernesto, pocha, perros, pelota, facu } = this;
     const nombres = objetivos.map((o) => o.objeto.nombre);
     const lista = `${nombres.slice(0, -1).join(', ')} y ${nombres.at(-1)}`;
@@ -173,7 +226,7 @@ export class Escenas {
         fov: 62,
         camara: [[8, 6.5, 36], [4, 4.5, 30.5]],
         mira: [[-1, 3.2, 6], [-0.5, 1.9, 10]],
-        lineas: [{ en: 0.6, quien: null, texto: 'Una tarde cualquiera, en el barrio...' }],
+        lineas: [{ en: 0.6, quien: null, texto: turno === 'noche' ? 'Una noche cualquiera, en el barrio...' : 'Una tarde cualquiera, en el barrio...' }],
         alEmpezar: () => {
           this.esconderTodos();
           ubicar(tomi, -1.6, 23.4, AL_ESTE);

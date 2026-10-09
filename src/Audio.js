@@ -407,6 +407,38 @@ export class Audio {
     this.tono({ frecuencia: 300, frecuenciaFinal: 900, duracion: 0.35, tipo: 'sawtooth', volumen: 0.03, retraso: 0.05 });
   }
 
+  // ------------------------------------------------------------
+  //  DÍA Y NOCHE (etapa 16A)
+  // ------------------------------------------------------------
+  // "Clic" de la linterna
+  linterna() {
+    this.tono({ frecuencia: 2400, frecuenciaFinal: 1800, duracion: 0.03, tipo: 'square', volumen: 0.05 });
+    this.ruido({ duracion: 0.03, volumen: 0.1, filtro: 4000 });
+  }
+
+  // Trueno: un "crack" seco y después un retumbar largo y grave que se va apagando.
+  // (Usa su propia fuente de ruido en bucle: el buffer de ruido dura 1 s y el trueno dura más)
+  trueno(retraso = 0) {
+    if (!this.ctx) return;
+    const inicio = this.ctx.currentTime + retraso;
+    this.ruido({ duracion: 0.25, volumen: 0.35, filtro: 2500, retraso });
+    const fuente = this.ctx.createBufferSource();
+    fuente.buffer = this.bufferRuido;
+    fuente.loop = true;
+    const filtro = this.ctx.createBiquadFilter();
+    filtro.type = 'lowpass';
+    filtro.frequency.setValueAtTime(400, inicio);
+    filtro.frequency.exponentialRampToValueAtTime(90, inicio + 3);
+    const vol = this.ctx.createGain();
+    vol.gain.setValueAtTime(0.0001, inicio);
+    vol.gain.exponentialRampToValueAtTime(0.7, inicio + 0.15);
+    vol.gain.exponentialRampToValueAtTime(0.25, inicio + 1.2);
+    vol.gain.exponentialRampToValueAtTime(0.0001, inicio + 3.5);
+    fuente.connect(filtro).connect(vol).connect(this.salida);
+    fuente.start(inicio, Math.random() * 0.5);
+    fuente.stop(inicio + 3.6);
+  }
+
   // Timbre de bici: "¡ring ring!" (dos campanadas agudas con su eco)
   timbre() {
     for (const retraso of [0, 0.22]) {

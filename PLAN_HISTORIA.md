@@ -3,7 +3,7 @@
 Este documento es la tercera parte del plan (la segunda, etapas 9 a 14, está en [PLAN.md](PLAN.md) y está
 terminada). Acá se detalla el cambio de historia y todo lo que viene con él.
 
-> **Estado actual:** 🔨 en curso. **15A** ✅, **15B** ✅, **15C** ✅, **15D** ✅, **15E** ✅. Próxima: **15F**.
+> **Estado actual:** 🔨 en curso. **15A** ✅, **15B** ✅, **15C** ✅, **15D** ✅, **15E** ✅. La **15F** pasa a la etapa 16 (ver [PLAN_TERROR.md](PLAN_TERROR.md)).
 
 ---
 
@@ -33,7 +33,7 @@ Hoy Tomi se cansó: se va a meter a recuperar **3 juguetes**. Su amigo **Facu** 
 | **15C** | Doña Pocha y su lanzarredes: la red vuela, te paraliza 3 s y hace ruido | Mediana | ✅ Terminada |
 | **15D** | Diseños nuevos: Don Ernesto y Doña Pocha (más detalle y animaciones); Tomi y Facu para las cinemáticas | Mediana | ✅ Terminada |
 | **15E** | Cinemáticas: la intro que cuenta la historia, la de victoria y la de derrota | Grande | ✅ Terminada |
-| **15F** | Música y pasos nuevos + cierre (todas las pruebas, rendimiento, README) | Mediana | ⏳ Próxima |
+| **15F** | Música y pasos nuevos + cierre (todas las pruebas, rendimiento, README) | Mediana | ➡️ Pasa a la etapa 16 |
 
 Igual que antes: **una etapa por vez**, se prueba, se muestra y se espera la confirmación antes de seguir.
 Un commit por etapa (cuando se pida).

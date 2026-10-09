@@ -14,6 +14,7 @@ import * as THREE from 'three';
 import { Enemigo, ESTADO } from './Enemigo.js';
 import { cargarPiezas } from './Models.js';
 import { crearDonErnesto } from './Personajes.js';
+import { materialToon } from './Materials.js';
 import { WAYPOINTS, CONEXIONES, LIMITES_CASA, ALTURA_PISO, pisoDeAltura } from './HouseData.js';
 import { ESCONDITES, DISTANCIA_VER_DEBAJO_MESA } from './Escondites.js';
 
@@ -227,7 +228,28 @@ export class Dueno extends Enemigo {
     this.ojos = ojos; // (para parpadear: se aplastan en Y)
     this.cara = cara;
     this.colorCara = cara.color.clone();
+    // De noche lleva una linterna en la mano izquierda (la luz la maneja Game, ver Turno.js)
+    this.linternaEnMano = new THREE.Group();
+    this.linternaEnMano.position.set(0, -0.62, 0);
+    brazos[0].add(this.linternaEnMano);
+    const tubo = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.03, 0.22, 10), materialToon('#3d405b'));
+    tubo.position.y = -0.08;
+    const vidrio = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.03, 10), new THREE.MeshBasicMaterial({ color: '#fff3c4' }));
+    vidrio.position.y = -0.2;
+    vidrio.userData.outlineParameters = { visible: false };
+    this.linternaEnMano.add(tubo, vidrio);
+    this.puntaLinterna = new THREE.Object3D(); // de acá sale la luz
+    this.puntaLinterna.position.y = -0.22;
+    this.linternaEnMano.add(this.puntaLinterna);
+    this.conLinterna = false;
+    this.linternaEnMano.visible = false;
     return cuerpo;
+  }
+
+  // De noche (Game lo prende y lo apaga con el turno)
+  ponerLinterna(conLinterna) {
+    this.conLinterna = conLinterna;
+    if (this.linternaEnMano) this.linternaEnMano.visible = conLinterna;
   }
 
   // Reemplaza el muñeco por un modelo GLTF (si falla, queda el muñeco)
@@ -281,9 +303,15 @@ export class Dueno extends Enemigo {
       this.brazos[1].rotation.x = -2.6 + Math.sin(this.tiempoAnimacion * 2) * 0.4;
     }
     // Buscando (quieto, mirando alrededor): se rasca la cabeza con la mano izquierda
-    if (this.estado === ESTADO.INVESTIGAR && !caminando && this.brazos[0]) {
+    if (this.estado === ESTADO.INVESTIGAR && !caminando && this.brazos[0] && !this.conLinterna) {
       this.brazos[0].rotation.x = -3; // brazo para arriba, al costado de la cabeza
       this.brazos[0].rotation.z = 0.35 + Math.sin(this.tiempoTotal * 14) * 0.1; // la mano va y viene
+    }
+    // De noche, la linterna para adelante (buscando, la mueve de un lado al otro)
+    if (this.conLinterna && this.brazos[0]) {
+      const buscando = this.estado === ESTADO.INVESTIGAR && !caminando;
+      this.brazos[0].rotation.x = -1.45 + Math.sin(this.tiempoAnimacion) * 0.05;
+      this.brazos[0].rotation.z = buscando ? Math.sin(this.tiempoTotal * 1.8) * 0.35 : 0;
     }
   }
 

@@ -12,11 +12,18 @@ export class UI {
     this.pantallas = {
       menu: $('pantalla-menu'),
       listo: $('pantalla-listo'),
+      ayuda: $('pantalla-ayuda'),
       pausa: $('pantalla-pausa'),
       victoria: $('pantalla-victoria'),
       derrota: $('pantalla-derrota'),
     };
     this.listaListo = $('lista-listo');
+    this.turnoListo = $('turno-listo');
+    this.textoTurno = $('texto-turno');
+    this.lineaLinterna = $('linea-linterna');
+    this.estadoLinterna = $('estado-linterna');
+    this.relampago = $('relampago');
+    this.botonesTurno = [...document.querySelectorAll('[data-turno]')];
     this.textoVictoria = $('texto-victoria');
     this.estadisticasVictoria = $('estadisticas-victoria');
     this.textoDerrota = $('texto-derrota');
@@ -74,6 +81,7 @@ export class UI {
   // ------------------------------------------------------------
   mostrarHUD(visible) {
     this.hud.classList.toggle('oculto', !visible);
+    this.mira.style.visibility = visible ? '' : 'hidden'; // (en el menú y las pantallas, sin mira)
   }
 
   // Lista de juguetes: una línea por juguete, con su ícono y su nombre (se tilda cuando lo recuperás).
@@ -283,8 +291,40 @@ export class UI {
     this.borrarAvisos();
   }
 
-  // Después de la intro: los juguetes de esta partida (ícono y nombre) y el botón "¡Vamos!"
-  mostrarListo(objetivos) {
+  // ------------------------------------------------------------
+  //  DÍA Y NOCHE
+  // ------------------------------------------------------------
+  // Los botones del menú para elegir el turno: alElegir('azar' | 'dia' | 'noche')
+  conectarTurno(alElegir) {
+    for (const boton of this.botonesTurno) boton.addEventListener('click', () => alElegir(boton.dataset.turno));
+  }
+
+  // Marca el botón elegido
+  marcarTurno(eleccion) {
+    for (const boton of this.botonesTurno) boton.classList.toggle('elegido', boton.dataset.turno === eleccion);
+  }
+
+  // En el HUD: "🌙 De noche" (y, de noche, la línea de la linterna)
+  mostrarTurno({ icono, nombre }) {
+    this.textoTurno.textContent = `${icono} ${nombre}`;
+    this.lineaLinterna.classList.toggle('oculto', nombre !== 'De noche');
+  }
+
+  mostrarLinterna(prendida) {
+    this.estadoLinterna.textContent = prendida ? 'prendida' : 'apagada';
+  }
+
+  // El destello del relámpago (0 = nada, 1 = todo blanco)
+  mostrarRelampago(fuerza) {
+    const valor = (fuerza * 0.55).toFixed(2);
+    if (valor !== this.relampagoActual) {
+      this.relampagoActual = valor;
+      this.relampago.style.opacity = valor;
+    }
+  }
+
+  // Después de la intro: los juguetes de esta partida (ícono y nombre), el turno y el botón "¡Vamos!"
+  mostrarListo(objetivos, turno = null) {
     this.listaListo.replaceChildren(
       ...objetivos.map(({ objeto }) => {
         const li = document.createElement('li');
@@ -292,6 +332,7 @@ export class UI {
         return li;
       }),
     );
+    this.turnoListo.textContent = turno ? `${turno.icono} Te toca entrar ${turno.nombre.toLowerCase()}.` : '';
     this.mostrarPantalla('listo');
   }
 

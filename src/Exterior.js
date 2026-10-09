@@ -13,6 +13,7 @@ import * as THREE from 'three';
 import { materialToon, materialConTextura } from './Materials.js';
 import { textura } from './Texturas.js';
 import { cargarPiezas } from './Models.js';
+import { TURNOS } from './Turno.js';
 import { crearTechoDosAguas } from './House.js';
 import { UBICACION_MUEBLES, BALCON, COLOR_EXTERIOR, TECHO, LIMITES_CASA, CERCOS_PATIO, CUCHA, TECHO_GARAJE, TRASTOS } from './HouseData.js';
 
@@ -54,6 +55,12 @@ export class Exterior {
     this.scene = scene;
     this.house = house;
     this.cargas = []; // promesas de los modelos que se están cargando (Game espera a que terminen)
+    // Materiales que cambian con el turno (ver ponerTurno): el vidrio de las ventanas de la casa, las de
+    // las casas del barrio y las bombitas de las farolas y del porche. Y las luces que se prenden de noche.
+    this.materialVidrio = materialToon('#9be7ff').clone();
+    this.materialVentanaBarrio = materialToon('#9be7ff').clone();
+    this.materialBombita = materialToon('#fff3b0').clone();
+    this.lucesDeNoche = [];
 
     this.crearCielo();
     this.crearSuelo();
@@ -132,34 +139,88 @@ export class Exterior {
   //  CIELO Y SUELO
   // ------------------------------------------------------------
   crearCielo() {
-    // Degradé vertical dibujado en un canvas: celeste arriba, casi blanco en el horizonte
-    const canvas = document.createElement('canvas');
-    canvas.width = 2;
-    canvas.height = 256;
-    const ctx = canvas.getContext('2d');
-    const degrade = ctx.createLinearGradient(0, 0, 0, 256);
-    degrade.addColorStop(0, '#4ea8de');
-    degrade.addColorStop(0.6, '#a9def9');
-    degrade.addColorStop(1, '#e8f7ff');
-    ctx.fillStyle = degrade;
-    ctx.fillRect(0, 0, 2, 256);
-    const textura = new THREE.CanvasTexture(canvas);
-    textura.colorSpace = THREE.SRGBColorSpace;
-    this.scene.background = textura;
+    // Un cielo por turno (ver Turno.js): un degradé vertical dibujado en un canvas
+    this.cielos = {};
+    for (const [turno, { cielo }] of Object.entries(TURNOS)) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 2;
+      canvas.height = 256;
+      const ctx = canvas.getContext('2d');
+      const degrade = ctx.createLinearGradient(0, 0, 0, 256);
+      degrade.addColorStop(0, cielo[0]);
+      degrade.addColorStop(0.6, cielo[1]);
+      degrade.addColorStop(1, cielo[2]);
+      ctx.fillStyle = degrade;
+      ctx.fillRect(0, 0, 2, 256);
+      const textura = new THREE.CanvasTexture(canvas);
+      textura.colorSpace = THREE.SRGBColorSpace;
+      this.cielos[turno] = textura;
+    }
 
-    // Niebla suave a lo lejos: el barrio se "funde" con el cielo
+    // Niebla a lo lejos: el barrio se "funde" con el cielo (el color y la distancia cambian con el turno)
     this.scene.fog = new THREE.Fog('#d6f0ff', 50, 150);
 
-    // Nubes: grupos de esferas blancas
+    // Nubes: grupos de esferas. Tienen su propio material para poder oscurecerlas de noche.
+    this.materialNubes = materialToon('#ffffff').clone();
     const posiciones = [
       [-60, 35, -40], [10, 40, -80], [70, 32, -30], [-80, 38, 30], [40, 36, 60], [-20, 42, 90], [90, 40, 20],
     ];
     for (const [x, y, z] of posiciones) {
       for (let i = 0; i < 4; i++) {
         const radio = 4 + Math.random() * 3;
-        this.decor(new THREE.SphereGeometry(radio, 12, 10), '#ffffff', x + i * 5 - 7, y + Math.random() * 2, z + Math.random() * 3, false);
+        const nube = new THREE.Mesh(new THREE.SphereGeometry(radio, 12, 10), this.materialNubes);
+        nube.position.set(x + i * 5 - 7, y + Math.random() * 2, z + Math.random() * 3);
+        nube.userData.estatico = true;
+        this.scene.add(nube);
       }
     }
+
+    // De noche: estrellas (puntitos en la mitad de arriba de una esfera enorme) y la luna con su halo
+    const puntos = [];
+    for (let i = 0; i < 700; i++) {
+      const angulo = Math.random() * Math.PI * 2;
+      const altura = 0.08 + Math.random() * 0.92; // (no muy pegadas al horizonte)
+      const radio = Math.sqrt(1 - altura * altura);
+      puntos.push(Math.cos(angulo) * radio * 170, altura * 170, Math.sin(angulo) * radio * 170);
+    }
+    const geometria = new THREE.BufferGeometry();
+    geometria.setAttribute('position', new THREE.Float32BufferAttribute(puntos, 3));
+    const materialEstrellas = new THREE.PointsMaterial({ color: '#e8eeff', size: 1.6, sizeAttenuation: false, fog: false });
+    materialEstrellas.userData.outlineParameters = { visible: false };
+    this.estrellas = new THREE.Points(geometria, materialEstrellas);
+    this.estrellas.raycast = () => {};
+
+    this.luna = new THREE.Group();
+    this.luna.position.set(-55, 62, -115);
+    const disco = new THREE.Mesh(new THREE.SphereGeometry(5, 20, 14), new THREE.MeshBasicMaterial({ color: '#f4f1de', fog: false }));
+    disco.userData.outlineParameters = { visible: false };
+    const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: texturaHalo(), color: '#b8c8ff', transparent: true, opacity: 0.6, fog: false, depthWrite: false }));
+    halo.material.userData.outlineParameters = { visible: false };
+    halo.scale.set(34, 34, 1);
+    this.luna.add(halo, disco);
+    for (const objeto of [disco, halo]) objeto.raycast = () => {};
+    this.scene.add(this.estrellas, this.luna);
+  }
+
+  // Cambia el cielo, la niebla, las nubes y las luces de afuera según el turno ('dia' o 'noche')
+  ponerTurno(turno) {
+    const datos = TURNOS[turno];
+    const noche = turno === 'noche';
+    this.scene.background = this.cielos[turno];
+    this.scene.fog.color.set(datos.niebla.color);
+    this.scene.fog.near = datos.niebla.cerca;
+    this.scene.fog.far = datos.niebla.lejos;
+    this.materialNubes.color.set(datos.nubes);
+    this.estrellas.visible = this.luna.visible = noche;
+    // Farolas y luz del porche: prendidas de noche (la bombita brilla aunque no le llegue luz)
+    for (const luz of this.lucesDeNoche) luz.intensity = noche ? luz.userData.intensidad : 0;
+    this.materialBombita.emissive.set(noche ? '#ffd27a' : '#000000');
+    // Las ventanas de la casa y algunas del barrio, con luz adentro
+    this.materialVidrio.color.set(noche ? '#33405e' : '#9be7ff');
+    this.materialVidrio.emissive.set(noche ? '#ffb85c' : '#000000');
+    this.materialVidrio.emissiveIntensity = 0.32;
+    this.materialVentanaBarrio.emissive.set(noche ? '#ffc46b' : '#000000');
+    this.materialVentanaBarrio.color.set(noche ? '#3d3a35' : '#9be7ff');
   }
 
   crearSuelo() {
@@ -397,6 +458,30 @@ export class Exterior {
     for (const x of [-3, 2]) {
       this.house.agregarCaja({ x, y: 0, z: 7.7, ancho: 0.15, alto: 2.55, prof: 0.15, color: COLOR_MARCO, solido: true });
     }
+    // La luz del porche, colgando del alero al lado de la puerta (de noche, prendida). Es un foco que apunta
+    // para abajo y hacia afuera: una luz que alumbra para todos lados se metería en la casa por las paredes.
+    this.luzDeNoche(-0.1, 2.35, 6.9, '#ffb35c', 9, 9, [-0.1, 0, 8.4]);
+  }
+
+  // Una bombita (que brilla de noche) con su luz. La luz arranca apagada: ver ponerTurno.
+  // haciaDonde: si se pasa un punto, la luz es un foco que apunta ahí (si no, alumbra para todos lados)
+  luzDeNoche(x, y, z, color, intensidad, distancia, haciaDonde = null) {
+    const bombita = new THREE.Mesh(new THREE.SphereGeometry(0.14, 10, 8), this.materialBombita);
+    bombita.position.set(x, y, z);
+    bombita.userData.estatico = true;
+    this.scene.add(bombita);
+    let luz;
+    if (haciaDonde) {
+      luz = new THREE.SpotLight(color, 0, distancia, 0.95, 0.6, 2);
+      luz.target.position.set(...haciaDonde);
+      this.scene.add(luz.target);
+    } else {
+      luz = new THREE.PointLight(color, 0, distancia, 2);
+    }
+    luz.position.set(x, y - 0.25, z);
+    luz.userData.intensidad = intensidad;
+    this.scene.add(luz);
+    this.lucesDeNoche.push(luz);
   }
 
   // Por cada ventana de adentro que da a una pared exterior, ponemos su versión de afuera.
@@ -416,13 +501,14 @@ export class Exterior {
   ventanaExterior({ piso, x, z }) {
     const grupo = new THREE.Group();
     const parte = (ancho, alto, prof, color, px, py, pz) => {
-      const m = new THREE.Mesh(new THREE.BoxGeometry(ancho, alto, prof), materialToon(color));
+      const material = typeof color === 'string' ? materialToon(color) : color;
+      const m = new THREE.Mesh(new THREE.BoxGeometry(ancho, alto, prof), material);
       m.position.set(px, py, pz);
       m.userData.estatico = true;
       grupo.add(m); // sin sombra: están pegadas a la pared, no se notaría
     };
     parte(1.5, 1.3, 0.06, COLOR_MARCO, 0, 0.65, 0); // marco
-    parte(1.3, 1.1, 0.06, '#9be7ff', 0, 0.65, 0.02); // vidrio
+    parte(1.3, 1.1, 0.06, this.materialVidrio, 0, 0.65, 0.02); // vidrio (de noche, con luz adentro)
     parte(0.06, 1.1, 0.07, COLOR_MARCO, 0, 0.65, 0.03); // cruz del marco
     parte(1.3, 0.06, 0.07, COLOR_MARCO, 0, 0.65, 0.03);
     parte(0.4, 1.3, 0.05, COLOR_POSTIGO, -0.98, 0.65, 0); // postigos
@@ -705,11 +791,34 @@ export class Exterior {
       techo.castShadow = true;
       this.scene.add(techo);
       this.cajaDecor(x, 0, z + 4.05, 1.2, 2.2, 0.1, '#6c584c'); // puerta
+      // Dos ventanas del lado de la calle (las casas de enfrente): de noche, una con luz y otra no
+      if (z > 30) {
+        [-2.5, 2.5].forEach((dx, i) => {
+          const ventana = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.2, 0.1), i === 0 ? this.materialVentanaBarrio : materialToon('#3d4a5c'));
+          ventana.position.set(x + dx, 2.6, z - 4.03);
+          ventana.userData.estatico = true;
+          this.scene.add(ventana);
+        });
+      }
     }
-    // Farolas en la vereda
+    // Farolas en la vereda (de noche, prendidas)
     for (const x of [-18, 6, 26]) {
       this.cajaDecor(x, 0, 24.2, 0.15, 4, 0.15, '#343a40');
-      this.decor(new THREE.SphereGeometry(0.3, 10, 8), '#fff3b0', x, 4.1, 24.2);
+      this.luzDeNoche(x, 4.1, 24.2, '#ffcf8a', 14, 16);
     }
   }
+}
+
+// Un círculo blanco que se desvanece hacia afuera (el halo de la luna), dibujado en un canvas
+function texturaHalo() {
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = 128;
+  const ctx = canvas.getContext('2d');
+  const degrade = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+  degrade.addColorStop(0, 'rgba(255,255,255,0.9)');
+  degrade.addColorStop(0.25, 'rgba(255,255,255,0.35)');
+  degrade.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = degrade;
+  ctx.fillRect(0, 0, 128, 128);
+  return new THREE.CanvasTexture(canvas);
 }

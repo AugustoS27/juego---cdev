@@ -58,6 +58,7 @@
       <!-- Tiempo y enojo del dueño, abajo a la izquierda -->
       <div id="hud-estado">
         <div>📍 <span id="texto-piso">Afuera</span></div>
+        <div><span id="texto-turno">☀️ De día</span><span id="linea-linterna" class="oculto"> · 🔦 [F] <span id="estado-linterna">apagada</span></span></div>
         <div>⏱ <span id="texto-tiempo">0:00</span></div>
         <div>😠 Enojo <span id="barra-enojo"><span id="relleno-enojo"></span></span></div>
       </div>
@@ -86,12 +87,36 @@
     </div>
     <div id="cine-negro"></div>
 
-    <!-- ============ PANTALLAS ============ -->
-    <!-- Menú principal -->
-    <div id="pantalla-menu" class="pantalla">
-      <h1>Operación Juguetes</h1>
-      <p class="subtitulo">Los vecinos se quedaron con tus juguetes. Hoy los vas a recuperar.</p>
+    <!-- El destello de los relámpagos (Game le cambia la opacidad) -->
+    <div id="relampago"></div>
 
+    <!-- ============ PANTALLAS ============ -->
+    <!-- Menú principal: un panel al costado. De fondo se ve la casa en 3D, con la luz del turno elegido
+         (ver Game.entrarAlMenu y Escenas.prepararMenu) -->
+    <div id="pantalla-menu" class="pantalla menu">
+      <div class="panel-menu">
+        <h1>Operación Juguetes</h1>
+        <p class="subtitulo">Los vecinos se quedaron con tus juguetes. Hoy los vas a recuperar... si te animás.</p>
+        <div class="elegir-turno">
+          <span>¿Cuándo te metés?</span>
+          <div class="opciones-turno">
+            <button data-turno="azar">🎲 Al azar</button>
+            <button data-turno="dia">☀️ De día</button>
+            <button data-turno="noche">🌙 De noche</button>
+          </div>
+        </div>
+        <div class="botones columna">
+          <button data-accion="jugar">¡A jugar!</button>
+          <button data-accion="historia" class="secundario">📜 Ver la historia</button>
+          <button data-accion="ayuda" class="secundario">❓ Cómo se juega</button>
+        </div>
+        <p class="creditos">Modelos 3D de muebles y naturaleza: Kenney.nl (CC0) · El resto hecho con código</p>
+      </div>
+    </div>
+
+    <!-- Cómo se juega (el objetivo, los controles y los consejos) -->
+    <div id="pantalla-ayuda" class="pantalla escondida">
+      <h1>Cómo se juega</h1>
       <div class="columnas">
         <div class="tarjeta">
           <h2>🎯 Objetivo</h2>
@@ -109,6 +134,7 @@
             <li><b>Espacio</b> saltar · <b>C</b> agacharse (más lento pero silencioso)</li>
             <li><b>E</b> puertas, esconderse, agarrar juguetes y usar habilidades</li>
             <li><b>T</b> walkie: pedirle una pista a Facu</li>
+            <li><b>F</b> linterna (de noche)</li>
             <li><b>M</b> sonido · <b>B</b> bordes · <b>Esc</b> pausa</li>
           </ul>
         </div>
@@ -118,6 +144,7 @@
             <li>Empezás afuera: hay como diez formas de entrar. ¡Mirá bien el jardín (y los techos)!</li>
             <li>📻 Facu te dice por el walkie dónde vio tus juguetes. Con <b>T</b> te da una pista más precisa (cada 20 s, y el walkie hace un poquito de ruido).</li>
             <li>Correr, abrir puertas y chocar cosas hace ruido.</li>
+            <li>🌙 De noche está todo oscuro y los vecinos ven menos lejos... pero si prendés la linterna (<b>F</b>), te ven desde más lejos que de día. Don Ernesto también tiene la suya: mirá el haz por los pasillos.</li>
             <li>Escondete en placards, camas, mesas, la bañera, cajas, arbustos... pero si te ve entrar, te encuentra. (¿Y el tacho de basura? Funciona, pero salís con olor.)</li>
             <li>👴 Cada 30 s Don Ernesto se enoja más y camina más rápido.</li>
             <li>Puerta roja = Don Ernesto la trabó. Se abre sola en 20 s.</li>
@@ -128,11 +155,7 @@
         </div>
       </div>
 
-      <div class="botones">
-        <button data-accion="jugar">¡A jugar!</button>
-        <button data-accion="historia" class="secundario">📜 Ver la historia</button>
-      </div>
-      <p class="creditos">Modelos 3D de muebles y naturaleza: Kenney.nl (CC0) · El resto hecho con código</p>
+      <button data-accion="volverAlMenu">Volver</button>
     </div>
 
     <!-- Después de la intro: los juguetes de esta partida y el botón para empezar
@@ -141,6 +164,7 @@
       <h1>¡A recuperarlos!</h1>
       <p>Tus juguetes están en algún lugar de la casa de Don Ernesto y Doña Pocha:</p>
       <ul id="lista-listo"></ul>
+      <p id="turno-listo"></p>
       <p class="subtitulo">Facu te va a ir diciendo por el walkie dónde los vio.</p>
       <button data-accion="continuar">¡Vamos!</button>
     </div>

@@ -21,6 +21,7 @@ import { Entradas } from './Entradas.js';
 import { ZonaDeEscape } from './Escape.js';
 import { Cinematica } from './Cinematica.js';
 import { Escenas } from './Escenas.js';
+import { TURNOS, sortearTurno, Linterna } from './Turno.js';
 import { juntarMallasEstaticas } from './Optimizar.js';
 import { Decoracion } from './Decoracion.js';
 import { ALTURA_PISO, INICIO_JUGADOR, TECHO, PISO_MINIMO, NOMBRES_PISOS, ZONA_PATIO, pisoDeAltura } from './HouseData.js';
@@ -36,12 +37,11 @@ const PARTIDA = {
   DERROTA: 'derrota',
 };
 
-// Cuánta luz hay según el piso donde está el jugador (el sótano es oscuro, el ático un poco)
-const LUZ_NORMAL = { sol: 1.9, relleno: 0.7, cielo: 0.9, ambiente: 0.3 };
-const LUZ_POR_PISO = {
-  [-1]: { sol: 0.45, relleno: 0.15, cielo: 0.35, ambiente: 0.12 },
-  3: { sol: 1.3, relleno: 0.45, cielo: 0.75, ambiente: 0.25 },
-};
+// (Cuánta luz hay según el turno y el piso donde está el jugador: ver TURNOS en Turno.js)
+
+// El menú: la casa de fondo, vista desde la vereda de enfrente (la cámara se mueve despacito)
+const CAMARA_MENU = { posicion: [0.5, 2.3, 28.5], mira: [-3.6, 3.6, 6], fov: 50 }; // (la casa queda a la derecha del panel)
+const FOV_JUEGO = 75;
 
 // Dificultad creciente: cada 30 segundos el dueño se enoja más y camina un 10% más rápido
 const SEGUNDOS_POR_NIVEL = 30;
@@ -97,6 +97,17 @@ export class Game {
     this.escenas = new Escenas(this.scene, this.house, this.zonaEscape, this.audio);
     this.vioLaIntro = false; // la intro sale sola la primera vez que se toca "¡A jugar!"
 
+    // Día y noche (ver Turno.js). La linterna de Tomi (tecla F, solo de noche) y la de Don Ernesto.
+    this.linterna = new Linterna(this.scene, { intensidad: 11, distancia: 24, angulo: 0.48, sombra: true });
+    // (Las dos con sombra: sin sombra, la luz atraviesa las paredes e ilumina el cuarto de al lado)
+    this.linternaDueno = new Linterna(this.scene, { color: '#ffe9b0', intensidad: 7, distancia: 15, angulo: 0.32, sombra: true, cono: true });
+    this.eleccionTurno = leerEleccionTurno(); // 'azar', 'dia' o 'noche' (lo que se eligió en el menú)
+    this.ui.marcarTurno(this.eleccionTurno);
+    this.ponerTurno(sortearTurno(this.eleccionTurno));
+    this.tiempoMenu = 0;
+    this.tiempoRelampago = -1; // segundos desde que empezó el relámpago (-1: no hay)
+    this.proximoRelampago = 3;
+
     // Rendimiento: todo lo que no se mueve (paredes, pisos, escalones, decoración) se junta en
     // pocas mallas, una por material. Tiene que ir DESPUÉS de crear la casa, el exterior y la van.
     const juntadas = juntarMallasEstaticas(this.scene);
@@ -125,14 +136,15 @@ export class Game {
     this.direccionMirada = new THREE.Vector3();
     window.addEventListener('resize', () => this.alCambiarTamano());
 
-    this.reiniciar(); // deja lista la primera partida (se ve de fondo detrás del menú)
-    this.ui.mostrarPantalla('menu');
+    this.reiniciar(); // deja lista la primera partida
+    this.entrarAlMenu();
   }
 
   crearLuces() {
     // Luz ambiente de dos colores (cielo / suelo): da un look suave de dibujito
-    this.luzCielo = new THREE.HemisphereLight('#ffffff', '#fff1e0', LUZ_NORMAL.cielo);
-    this.luzAmbiente = new THREE.AmbientLight('#ffffff', LUZ_NORMAL.ambiente);
+    const luz = TURNOS.dia.luz; // (los valores de verdad los pone ponerTurno)
+    this.luzCielo = new THREE.HemisphereLight('#ffffff', '#fff1e0', luz.cielo);
+    this.luzAmbiente = new THREE.AmbientLight('#ffffff', luz.ambiente);
     this.scene.add(this.luzCielo, this.luzAmbiente);
 
     // "Sol" de adentro: está justo debajo del techo del piso donde está el jugador y apunta
@@ -141,7 +153,7 @@ export class Game {
     // con 5 soles, cada piso recibiría la luz de los 5 y quedaría todo quemado.
     // Su cámara de sombras llega hasta el fondo del sótano: los pisos de abajo quedan a la
     // sombra del piso donde estás (como si la luz entrara desde arriba).
-    this.solInterior = new THREE.DirectionalLight('#fff4d6', LUZ_NORMAL.sol);
+    this.solInterior = new THREE.DirectionalLight('#fff4d6', luz.sol);
     this.solInterior.castShadow = true;
     // Mapa de sombras chico + mucho desenfoque = sombras suaves tipo "mancha" bajo los muebles
     this.solInterior.shadow.mapSize.set(1024, 1024);
@@ -160,13 +172,14 @@ export class Game {
     this.moverSolInterior(0);
 
     // Luz de relleno: vertical, suave y SIN sombras, para que los pisos de abajo no queden negros
-    this.luzRelleno = new THREE.DirectionalLight('#fff4d6', LUZ_NORMAL.relleno);
+    this.luzRelleno = new THREE.DirectionalLight('#fff4d6', luz.relleno);
     this.luzRelleno.position.set(0, 20, 0);
     this.scene.add(this.luzRelleno);
 
-    // Sol de afuera: inclinado, para las sombras del jardín (árboles, cerca, la casa).
+    // Sol de afuera (de noche, la luna): inclinado, para las sombras del jardín (árboles, cerca, la casa).
     // Adentro no molesta: el techo y las paredes le hacen sombra a todo el interior.
     const solDeAfuera = new THREE.DirectionalLight('#fff1c9', 1.1);
+    this.solDeAfuera = solDeAfuera;
     solDeAfuera.position.set(18, 30, 22);
     solDeAfuera.castShadow = true;
     solDeAfuera.shadow.mapSize.set(2048, 2048);
@@ -181,6 +194,137 @@ export class Game {
     camAfuera.near = 1;
     camAfuera.far = 100;
     this.scene.add(solDeAfuera);
+
+    // El relámpago: una luz blanca azulada que está siempre (apagada) y se prende un instante
+    this.luzRelampago = new THREE.DirectionalLight('#dfe8ff', 0);
+    this.luzRelampago.position.set(-10, 40, 30);
+    this.scene.add(this.luzRelampago);
+  }
+
+  // ------------------------------------------------------------
+  //  DÍA Y NOCHE (ver Turno.js)
+  // ------------------------------------------------------------
+  // Cambia todas las luces y colores al turno dado ('dia' o 'noche')
+  ponerTurno(turno) {
+    this.turno = turno;
+    this.datosTurno = TURNOS[turno];
+    const { hemisferio, afuera } = this.datosTurno;
+    this.exterior.ponerTurno(turno);
+    this.luzCielo.color.set(hemisferio.cielo);
+    this.luzCielo.groundColor.set(hemisferio.suelo);
+    this.solDeAfuera.color.set(afuera.color);
+    this.solDeAfuera.intensity = afuera.intensidad;
+    this.solDeAfuera.position.set(...afuera.posicion);
+    this.dueno.ponerLinterna(turno === 'noche');
+    this.linterna.prender(false);
+    this.ui.mostrarTurno(this.datosTurno);
+    this.actualizarLuces(1); // (de golpe)
+  }
+
+  // Las dos linternas siguen a quien las lleva (de día están apagadas)
+  actualizarLinternas() {
+    if (this.linterna.prendida) {
+      // Sale de la mano (un poco abajo y a la derecha de los ojos) hacia donde mirás
+      this.camera.getWorldDirection(this.direccionMirada);
+      const mano = new THREE.Vector3(0.18, -0.2, 0).applyQuaternion(this.camera.quaternion).add(this.camera.position);
+      this.linterna.seguir(mano, this.camera.position.clone().addScaledVector(this.direccionMirada, 6));
+    }
+    // La de Don Ernesto: prendida de noche mientras se lo ve (en el menú y en las cinemáticas está escondido)
+    const dueno = this.dueno;
+    const conLinterna = dueno.conLinterna && dueno.modelo.visible;
+    if (conLinterna !== this.linternaDueno.prendida) this.linternaDueno.prender(conLinterna);
+    if (conLinterna) {
+      // La luz y el haz solo se ven si está en tu mismo piso: si no, atravesarían el piso y se meterían
+      // en tu cuarto (las sombras no alcanzan a frenar una luz que entra tan rasante)
+      const mismoPiso = pisoDeAltura(dueno.position.y) === pisoDeAltura(this.player.position.y);
+      this.linternaDueno.alumbrar(mismoPiso);
+      this.linternaDueno.cono.visible = mismoPiso;
+      const desde = dueno.puntaLinterna.getWorldPosition(new THREE.Vector3());
+      const giro = dueno.rotacion + (dueno.brazos[0]?.rotation.z ?? 0) * 0.6; // (buscando, la mueve de lado a lado)
+      const hacia = new THREE.Vector3(Math.sin(giro), -0.15, Math.cos(giro));
+      this.linternaDueno.seguir(desde, desde.clone().addScaledVector(hacia, 6));
+    }
+  }
+
+  // F: prende o apaga la linterna (solo de noche)
+  alternarLinterna() {
+    if (this.turno !== 'noche') {
+      this.ui.mostrarAviso('☀️ Es de día: la linterna no hace falta', 1.5);
+      return;
+    }
+    this.linterna.prender(!this.linterna.prendida);
+    this.audio.linterna();
+    this.ui.mostrarLinterna(this.linterna.prendida);
+  }
+
+  // De noche los enemigos ven menos lejos... salvo que tengas la linterna prendida (ven el haz)
+  actualizarVision() {
+    const { vision } = this.datosTurno;
+    for (const enemigo of this.enemigos) {
+      if (this.perros.includes(enemigo)) enemigo.multiplicadorVision = vision.perros;
+      else enemigo.multiplicadorVision = this.linterna.prendida ? vision.conLinterna : vision.sinLinterna;
+    }
+  }
+
+  // Relámpago: un destello que titila (dos o tres veces) y se apaga; el trueno llega un poco después
+  relampago() {
+    this.tiempoRelampago = 0;
+    this.audio.trueno(0.4 + Math.random() * 1.2);
+  }
+
+  actualizarRelampago(dt) {
+    if (this.tiempoRelampago < 0) return;
+    const t = (this.tiempoRelampago += dt);
+    let fuerza = 0;
+    if (t < 0.07) fuerza = 1;
+    else if (t < 0.15) fuerza = 0.1;
+    else if (t < 0.25) fuerza = 0.8;
+    else if (t < 0.65) fuerza = ((0.65 - t) / 0.4) * 0.5;
+    else this.tiempoRelampago = -1;
+    this.luzRelampago.intensity = fuerza * (this.turno === 'noche' ? 3 : 1.8);
+    this.ui.mostrarRelampago(fuerza);
+  }
+
+  // ------------------------------------------------------------
+  //  MENÚ: la casa de fondo, con los vecinos y los perros mirando (ver Escenas.prepararMenu)
+  // ------------------------------------------------------------
+  entrarAlMenu() {
+    this.estado = PARTIDA.MENU;
+    this.ui.mostrarHUD(false);
+    this.ui.ocultarCosasDelJuego();
+    this.ui.mostrarPantalla('menu');
+    for (const enemigo of this.enemigos) enemigo.modelo.visible = false;
+    this.zonaEscape.prepararCinematica();
+    this.escenas.prepararMenu(this.turno === 'noche');
+    this.camera.fov = CAMARA_MENU.fov;
+    this.camera.updateProjectionMatrix();
+    this.tiempoMenu = 0;
+    this.proximoRelampago = 2 + Math.random() * 3;
+  }
+
+  // Se sale del menú (a jugar o a ver la intro): todo vuelve a su lugar
+  salirDelMenu() {
+    this.escenas.limpiar();
+    for (const enemigo of this.enemigos) enemigo.modelo.visible = true;
+    this.camera.fov = FOV_JUEGO;
+    this.camera.updateProjectionMatrix();
+    this.player.actualizarCamara();
+    this.camera.rotation.set(0, 0, 0);
+  }
+
+  // Cada frame en el menú: la cámara se hamaca despacito, los actores se mueven y, cada tanto, un relámpago
+  actualizarMenu(dt) {
+    this.tiempoMenu += dt;
+    const t = this.tiempoMenu;
+    const [x, y, z] = CAMARA_MENU.posicion;
+    this.camera.position.set(x + Math.sin(t * 0.12) * 1.5, y + Math.sin(t * 0.17) * 0.25, z);
+    this.camera.lookAt(...CAMARA_MENU.mira);
+    this.escenas.animarMenu(t);
+    this.proximoRelampago -= dt;
+    if (this.proximoRelampago <= 0) {
+      this.relampago();
+      this.proximoRelampago = 6 + Math.random() * 8;
+    }
   }
 
   // ------------------------------------------------------------
@@ -318,9 +462,10 @@ export class Game {
   // Cada frame: el sol se muda al piso del jugador y las luces se acercan de a poco a las de ese piso
   // (así, al bajar al sótano, "se te acostumbra la vista" en vez de oscurecerse de golpe).
   // También le decimos a la casa qué muebles dibujar y mostramos el piso en el HUD.
-  // (En las cinemáticas, que son todas afuera, se usa la luz de la planta baja)
+  // (En las cinemáticas y en el menú, que son afuera, se usa la luz de la planta baja)
   actualizarLuces(dt) {
-    const piso = this.estado === PARTIDA.CINE ? 0 : pisoDeAltura(this.player.position.y);
+    const afuera = this.estado === PARTIDA.CINE || this.estado === PARTIDA.MENU;
+    const piso = afuera ? 0 : pisoDeAltura(this.player.position.y);
     this.moverSolInterior(piso);
     this.house.mostrarPisosCercanos(piso);
     const p = this.player.position;
@@ -331,7 +476,7 @@ export class Game {
     else if (this.house.enConducto(p)) donde = 'Conducto de ventilación';
     this.ui.mostrarPiso(donde);
 
-    const objetivo = LUZ_POR_PISO[piso] || LUZ_NORMAL;
+    const objetivo = this.datosTurno.luzPorPiso[piso] || this.datosTurno.luz;
     const t = Math.min(1, dt * 3);
     this.solInterior.intensity += (objetivo.sol - this.solInterior.intensity) * t;
     this.luzRelleno.intensity += (objetivo.relleno - this.luzRelleno.intensity) * t;
@@ -387,7 +532,10 @@ export class Game {
       this.estado = PARTIDA.JUGANDO;
       this.ui.mostrarPantalla(null);
       this.ui.mostrarHUD(true);
-      if (this.tiempoPartida === 0) this.ui.mostrarAviso('🏠 Estás afuera. Buscá una forma de entrar... ¡hay varias!', 4);
+      if (this.tiempoPartida === 0) {
+        this.ui.mostrarAviso('🏠 Estás afuera. Buscá una forma de entrar... ¡hay varias!', 4);
+        if (this.turno === 'noche') this.ui.mostrarAviso('🌙 Es de noche. [F] prende la linterna... pero con la luz te ven desde más lejos', 6);
+      }
     });
 
     controls.addEventListener('unlock', () => {
@@ -399,8 +547,12 @@ export class Game {
       }
     });
 
+    // Desde el menú se juega con el turno que se ve de fondo; desde la pausa o el final ("Reiniciar",
+    // "Jugar de nuevo") se vuelve a sortear (si se eligió "al azar")
     const partidaNueva = () => {
       this.audio.iniciar(); // el audio solo puede arrancar después de un click
+      if (this.estado === PARTIDA.MENU) this.salirDelMenu();
+      else this.ponerTurno(sortearTurno(this.eleccionTurno));
       this.reiniciar();
       controls.lock();
     };
@@ -409,10 +561,11 @@ export class Game {
     // se bloquea recién con el click en "¡Vamos!" (el navegador no deja hacerlo sin un click)
     const conIntro = () => {
       this.audio.iniciar();
+      this.salirDelMenu();
       this.reiniciar();
       this.verIntro(() => {
         this.estado = PARTIDA.LISTO;
-        this.ui.mostrarListo(this.items.objetivos);
+        this.ui.mostrarListo(this.items.objetivos, this.datosTurno);
       });
     };
 
@@ -420,19 +573,27 @@ export class Game {
       jugar: () => (this.vioLaIntro ? partidaNueva() : conIntro()),
       historia: () => {
         this.audio.iniciar();
-        this.verIntro(() => {
-          this.estado = PARTIDA.MENU;
-          this.ui.mostrarPantalla('menu');
-        });
+        this.salirDelMenu();
+        this.verIntro(() => this.entrarAlMenu());
       },
       reiniciar: partidaNueva,
       continuar: () => controls.lock(),
       menu: () => {
         this.reiniciar();
-        this.estado = PARTIDA.MENU;
-        this.ui.mostrarHUD(false);
-        this.ui.mostrarPantalla('menu');
+        this.ponerTurno(sortearTurno(this.eleccionTurno));
+        this.entrarAlMenu();
       },
+      ayuda: () => this.ui.mostrarPantalla('ayuda'),
+      volverAlMenu: () => this.ui.mostrarPantalla('menu'),
+    });
+
+    // Elegir el turno en el menú: el fondo cambia en el momento (y se recuerda para la próxima vez)
+    this.ui.conectarTurno((eleccion) => {
+      this.eleccionTurno = eleccion;
+      guardarEleccionTurno(eleccion);
+      this.ui.marcarTurno(eleccion);
+      this.ponerTurno(sortearTurno(eleccion));
+      if (this.estado === PARTIDA.MENU) this.escenas.prepararMenu(this.turno === 'noche');
     });
   }
 
@@ -441,6 +602,7 @@ export class Game {
       if ((e.code === 'Space' || e.code === 'Enter') && this.estado === PARTIDA.CINE && !e.repeat) this.cinematica.saltear();
       if (e.code === 'KeyE' && this.estado === PARTIDA.JUGANDO) this.interactuar();
       if (e.code === 'KeyT' && this.estado === PARTIDA.JUGANDO) this.pedirPista();
+      if (e.code === 'KeyF' && this.estado === PARTIDA.JUGANDO) this.alternarLinterna();
       if (e.code === 'KeyM') this.ui.mostrarSilencio(this.audio.alternarSilencio());
       if (e.code === 'KeyB') this.conBordes = !this.conBordes; // bordes de dibujo animado sí/no
     });
@@ -470,6 +632,8 @@ export class Game {
     this.tiempoPartida = 0;
     this.nivelEnojo = 0;
     this.tiempoParaEnojo = SEGUNDOS_POR_NIVEL;
+    this.linterna.prender(false);
+    this.ui.mostrarLinterna(false);
 
     this.ui.ocultarCosasDelJuego();
     this.ui.mostrarBotin(this.items.objetivos, this.walkie);
@@ -502,7 +666,7 @@ export class Game {
   // La intro: la primera vez que se juega, o con "Ver la historia" (usa los juguetes ya sorteados)
   verIntro(despues) {
     this.vioLaIntro = true;
-    this.verCinematica(this.escenas.intro(this.items.objetivos), () => {
+    this.verCinematica(this.escenas.intro(this.items.objetivos, this.turno), () => {
       // La cámara vuelve a los ojos de Tomi, mirando la casa (se ve detrás de la pantalla que venga)
       this.player.actualizarCamara();
       this.camera.rotation.set(0, 0, 0);
@@ -529,6 +693,10 @@ export class Game {
     this.decoracion.update(dt, this.camera);
     this.actualizarLuces(dt);
 
+    this.actualizarRelampago(dt);
+    this.actualizarLinternas();
+    if (this.estado === PARTIDA.MENU) this.actualizarMenu(dt);
+
     if (this.estado === PARTIDA.CINE) {
       this.cinematica.update(dt);
       this.house.update(dt); // (la puerta de calle se abre y se cierra en las cinemáticas)
@@ -547,6 +715,7 @@ export class Game {
       this.actualizarOlor(dt);
       this.walkie.update(dt);
       this.player.update(dt);
+      this.actualizarVision();
       for (const enemigo of this.enemigos) enemigo.update(dt);
       this.ruido.update(dt);
     }
@@ -930,5 +1099,23 @@ export class Game {
     this.camera.aspect = window.innerWidth / window.innerHeight;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(window.innerWidth, window.innerHeight);
+  }
+}
+
+// El turno elegido en el menú se recuerda en el navegador (si no se puede, queda "al azar")
+function leerEleccionTurno() {
+  try {
+    const guardado = localStorage.getItem('turno');
+    return ['azar', 'dia', 'noche'].includes(guardado) ? guardado : 'azar';
+  } catch {
+    return 'azar';
+  }
+}
+
+function guardarEleccionTurno(eleccion) {
+  try {
+    localStorage.setItem('turno', eleccion);
+  } catch {
+    // (sin guardar: la próxima vez arranca "al azar")
   }
 }

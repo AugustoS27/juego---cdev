@@ -86,6 +86,7 @@ export class Enemigo {
     this.caja = new THREE.Box3();
     this.ultimaPosicionVista = new THREE.Vector3();
     this.ignorar = null; // un collider que no le molesta (la abuela atraviesa su propia mecedora)
+    this.multiplicadorVision = 1; // de noche ve menos lejos (o más, si tenés la linterna prendida): lo pone Game
     this.tiempoAnimacion = 0; // avanza solo al caminar (para el balanceo)
     this.tiempoTotal = 0; // avanza siempre (para el rebote de los carteles)
     // Funciones que Game conecta para sonidos y avisos (el enemigo solo "avisa" que pasó algo)
@@ -292,7 +293,7 @@ export class Enemigo {
 
     // 1. Distancia
     const distancia = ojos.distanceTo(objetivo);
-    if (distancia > this.v.distanciaVision) return false;
+    if (distancia > this.v.distanciaVision * this.multiplicadorVision) return false;
 
     // 2. Ángulo: comparamos hacia dónde mira con la dirección hacia el jugador
     if (distancia > this.v.distanciaSentir) {
