@@ -29,6 +29,7 @@ export class UI {
     this.grano.style.setProperty('--ruido', `url(${imagenDeRuido()})`);
     this.atmosfera = {}; // (los últimos valores puestos: para no tocar el estilo si no cambió)
     this.botonesTurno = [...document.querySelectorAll('[data-turno]')];
+    this.botonesEstiloSonido = [...document.querySelectorAll('[data-estilo-sonido]')];
     this.textoVictoria = $('texto-victoria');
     this.estadisticasVictoria = $('estadisticas-victoria');
     this.textoDerrota = $('texto-derrota');
@@ -307,6 +308,15 @@ export class UI {
   // Marca el botón elegido
   marcarTurno(eleccion) {
     for (const boton of this.botonesTurno) boton.classList.toggle('elegido', boton.dataset.turno === eleccion);
+  }
+
+  // Sonidos grabados o hechos con código (etapa 16D): alElegir('grabado' | 'codigo')
+  conectarEstiloSonido(alElegir) {
+    for (const boton of this.botonesEstiloSonido) boton.addEventListener('click', () => alElegir(boton.dataset.estiloSonido));
+  }
+
+  marcarEstiloSonido(estilo) {
+    for (const boton of this.botonesEstiloSonido) boton.classList.toggle('elegido', boton.dataset.estiloSonido === estilo);
   }
 
   // En el HUD: "🌙 De noche" (y, de noche, la línea de la linterna)

@@ -4,7 +4,7 @@ Este documento es la cuarta parte del plan (la tercera, la historia nueva, está
 [PLAN_HISTORIA.md](PLAN_HISTORIA.md)). La etapa 15F (música, pasos y cierre) no se hizo por separado: queda
 adentro de esta etapa, que cambia el sonido de punta a punta.
 
-> **Estado actual:** 🔨 en curso. Confirmado por el usuario (con cambios, ver "Decisiones"). **16A** ✅ **16B** ✅ **16C** ✅. Próxima: **16D**.
+> **Estado actual:** 🔨 en curso. Confirmado por el usuario (con cambios, ver "Decisiones"). **16A** ✅ **16B** ✅ **16C** ✅ **16D** ✅. Próxima: **16E**.
 
 ---
 
@@ -37,8 +37,8 @@ Lo que pidió el usuario y dónde se hace cada cosa:
 | **16A** | Día y noche: se sortea (o se elige) el turno; cielo, sol/luna, niebla, farolas y ventanas encendidas; la linterna de Tomi (de noche); **el menú nuevo con la casa de fondo y relámpagos** | Grande | ✅ Terminada |
 | **16B** | Luces y atmósfera: lámparas de verdad en los cuartos, más contraste, viñeta y grano en la pantalla, tormenta con relámpagos (de noche) | Grande | ✅ Terminada |
 | **16C** | Cortes de luz (de noche): **solo los provoca el jugador** con el tablero de luz del garaje | Mediana | ✅ Terminada |
-| **16D** | Sonido real: eco según el cuarto, sonido que viene de un lado, pasos según el piso, ruidos de la casa (crujidos, reloj, viento, grillos), el corazón y la respiración de Tomi; **comparar sonidos grabados (CC0) contra sintetizados** | Grande | — |
-| **16E** | Música tensa y adaptativa: capas que se suman según lo cerca que esté el peligro, golpes de susto, tema de persecución, caja de música en el menú | Mediana | — |
+| **16D** | Sonido real: eco según el cuarto, sonido que viene de un lado, pasos según el piso, ruidos de la casa (crujidos, reloj, viento, grillos), el corazón y la respiración de Tomi; **comparar sonidos grabados (CC0) contra sintetizados** | Grande | ✅ Terminada |
+| **16E** | Música tensa y adaptativa: capas que se suman según lo cerca que esté el peligro, golpes de susto, tema de persecución, caja de música en el menú | Mediana | ⏳ Próxima |
 | **16F** | Habitaciones extrañas y oscuras + sustos: cuartos nuevos y objetos que se mueven solos | Grande | — |
 | **16G** | Cierre: todas las pruebas, rendimiento, README (lo que iba a ser la 15F) | Chica | — |
 
@@ -242,9 +242,51 @@ Un commit por etapa (cuando se pida).
 
 ---
 
-## Etapa 16D — Sonido real
+## Etapa 16D — Sonido real ✅
 
-### Qué se hace
+### Qué se hizo
+- **`Sonido.js` (nuevo): el motor.** Cada sonido con posición pasa por un "panner" de Web Audio (HRTF): suena del
+  lado donde está, más bajo cuanto más lejos (se apaga a los 17 m, como antes) y, si hay una pared en el medio, más
+  apagado (sin agudos); si está en otro piso, todavía más. Eco según el lugar (tres ecos armados con código):
+  chiquito en los cuartos, corto y brillante en el baño, la cocina y los conductos, largo en el sótano y el ático,
+  casi nada afuera. Sabe sobre qué está parado alguien: madera, cerámica, baldosas, alfombra, escalón, chapa
+  (conductos y techo del garaje), pasto, piedra (entrada de autos, vereda, túnel).
+- **`Audio.js`:** los efectos de siempre ahora pueden sonar en un lugar (`desde(posición, efecto)`) o con el eco
+  del lugar (`enElMundo(efecto)`). Pasos según el piso, con dos capas y cada uno un poco distinto; a veces cruje
+  una tabla. Don Ernesto pesado y grave, Doña Pocha arrastrando las pantuflas, los perros con las uñas (en el
+  pasto, un trotecito). El ruido que escuchan los enemigos no cambió (`Noise.js` igual).
+- **`Ambiente.js` (nuevo):** crujidos al azar cerca tuyo, el tic-tac de los relojes de pared, la heladera, la tele
+  de Doña Pocha (murmullo de voces), las cañerías del sótano, una puerta que se golpea sola en otro piso cada tanto;
+  afuera, el viento (más fuerte de noche y con tormenta, apagado adentro), pájaros de día, grillos de noche, perros
+  lejos y algún auto que pasa. Sin luz se callan la heladera y la tele.
+- **En la piel de Tomi:** el corazón late más fuerte y más rápido cuanto más cerca está un enemigo (70 a 150 por
+  minuto; al máximo si te persiguen); después de correr, la respiración se agita; escondido con alguien cerca, la
+  contenés, y cuando se va, un suspiro de alivio.
+- **Grabados o hechos con código (decisión del usuario: ver las dos):** se bajaron, con permiso, dos packs CC0 de
+  Kenney.nl ("Impact Sounds" y "RPG Audio") y quedaron solo los 44 sonidos que se usan (553 KB, en
+  `public/sonidos/` con sus licencias): pasos en cada piso, puertas, crujidos, golpes, vidrio, ropa, traba y el
+  tablero. `SonidosGrabados.js` los carga, los empareja de volumen y toca una versión al azar, un poco más aguda o
+  más grave. En el menú se elige "🎙️ Grabados" o "🎛️ Hechos con código" (se recuerda; al elegir suenan unos pasos y
+  una puerta para comparar). Si un grabado no carga, suena el de código.
+- **Probador de sonidos** (en la consola, mientras se programa): `sonidos()`, `probarSonido('crujido')`,
+  `probarSonido('pasoDueno', 'madera', {x, y, z})`, `probarPasos()` y `compararSonido('puerta')`.
+
+### Pruebas que se corrieron
+- Todos los efectos (77) sonaron sin errores, "acá" y ubicados en un punto.
+- De qué lado viene (con un contexto de audio sin parlantes, midiendo cada oído): mirando al frente, un sonido a la
+  derecha suena 3,8 veces más fuerte en el oído derecho, y al revés a la izquierda; girando la cámara, el lado
+  acompaña. A 12 m suena 7 veces más bajo que a 4 m; desde otro piso, 2,5 veces más bajo y sin agudos.
+- Superficies en 16 lugares (living, alfombra, cocina, baño, garaje, escalera, dormitorio, sótano, ático, caminos,
+  pasto, vereda, patio, techo del garaje, conducto): todas bien después de corregir dos (la escalera no daba
+  "escalón" y arriba del techo del garaje creía que estabas adentro).
+- Volúmenes de los grabados medidos contra los de código: quedaron entre 2 y 4,5 veces más energía (un poco más
+  presentes; la alfombra más, porque la de código casi no se escuchaba). Antes de ajustarlos eran hasta 300 veces.
+- Partidas simuladas (noche, día, noche) y dos cortes de luz con los grabados: sin errores; ~0,3 ms por frame de
+  lógica. Los sonidos ubicados que quedan a más de 17 m ni se arman (ahorra trabajo: los perros dan muchos pasos).
+- Se encontró y corrigió: el juego no arrancaba (el menú marcaba el estilo de sonido antes de que existiera la UI).
+- Build OK (los sonidos se copian al build).
+
+### Plan original
 - **Motor de sonido nuevo** (`Sonido.js`, reemplaza de a poco a `Audio.js`):
   - **Sonido que viene de un lado:** cada ruido de un enemigo o de la casa suena desde donde está (a la izquierda,
     a la derecha, adelante, atrás, más lejos o más cerca). Así sabés por dónde viene Don Ernesto sin verlo.

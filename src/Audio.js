@@ -7,6 +7,33 @@
 //
 // Los navegadores no dejan sonar nada hasta que el usuario hace click,
 // por eso el audio arranca recién con iniciar() (al tocar "¡A jugar!").
+//
+// Etapa 16D: los sonidos pueden sonar EN UN LUGAR del mundo (ver Sonido.js): de qué lado viene,
+// tapados por las paredes y con el eco del lugar. Para eso:
+//   - desde(posicion, 'puerta')   hace sonar el efecto "puerta" en ese punto
+//   - enElMundo('vidrio')         lo hace sonar con eco pero sin ubicación (cosas que hace Tomi)
+//   - el resto (música, avisos, walkie) suena directo, sin eco
+// Y los pasos suenan distinto según el piso: madera, cerámica, pasto... (ver pisada()).
+//
+// Dos estilos (el usuario quiso comparar): 'grabado' usa sonidos grabados de Kenney (CC0, ver
+// SonidosGrabados.js) para los pasos, las puertas, los crujidos y los golpes; 'codigo' los hace todos con
+// código. Los demás efectos (los de dibujito: avisos, juguetes, habilidades) son siempre con código.
+import { Espacio } from './Sonido.js';
+import { SonidosGrabados } from './SonidosGrabados.js';
+
+// Qué sonido grabado usa cada superficie, qué tan agudo (la cerámica: el mismo cemento pero más agudo) y a
+// qué volumen. Los volúmenes de los grabados están medidos para que suenen parejo con los de código
+// (apenas más presentes): ver "Pruebas" de la 16D en PLAN_TERROR.md.
+const PASOS_GRABADOS = {
+  madera: ['madera', 1, 0.1],
+  escalon: ['tablon', 0.9, 0.2],
+  alfombra: ['alfombra', 1, 0.03],
+  ceramica: ['cemento', 1.25, 0.08],
+  baldosas: ['cemento', 1.05, 0.06],
+  piedra: ['cemento', 0.85, 0.06],
+  pasto: ['pasto', 1, 0.09],
+  chapa: ['chapa', 1.1, 0.2],
+};
 
 // Melodías de fondo: listas de frecuencias (Hz). 0 = silencio.
 const MUSICA_SIGILO = [110, 0, 131, 0, 147, 131, 110, 0, 98, 0, 110, 0, 131, 147, 165, 0];
@@ -18,6 +45,8 @@ export class Audio {
     this.silenciado = false;
     this.notaMusica = 0;
     this.tiempoProximaNota = 0;
+    this.destino = null; // a dónde van los ladrillos si no se dice otra cosa (lo usa desde())
+    this.estilo = 'grabado'; // 'grabado' o 'codigo' (ver arriba)
   }
 
   iniciar() {
@@ -37,6 +66,41 @@ export class Audio {
     this.bufferRuido = this.ctx.createBuffer(1, muestras, muestras);
     const datos = this.bufferRuido.getChannelData(0);
     for (let i = 0; i < muestras; i++) datos[i] = Math.random() * 2 - 1;
+
+    // El espacio: sonidos ubicados, paredes que tapan y eco (ver Sonido.js)
+    this.espacio = new Espacio(this.ctx, this.salida);
+    this.mundo = this.espacio.mundo;
+    this.grabados = new SonidosGrabados(this.ctx); // (cargan de a poco: mientras tanto, los de código)
+    this.alIniciar?.(); // (Game conecta acá lo que necesita el espacio)
+  }
+
+  // Toca un sonido grabado si el estilo es 'grabado' y ya cargó. Devuelve false si no (y el efecto usa el
+  // de código). opciones: { volumen, velocidad, retraso }
+  grabado(nombre, opciones) {
+    if (this.estilo !== 'grabado' || !this.grabados?.tiene(nombre)) return false;
+    return this.grabados.tocar(nombre, this.destino ?? this.salida, opciones);
+  }
+
+  // Hace sonar un efecto en un punto del mundo: desde(posicion, 'puerta') o desde(posicion, 'ladrido', 0.8)
+  desde(posicion, efecto, ...args) {
+    if (!this.ctx || !this.espacio.seEscucha(posicion)) return; // (muy lejos: no se escucha)
+    this.destino = this.espacio.en(posicion);
+    try {
+      this[efecto](...args);
+    } finally {
+      this.destino = null;
+    }
+  }
+
+  // Un efecto con el eco del lugar, pero sin ubicación (lo que hace Tomi: suena "acá")
+  enElMundo(efecto, ...args) {
+    if (!this.ctx) return;
+    this.destino = this.mundo;
+    try {
+      this[efecto]?.(...args);
+    } finally {
+      this.destino = null;
+    }
   }
 
   alternarSilencio() {
@@ -49,7 +113,8 @@ export class Audio {
   //  LADRILLOS
   // ------------------------------------------------------------
   // Un tono con "envolvente": sube rápido y se apaga de a poco (suena como un golpe de nota)
-  tono({ frecuencia, frecuenciaFinal = frecuencia, duracion, tipo = 'sine', volumen = 0.3, retraso = 0 }) {
+  // (destino: a dónde se conecta; si no se dice, al de desde()/enElMundo() o directo a los parlantes)
+  tono({ frecuencia, frecuenciaFinal = frecuencia, duracion, tipo = 'sine', volumen = 0.3, retraso = 0, destino = null }) {
     if (!this.ctx || volumen <= 0) return;
     const inicio = this.ctx.currentTime + retraso;
     const osc = this.ctx.createOscillator();
@@ -60,24 +125,26 @@ export class Audio {
     vol.gain.setValueAtTime(0.0001, inicio);
     vol.gain.exponentialRampToValueAtTime(volumen, inicio + 0.01);
     vol.gain.exponentialRampToValueAtTime(0.0001, inicio + duracion);
-    osc.connect(vol).connect(this.salida);
+    osc.connect(vol).connect(destino ?? this.destino ?? this.salida);
     osc.start(inicio);
     osc.stop(inicio + duracion + 0.05);
   }
 
-  // Ruido blanco filtrado: con filtro bajo suena "sordo" (pasos), alto suena "áspero" (golpes)
-  ruido({ duracion, volumen = 0.3, filtro = 1000, retraso = 0 }) {
+  // Ruido blanco filtrado: con filtro bajo suena "sordo" (pasos), alto suena "áspero" (golpes).
+  // tipoFiltro 'bandpass' deja pasar solo una franja alrededor de "filtro" (más angosta cuanto más alto q)
+  ruido({ duracion, volumen = 0.3, filtro = 1000, retraso = 0, tipoFiltro = 'lowpass', q = 1, destino = null }) {
     if (!this.ctx || volumen <= 0) return;
     const inicio = this.ctx.currentTime + retraso;
     const fuente = this.ctx.createBufferSource();
     fuente.buffer = this.bufferRuido;
     const pasaBajos = this.ctx.createBiquadFilter();
-    pasaBajos.type = 'lowpass';
+    pasaBajos.type = tipoFiltro;
     pasaBajos.frequency.value = filtro;
+    if (tipoFiltro !== 'lowpass') pasaBajos.Q.value = q;
     const vol = this.ctx.createGain();
     vol.gain.setValueAtTime(volumen, inicio);
     vol.gain.exponentialRampToValueAtTime(0.0001, inicio + duracion);
-    fuente.connect(pasaBajos).connect(vol).connect(this.salida);
+    fuente.connect(pasaBajos).connect(vol).connect(destino ?? this.destino ?? this.salida);
     fuente.start(inicio, Math.random() * 0.5); // arranca en un punto al azar del buffer
     fuente.stop(inicio + duracion + 0.05);
   }
@@ -85,21 +152,99 @@ export class Audio {
   // ------------------------------------------------------------
   //  EFECTOS
   // ------------------------------------------------------------
-  // tipo: 'pasosAgachado' (muy suave), 'pasos', 'pasosCorriendo' (fuerte) o 'conducto' (chapa)
-  paso(tipo) {
-    if (tipo === 'conducto') {
-      // Adentro de un conducto: "¡bonc!" metálico
-      this.tono({ frecuencia: 420 + Math.random() * 80, frecuenciaFinal: 300, duracion: 0.12, tipo: 'square', volumen: 0.06 });
-      this.ruido({ duracion: 0.06, volumen: 0.1, filtro: 3000 });
+  // ------------------------------------------------------------
+  //  PASOS SEGÚN EL PISO (etapa 16D)
+  // ------------------------------------------------------------
+  // Un paso sobre una superficie (ver Superficies en Sonido.js). Dos capas: el golpe y el roce, cada paso
+  // un poquito distinto del anterior. fuerza: 0.35 agachado, 1 caminando, 2.2 corriendo.
+  // peso: 1 = Tomi; más alto = más grave (Don Ernesto)
+  pisada(superficie, fuerza = 1, peso = 1) {
+    // Grabado: el paso de esa superficie (más grave cuanto más pesado)
+    const [grabado, agudo, volumen] = PASOS_GRABADOS[superficie] ?? PASOS_GRABADOS.madera;
+    if (this.grabado(grabado, { volumen: fuerza * volumen, velocidad: agudo / Math.sqrt(peso) })) {
+      if (superficie === 'madera' && Math.random() < 0.07) this.crujido(0.5 * Math.min(fuerza, 1.5));
       return;
     }
+    const v = (base) => base * fuerza * (0.85 + Math.random() * 0.3);
+    const f = (base) => (base / peso) * (0.9 + Math.random() * 0.2);
+    const bp = { tipoFiltro: 'bandpass' };
+    switch (superficie) {
+      case 'chapa': // conductos y el techo del garaje: "¡bonc!" metálico
+        this.tono({ frecuencia: f(420), frecuenciaFinal: f(300), duracion: 0.12, tipo: 'square', volumen: v(0.05) });
+        this.ruido({ duracion: 0.06, volumen: v(0.08), filtro: 3000 });
+        break;
+      case 'ceramica': // golpe seco y agudo, con un "tic"
+        this.ruido({ duracion: 0.035, volumen: v(0.16), filtro: f(2600), q: 1.5, ...bp });
+        this.tono({ frecuencia: f(1900), duracion: 0.02, tipo: 'triangle', volumen: v(0.015) });
+        this.ruido({ duracion: 0.03, volumen: v(0.03), filtro: 5000, q: 1, retraso: 0.025, ...bp });
+        break;
+      case 'baldosas':
+        this.ruido({ duracion: 0.05, volumen: v(0.13), filtro: f(1500), q: 1.2, ...bp });
+        this.ruido({ duracion: 0.04, volumen: v(0.04), filtro: 3500, q: 1, retraso: 0.03, ...bp });
+        break;
+      case 'alfombra': // casi nada: un "fff" sordo
+        this.ruido({ duracion: 0.08, volumen: v(0.05), filtro: f(300) });
+        break;
+      case 'pasto': // roce de hojitas
+        this.ruido({ duracion: 0.12, volumen: v(0.07), filtro: f(3000), q: 0.7, ...bp });
+        this.ruido({ duracion: 0.08, volumen: v(0.045), filtro: f(1500), q: 0.8, retraso: 0.04, ...bp });
+        break;
+      case 'piedra': // "cronch" de piedritas
+        this.ruido({ duracion: 0.05, volumen: v(0.1), filtro: f(2200), q: 1.2, ...bp });
+        this.ruido({ duracion: 0.04, volumen: v(0.07), filtro: f(3300), q: 1.5, retraso: 0.03, ...bp });
+        break;
+      case 'escalon': // madera hueca: más grave y con más cuerpo
+        this.ruido({ duracion: 0.08, volumen: v(0.14), filtro: f(350) });
+        this.tono({ frecuencia: f(110), frecuenciaFinal: f(70), duracion: 0.1, volumen: v(0.1) });
+        break;
+      default: // madera: golpe sordo, un "toc" y, a veces, una tabla que cruje
+        this.ruido({ duracion: 0.06, volumen: v(0.12), filtro: f(450) });
+        this.tono({ frecuencia: f(140), frecuenciaFinal: f(90), duracion: 0.07, volumen: v(0.06) });
+        this.ruido({ duracion: 0.05, volumen: v(0.025), filtro: 1800, q: 1, retraso: 0.03, ...bp });
+        if (Math.random() < 0.07) this.crujido(0.5 * Math.min(fuerza, 1.5));
+    }
+  }
+
+  // tipo: 'pasosAgachado', 'pasos', 'pasosCorriendo', 'conducto' o 'lana' (con las botas puestas).
+  // superficie: ver pisada()
+  paso(tipo, superficie = 'madera') {
     if (tipo === 'lana') {
       // Con las botas de lana: apenas un roce de tela
       this.ruido({ duracion: 0.08, volumen: 0.02, filtro: 250 });
       return;
     }
-    const volumen = { pasosAgachado: 0.04, pasos: 0.12, pasosCorriendo: 0.35 }[tipo] ?? 0.12;
-    this.ruido({ duracion: 0.07, volumen, filtro: tipo === 'pasosCorriendo' ? 900 : 500 });
+    if (tipo === 'conducto') superficie = 'chapa';
+    const fuerza = { pasosAgachado: 0.35, pasos: 1, pasosCorriendo: 2.2 }[tipo] ?? 1;
+    this.pisada(superficie, fuerza);
+  }
+
+  // Pasos de Don Ernesto: pesados y graves (usar con desde())
+  pasoDueno(superficie = 'madera') {
+    this.pisada(superficie, 2.6, 1.8);
+  }
+
+  // Doña Pocha arrastra las pantuflas: "shhh-shhh"
+  pasoPocha(superficie = 'madera') {
+    const v = superficie === 'alfombra' ? 0.04 : 0.09;
+    this.ruido({ duracion: 0.2, volumen: v * (0.8 + Math.random() * 0.4), filtro: 900 + Math.random() * 300, q: 0.8, tipoFiltro: 'bandpass' });
+  }
+
+  // Los perros: las uñas en el piso duro ("tic-tic"); en el pasto, un trotecito suave
+  pasoPerro(superficie = 'pasto') {
+    if (superficie === 'pasto' || superficie === 'alfombra') {
+      this.ruido({ duracion: 0.05, volumen: 0.04, filtro: 1800, q: 0.8, tipoFiltro: 'bandpass' });
+      return;
+    }
+    for (const retraso of [0, 0.05]) this.ruido({ duracion: 0.015, volumen: 0.06, filtro: 4500, q: 2, retraso, tipoFiltro: 'bandpass' });
+  }
+
+  // Una tabla que cruje: "criiic" (un tono áspero que sube y tiembla)
+  crujido(volumen = 1) {
+    if (this.grabado('crujido', { volumen: 0.04 * volumen, velocidad: 0.85 + Math.random() * 0.3 })) return;
+    const desde = 180 + Math.random() * 120;
+    const duracion = 0.25 + Math.random() * 0.35;
+    this.tono({ frecuencia: desde, frecuenciaFinal: desde * (1.2 + Math.random() * 0.4), duracion, tipo: 'sawtooth', volumen: 0.018 * volumen });
+    this.tono({ frecuencia: desde * 1.5, frecuenciaFinal: desde * 1.9, duracion: duracion * 0.8, tipo: 'sawtooth', volumen: 0.01 * volumen, retraso: 0.02 });
   }
 
   // Saltar: un "¡hup!" cortito que sube
@@ -113,19 +258,15 @@ export class Audio {
     this.tono({ frecuencia: 90, frecuenciaFinal: 50, duracion: 0.15, volumen: 0.3 });
   }
 
-  // Pasos del dueño: más graves. "volumen" va de 0 (lejos) a 1 (al lado)
-  pasoDueno(volumen) {
-    this.ruido({ duracion: 0.12, volumen: 0.6 * volumen, filtro: 250 });
-    this.tono({ frecuencia: 80, frecuenciaFinal: 50, duracion: 0.1, volumen: 0.35 * volumen });
-  }
-
   // Chirrido de bisagra + golpecito
   puerta(volumen = 1) {
+    if (this.grabado('puertaAbrir', { volumen: 0.065 * volumen })) return;
     this.tono({ frecuencia: 320, frecuenciaFinal: 560, duracion: 0.3, tipo: 'sawtooth', volumen: 0.05 * volumen });
     this.ruido({ duracion: 0.1, volumen: 0.3 * volumen, filtro: 400, retraso: 0.25 });
   }
 
   choque() {
+    if (this.grabado('golpeMadera', { volumen: 0.53 })) return;
     this.tono({ frecuencia: 140, frecuenciaFinal: 40, duracion: 0.25, tipo: 'square', volumen: 0.2 });
     this.ruido({ duracion: 0.2, volumen: 0.45, filtro: 1500 });
   }
@@ -187,6 +328,7 @@ export class Audio {
 
   // Click-clack de cerradura
   traba(volumen = 1) {
+    if (this.grabado('traba', { volumen: 0.43 * volumen })) return;
     this.ruido({ duracion: 0.04, volumen: 0.5 * volumen, filtro: 4000 });
     this.ruido({ duracion: 0.05, volumen: 0.5 * volumen, filtro: 3000, retraso: 0.12 });
   }
@@ -194,6 +336,7 @@ export class Audio {
   // --- Entradas ---
   // Vidrio roto: un golpe áspero + tintineos agudos al azar
   vidrio() {
+    if (this.grabado('vidrio', { volumen: 1 })) return;
     this.ruido({ duracion: 0.4, volumen: 0.6, filtro: 6000 });
     for (let i = 0; i < 6; i++) {
       this.tono({ frecuencia: 2500 + Math.random() * 2500, duracion: 0.15, tipo: 'triangle', volumen: 0.08, retraso: 0.05 + i * 0.06 });
@@ -202,6 +345,7 @@ export class Audio {
 
   // Trepar / subir: roce de ropa
   trepar() {
+    if (this.grabado('ropa', { volumen: 0.09 }) && this.grabado('ropa', { volumen: 0.09, retraso: 0.4 })) return;
     this.ruido({ duracion: 0.3, volumen: 0.15, filtro: 700 });
     this.ruido({ duracion: 0.3, volumen: 0.15, filtro: 700, retraso: 0.4 });
   }
@@ -451,8 +595,10 @@ export class Audio {
   // Tablero de luz (etapa 16C): "¡CLAC!" de la llave y el zumbido de la corriente que se va (al cortar)
   // o que vuelve (al subirla). volumen: de 0 a 1 (Don Ernesto la sube lejos: se escucha bajito)
   tablero(cortando, volumen = 1) {
-    this.ruido({ duracion: 0.08, volumen: 0.45 * volumen, filtro: 2200 });
-    this.tono({ frecuencia: 900, frecuenciaFinal: 300, duracion: 0.05, tipo: 'square', volumen: 0.08 * volumen });
+    if (!this.grabado('click', { volumen: 0.48 * volumen, velocidad: 0.8 })) {
+      this.ruido({ duracion: 0.08, volumen: 0.45 * volumen, filtro: 2200 });
+      this.tono({ frecuencia: 900, frecuenciaFinal: 300, duracion: 0.05, tipo: 'square', volumen: 0.08 * volumen });
+    }
     if (cortando) this.tono({ frecuencia: 120, frecuenciaFinal: 45, duracion: 0.9, tipo: 'sawtooth', volumen: 0.07 * volumen, retraso: 0.05 });
     else this.tono({ frecuencia: 50, frecuenciaFinal: 120, duracion: 0.7, tipo: 'sawtooth', volumen: 0.06 * volumen, retraso: 0.1 });
   }
@@ -478,6 +624,120 @@ export class Audio {
     const ahora = this.ctx.currentTime;
     this.volumenLluvia.gain.setTargetAtTime(volumen * (adentro ? 0.12 : 0.2), ahora, 0.4);
     this.filtroLluvia.frequency.setTargetAtTime(adentro ? 700 : 3200, ahora, 0.4);
+  }
+
+  // ------------------------------------------------------------
+  //  AMBIENTE (etapa 16D, ver Ambiente.js). Casi todos se usan con desde(posicion, ...)
+  // ------------------------------------------------------------
+  // Cañerías del sótano: "glu-glu-glu" (burbujitas que suben)
+  cañeria() {
+    const n = 4 + Math.floor(Math.random() * 4);
+    for (let i = 0; i < n; i++) {
+      const f = 250 + Math.random() * 250;
+      this.tono({ frecuencia: f, frecuenciaFinal: f * 1.6, duracion: 0.06, tipo: 'sine', volumen: 0.07, retraso: i * (0.07 + Math.random() * 0.08) });
+    }
+    this.ruido({ duracion: 0.6, volumen: 0.03, filtro: 400 });
+  }
+
+  // Una puerta que se golpea sola: "¡PAM!" grave
+  portazo() {
+    if (this.grabado('puertaCerrar', { volumen: 0.68, velocidad: 0.85 })) return;
+    this.ruido({ duracion: 0.25, volumen: 0.55, filtro: 350 });
+    this.tono({ frecuencia: 75, frecuenciaFinal: 45, duracion: 0.3, volumen: 0.4 });
+    this.ruido({ duracion: 0.08, volumen: 0.15, filtro: 1500, retraso: 0.02 });
+  }
+
+  // Pájaros (de día): dos o tres "pío" agudos
+  pajaro() {
+    const f = 2600 + Math.random() * 1600;
+    const n = 2 + Math.floor(Math.random() * 3);
+    for (let i = 0; i < n; i++) {
+      this.tono({ frecuencia: f, frecuenciaFinal: f * (1.15 + Math.random() * 0.3), duracion: 0.07, tipo: 'sine', volumen: 0.05, retraso: i * 0.11 });
+    }
+  }
+
+  // Grillos (de noche): "cri-cri-cri" (pulsos agudos muy seguidos)
+  grillo() {
+    const f = 4200 + Math.random() * 600;
+    for (let i = 0; i < 3; i++) this.tono({ frecuencia: f, duracion: 0.025, tipo: 'sine', volumen: 0.03, retraso: i * 0.045 });
+  }
+
+  // Tic-tac de reloj de pared
+  tictac(tac) {
+    this.ruido({ duracion: 0.02, volumen: 0.07, filtro: tac ? 2600 : 3400, q: 3, tipoFiltro: 'bandpass' });
+  }
+
+  // La tele de Doña Pocha: una "sílaba" de una voz que habla atrás de la pared
+  palabraTele() {
+    const f = 700 + Math.random() * 700;
+    this.ruido({ duracion: 0.07 + Math.random() * 0.08, volumen: 0.05, filtro: f, q: 2.5, tipoFiltro: 'bandpass' });
+    if (Math.random() < 0.4) this.tono({ frecuencia: 160 + Math.random() * 80, duracion: 0.08, tipo: 'triangle', volumen: 0.02 });
+  }
+
+  // Un sonido "lejos" (más allá del barrio): sin ubicación exacta, de un costado (pan: -1 izquierda,
+  // 1 derecha), apagado y bajito. adentro: todavía más apagado (lo escuchás a través de las paredes)
+  lejos(efecto, pan = 0, adentro = false) {
+    if (!this.ctx) return;
+    const panner = this.ctx.createStereoPanner();
+    panner.pan.value = pan;
+    const filtro = this.ctx.createBiquadFilter();
+    filtro.type = 'lowpass';
+    filtro.frequency.value = adentro ? 500 : 1100;
+    const vol = this.ctx.createGain();
+    vol.gain.value = adentro ? 0.15 : 0.3;
+    panner.connect(filtro).connect(vol).connect(this.mundo);
+    this.destino = panner;
+    try {
+      this[efecto]();
+    } finally {
+      this.destino = null;
+    }
+  }
+
+  // Un auto que pasa por la calle (de noche): un rumor que crece, pasa de un lado al otro y se va
+  autoQuePasa(adentro = false) {
+    if (!this.ctx) return;
+    const inicio = this.ctx.currentTime;
+    const duracion = 4.5;
+    const fuente = this.ctx.createBufferSource();
+    fuente.buffer = this.bufferRuido;
+    fuente.loop = true;
+    const filtro = this.ctx.createBiquadFilter();
+    filtro.type = 'lowpass';
+    filtro.frequency.setValueAtTime(adentro ? 200 : 300, inicio);
+    filtro.frequency.linearRampToValueAtTime(adentro ? 350 : 700, inicio + duracion / 2);
+    filtro.frequency.linearRampToValueAtTime(adentro ? 200 : 300, inicio + duracion);
+    const vol = this.ctx.createGain();
+    vol.gain.setValueAtTime(0.0001, inicio);
+    vol.gain.exponentialRampToValueAtTime(adentro ? 0.05 : 0.12, inicio + duracion / 2);
+    vol.gain.exponentialRampToValueAtTime(0.0001, inicio + duracion);
+    const panner = this.ctx.createStereoPanner();
+    const lado = Math.random() < 0.5 ? -1 : 1;
+    panner.pan.setValueAtTime(-lado, inicio);
+    panner.pan.linearRampToValueAtTime(lado, inicio + duracion);
+    fuente.connect(filtro).connect(vol).connect(panner).connect(this.mundo);
+    fuente.start(inicio, Math.random() * 0.5);
+    fuente.stop(inicio + duracion + 0.1);
+  }
+
+  // ------------------------------------------------------------
+  //  TOMI (etapa 16D): el corazón y la respiración (suenan "adentro tuyo")
+  // ------------------------------------------------------------
+  // Un latido: "pum-pum" grave. fuerza: de 0 a 1 (más fuerte si el enemigo está más cerca)
+  latido(fuerza = 0.5) {
+    this.tono({ frecuencia: 58, frecuenciaFinal: 40, duracion: 0.13, volumen: 0.12 + 0.28 * fuerza });
+    this.tono({ frecuencia: 52, frecuenciaFinal: 38, duracion: 0.12, volumen: 0.08 + 0.2 * fuerza, retraso: 0.17 });
+  }
+
+  // Una respiración agitada (inspirar y soltar el aire). cansancio: de 0.3 a 1
+  respiracion(cansancio = 0.6) {
+    this.ruido({ duracion: 0.3, volumen: 0.025 + 0.03 * cansancio, filtro: 1400, q: 0.9, tipoFiltro: 'bandpass' });
+    this.ruido({ duracion: 0.4, volumen: 0.03 + 0.035 * cansancio, filtro: 850, q: 0.9, retraso: 0.38, tipoFiltro: 'bandpass' });
+  }
+
+  // "Fiuuu": el suspiro de alivio cuando el enemigo se aleja de tu escondite
+  suspiro() {
+    this.ruido({ duracion: 0.9, volumen: 0.06, filtro: 750, q: 0.8, tipoFiltro: 'bandpass' });
   }
 
   // Timbre de bici: "¡ring ring!" (dos campanadas agudas con su eco)

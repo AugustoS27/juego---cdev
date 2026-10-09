@@ -25,6 +25,8 @@ import { TURNOS, sortearTurno, Linterna } from './Turno.js';
 import { Lamparas } from './Lamparas.js';
 import { Atmosfera } from './Atmosfera.js';
 import { CorteDeLuz } from './CorteDeLuz.js';
+import { Superficies, zonaDeEco } from './Sonido.js';
+import { Ambiente } from './Ambiente.js';
 import { ponerContraste } from './Materials.js';
 import { juntarMallasEstaticas } from './Optimizar.js';
 import { Decoracion } from './Decoracion.js';
@@ -104,6 +106,12 @@ export class Game {
     this.enemigos = [this.dueno, ...this.perros, this.abuela];
     this.ruido = new SistemaDeRuido(this.scene, this.enemigos);
     this.audio = new Audio();
+    // Etapa 16D: sobre qué se pisa (para los pasos), los ruidos de ambiente y cuánto tapan las paredes
+    this.superficies = new Superficies(this.house);
+    this.ambiente = new Ambiente(this.audio, this.house);
+    this.audio.alIniciar = () => (this.audio.espacio.tapado = (posicion) => this.tapadoHasta(posicion));
+    this.audio.estilo = leerGuardado('estiloSonido', ['grabado', 'codigo'], 'grabado');
+    if (import.meta.env.DEV) this.crearProbadorDeSonidos();
     this.ui = new UI();
     this.walkie = new Walkie(); // Facu, por radio (pistas y comentarios)
     // Cinemáticas: el reproductor (Cinematica.js) y los guiones con sus actores (Escenas.js)
@@ -118,6 +126,7 @@ export class Game {
     this.linternaDueno = new Linterna(this.scene, { color: '#ffe9b0', intensidad: 7, distancia: 15, angulo: 0.32, sombra: true, cono: true });
     this.eleccionTurno = leerEleccionTurno(); // 'azar', 'dia' o 'noche' (lo que se eligió en el menú)
     this.ui.marcarTurno(this.eleccionTurno);
+    this.ui.marcarEstiloSonido(this.audio.estilo);
     this.ponerTurno(sortearTurno(this.eleccionTurno));
     this.tiempoMenu = 0;
     this.tiempoRelampago = -1; // segundos desde que empezó el relámpago (-1: no hay)
@@ -307,7 +316,7 @@ export class Game {
 
   bajarLlave() {
     this.corte.bajar();
-    this.audio.tablero(true);
+    this.audio.enElMundo('tablero', true);
     this.hacerRuido(new THREE.Vector3(TABLERO_LUZ.x - 0.6, 0, TABLERO_LUZ.z), RADIO_RUIDO.puerta);
     this.ui.mostrarAviso('🔌 ¡Clac! Se cortó la luz de toda la casa. Ahora los vecinos casi no ven... salvo tu linterna', 4);
     this.walkie.comentar(this.corte.veces >= 2 ? 'sospecha' : 'corte', {}, true);
@@ -317,8 +326,8 @@ export class Game {
   // porDueno: la subió Don Ernesto (si no, el jugador)
   subirLlave(porDueno) {
     this.corte.subir();
-    const volumen = porDueno ? Math.max(0.25, this.volumenPorDistancia(new THREE.Vector3(TABLERO_LUZ.x, TABLERO_LUZ.y, TABLERO_LUZ.z))) : 1;
-    this.audio.tablero(false, volumen);
+    if (porDueno) this.audio.desde(new THREE.Vector3(TABLERO_LUZ.x, TABLERO_LUZ.y, TABLERO_LUZ.z), 'tablero', false);
+    else this.audio.enElMundo('tablero', false);
     if (porDueno) this.ui.mostrarAviso('💡 Don Ernesto volvió a subir la llave: ¡volvió la luz!', 3);
     else this.dueno.olvidarTablero();
     this.esperaDueno = 0;
@@ -332,7 +341,7 @@ export class Game {
       if (this.esperaDueno <= 0 && this.corte.cortada) {
         const sospecha = this.corte.veces >= 2;
         this.dueno.irAlTablero(this.dueno.waypoints.tablero, sospecha);
-        this.audio.rezongo(Math.max(0.3, this.volumenPorDistancia(this.dueno.position)));
+        this.audio.desde(this.cabezaDe(this.dueno), 'rezongo');
         this.ui.mostrarAviso(`💡 Don Ernesto: "¡¿Otra vez la luz?!" Va para el tablero del garaje${sospecha ? '... y sospecha' : ''}`, 3.5);
       }
     }
@@ -467,25 +476,27 @@ export class Game {
     // (agachado casi nada, caminando un poco, corriendo mucho: ver RADIO_RUIDO en Noise.js).
     // Adentro de un conducto de ventilación, cualquier paso suena a chapa.
     // Con las botas de lana puestas, los pasos no hacen ruido (ni corriendo, ni en la chapa).
+    // Cómo suena depende de lo que pisás: madera, cerámica, alfombra, pasto... (ver Sonido.js).
+    // El ruido que escuchan los enemigos no cambia: depende de cómo caminás, no del piso.
     this.player.alDarPaso = (tipo) => {
       if (this.player.pasosSilenciosos) {
-        this.audio.paso('lana');
+        this.audio.enElMundo('paso', 'lana');
         return;
       }
       if (this.house.enConducto(this.player.position)) tipo = 'conducto';
-      this.audio.paso(tipo);
+      this.audio.enElMundo('paso', tipo, this.superficies.en(this.player.position));
       this.hacerRuido(this.player.position, RADIO_RUIDO[tipo]);
     };
 
     // Otros ruidos del jugador: chocar algo corriendo, saltar y aterrizar
     this.player.alHacerRuido = (tipo) => {
       if (tipo === 'choque') {
-        this.audio.choque();
+        this.audio.enElMundo('choque');
         this.ui.mostrarAviso('💥 ¡PUM! Te llevaste puesto un mueble', 1.5);
       } else if (tipo === 'salto') {
-        this.audio.salto();
+        this.audio.enElMundo('salto');
       } else if (tipo === 'aterrizaje') {
-        this.audio.aterrizaje();
+        this.audio.enElMundo('aterrizaje');
       }
       this.hacerRuido(this.player.position, RADIO_RUIDO[tipo]);
     };
@@ -493,17 +504,21 @@ export class Game {
     // Algunas animaciones de las entradas traen algo que pasa al llegar (ej: el ¡PUF! de la chimenea)
     this.player.alTerminarAnimacion = (resultado) => this.aplicarResultado(resultado);
 
-    // Pasos y puertas del dueño y la abuela: suenan más fuerte cuanto más cerca están
-    this.dueno.alDarPaso = () => this.audio.pasoDueno(this.volumenPorDistancia(this.dueno.position));
-    this.abuela.alDarPaso = () => this.audio.pasoDueno(0.4 * this.volumenPorDistancia(this.abuela.position));
+    // Pasos y puertas de los enemigos: suenan donde están (de qué lado, qué tan lejos, tapados por las
+    // paredes) y según lo que pisan: los de Don Ernesto pesados, las pantuflas de Doña Pocha, las uñas
+    // de los perros
+    const pasoDe = (enemigo, efecto) => () => this.audio.desde(enemigo.position.clone().setY(enemigo.position.y + 0.1), efecto, this.superficies.en(enemigo.position));
+    this.dueno.alDarPaso = pasoDe(this.dueno, 'pasoDueno');
+    this.abuela.alDarPaso = pasoDe(this.abuela, 'pasoPocha');
+    for (const perro of this.perros) perro.alDarPaso = pasoDe(perro, 'pasoPerro');
     for (const enemigo of [this.dueno, this.abuela]) {
-      enemigo.alAbrirPuerta = (puerta) => this.audio.puerta(this.volumenPorDistancia(puerta.centro));
+      enemigo.alAbrirPuerta = (puerta) => this.audio.desde(puerta.centro, 'puerta');
     }
 
     // Goteras del sótano: "plic" (solo si estás en el sótano, y más fuerte cuanto más cerca)
     this.decoracion.alCaerGota = (posicion) => {
       if (this.estado !== PARTIDA.JUGANDO || pisoDeAltura(this.player.position.y) !== -1) return;
-      this.audio.gota(this.volumenPorDistancia(posicion));
+      this.audio.desde(posicion, 'gota');
     };
 
     // Don Ernesto llegó al tablero y subió la llave (ver Dueno.js)
@@ -511,7 +526,7 @@ export class Game {
 
     // El dueño trabó una puerta
     this.dueno.alTrabarPuerta = (puerta) => {
-      this.audio.traba(Math.max(0.3, this.volumenPorDistancia(puerta.centro)));
+      this.audio.desde(puerta.centro, 'traba');
       const donde = NOMBRES_PISOS[puerta.piso].toLowerCase();
       this.ui.mostrarAviso(`🔒 ¡Don Ernesto trabó una puerta (${donde})! Se destraba en 20 s`, 4);
     };
@@ -537,7 +552,7 @@ export class Game {
     // Perros: cada ladrido suena y es un ruido que alerta a los demás (sobre todo al dueño)
     for (const perro of this.perros) {
       perro.alLadrar = () => {
-        this.audio.ladrido(this.volumenPorDistancia(perro.position));
+        this.audio.desde(perro.position.clone().setY(perro.position.y + 0.6), 'ladrido');
         this.hacerRuido(perro.position, RADIO_RUIDO.ladrido, perro);
       };
       perro.alCambiarEstado = (nuevo) => {
@@ -556,7 +571,7 @@ export class Game {
       this.walkie.comentar('abuela', {}, true);
     };
     this.abuela.alDisparar = () => {
-      this.audio.fuap(Math.max(0.4, this.volumenPorDistancia(this.abuela.position)));
+      this.audio.desde(this.cabezaDe(this.abuela), 'fuap');
       this.ui.mostrarFuap();
       // El ruido sale de donde te vio (a la altura de tus pies): el dueño va a ir a ver ahí
       this.hacerRuido(this.abuela.ultimaPosicionVista, RADIO_RUIDO.red, this.abuela);
@@ -577,7 +592,7 @@ export class Game {
       this.abuela.redes.dejarEnElPiso(this.player.position);
       this.ui.mostrarAviso('💪 ¡Te soltaste! Rajá de ahí', 2);
     };
-    this.abuela.alRecargar = () => this.audio.recarga(this.volumenPorDistancia(this.abuela.position));
+    this.abuela.alRecargar = () => this.audio.desde(this.cabezaDe(this.abuela), 'recarga');
   }
 
   // Pone el sol de adentro debajo del techo del piso dado (en el ático, debajo de la cumbrera)
@@ -626,6 +641,86 @@ export class Game {
   // ¿El punto está en el patio de los perros? (con un poco de margen: los perros no llegan al borde)
   enElPatio({ x, z }) {
     return ZONA_PATIO.some(([x1, z1, x2, z2]) => x > x1 - 0.5 && x < x2 + 0.5 && z > z1 - 0.5 && z < z2 + 0.5);
+  }
+
+  // ------------------------------------------------------------
+  //  SONIDO (etapa 16D, ver Sonido.js y Ambiente.js)
+  // ------------------------------------------------------------
+  // Cuánto tapan las paredes un sonido que sale de "posicion": 0 si lo ves, 0.55 si hay algo en el medio,
+  // 1 si está en otro piso
+  tapadoHasta(posicion) {
+    const oidos = this.camera.position;
+    if (pisoDeAltura(posicion.y) !== pisoDeAltura(oidos.y - 1.6)) return 1;
+    return this.house.hayVisionEntre(oidos, posicion) ? 0 : 0.55;
+  }
+
+  // La cabeza de un enemigo (de ahí salen su voz y sus ruidos)
+  cabezaDe(enemigo) {
+    return enemigo.position.clone().setY(enemigo.position.y + 1.4);
+  }
+
+  // Cada frame: los oídos van con la cámara, el eco cambia según el lugar y suena el ambiente
+  actualizarSonido(dt, alerta) {
+    if (!this.audio.ctx) return;
+    this.camera.getWorldDirection(this.direccionMirada);
+    this.audio.espacio.actualizarOyente(this.camera, this.direccionMirada);
+    const jugando = this.estado === PARTIDA.JUGANDO;
+    this.audio.espacio.ponerZona(jugando ? zonaDeEco(this.house, this.player.position) : 'afuera');
+    const p = this.player.position;
+    this.ambiente.update(dt, {
+      jugando,
+      posicion: p,
+      piso: pisoDeAltura(p.y),
+      adentro: this.jugadorAdentro,
+      turno: this.turno,
+      tormenta: this.tormenta,
+      corriente: this.corrienteActual,
+      cercania: this.cercania,
+      perseguido: jugando && alerta,
+      corriendo: jugando && this.player.tipoDePaso === 'pasosCorriendo',
+      escondido: this.player.escondido,
+    });
+  }
+
+  // Probador de sonidos (solo mientras se programa): en la consola del navegador
+  //   sonidos()                      -> la lista de efectos
+  //   probarSonido('crujido')        -> suena "acá" (con el eco del lugar)
+  //   probarSonido('pasoDueno', 'madera', { x: 3, y: 0, z: 0 })  -> suena en ese punto del mundo
+  //   probarPasos()                  -> los pasos de Tomi en cada superficie, uno atrás del otro
+  //   compararSonido('puerta')       -> el de código y, después, el grabado
+  crearProbadorDeSonidos() {
+    const audio = this.audio;
+    window.sonidos = () => Object.getOwnPropertyNames(Object.getPrototypeOf(audio)).filter((n) => n !== 'constructor');
+    window.probarSonido = (efecto, ...args) => {
+      audio.iniciar();
+      const ultimo = args[args.length - 1];
+      if (ultimo && typeof ultimo === 'object' && 'x' in ultimo) {
+        audio.desde(new THREE.Vector3(ultimo.x, ultimo.y, ultimo.z), efecto, ...args.slice(0, -1));
+      } else {
+        audio.enElMundo(efecto, ...args);
+      }
+    };
+    // compararSonido('puerta') o compararSonido('paso', 'pasos', 'madera'): primero el de código, después el grabado
+    window.compararSonido = (efecto, ...args) => {
+      audio.iniciar();
+      const antes = audio.estilo;
+      audio.estilo = 'codigo';
+      audio.enElMundo(efecto, ...args);
+      setTimeout(() => {
+        audio.estilo = 'grabado';
+        audio.enElMundo(efecto, ...args);
+        audio.estilo = antes;
+      }, 1200);
+      return 'código... y en 1,2 s el grabado';
+    };
+    window.probarPasos = (tipo = 'pasos') => {
+      audio.iniciar();
+      const superficies = ['madera', 'escalon', 'alfombra', 'ceramica', 'baldosas', 'chapa', 'pasto', 'piedra'];
+      superficies.forEach((s, i) => {
+        for (let j = 0; j < 4; j++) setTimeout(() => audio.enElMundo('paso', tipo, s), i * 2000 + j * 400);
+      });
+      return superficies.join(' → ');
+    };
   }
 
   // De 1 (al lado de la cámara) a 0 (a 15 m o más)
@@ -734,6 +829,16 @@ export class Game {
       this.ponerTurno(sortearTurno(eleccion));
       if (this.estado === PARTIDA.MENU) this.escenas.prepararMenu(this.turno === 'noche');
     });
+
+    // Sonidos grabados o hechos con código (se recuerda). Para comparar, suenan unos pasos y una puerta
+    this.ui.conectarEstiloSonido((estilo) => {
+      this.audio.iniciar();
+      this.audio.estilo = estilo;
+      guardar('estiloSonido', estilo);
+      this.ui.marcarEstiloSonido(estilo);
+      ['madera', 'madera', 'ceramica', 'ceramica'].forEach((s, i) => setTimeout(() => this.audio.enElMundo('paso', 'pasos', s), i * 380));
+      setTimeout(() => this.audio.enElMundo('puerta'), 1700);
+    });
   }
 
   configurarTeclado() {
@@ -840,6 +945,8 @@ export class Game {
     this.actualizarLinternas();
     this.atmosfera.update(dt, this.camera, this.linterna);
     this.actualizarPantalla(dt);
+    // Los oídos, el eco del lugar y el ambiente (con la alerta del frame anterior, para el corazón)
+    this.actualizarSonido(dt, this.alertaAnterior);
     // La lluvia se escucha más sorda adentro (y casi nada en el sótano)
     const enElSotano = this.jugadorAdentro && pisoDeAltura(this.player.position.y) === -1;
     this.audio.lluvia(this.tormenta ? (enElSotano ? 0.4 : 1) : 0, this.jugadorAdentro);
@@ -874,6 +981,7 @@ export class Game {
     if (this.estado === PARTIDA.JUGANDO) {
       // Si algún enemigo te está cazando (o Doña Pocha te apunta): música tensa y borde rojo
       const alerta = this.enemigos.some((enemigo) => enemigo.estaAlerta);
+      this.alertaAnterior = alerta;
       this.audio.actualizarMusica(dt, alerta);
       this.ui.mostrarAlertaPersecucion(alerta);
       this.ui.mostrarApuntado(this.abuela.estado === ESTADO_ABUELA.APUNTAR);
@@ -1123,9 +1231,7 @@ export class Game {
     // Abrir o cerrar una puerta suena y hace ruido (una rejilla, menos; el estante secreto rechina)
     if (puerta.alternar()) {
       const chiquita = puerta.estilo === 'rejilla' || puerta.estilo === 'tabla';
-      if (chiquita) this.audio.rejilla();
-      else if (puerta.secreta) this.audio.estante();
-      else this.audio.puerta();
+      this.audio.enElMundo(chiquita ? 'rejilla' : puerta.secreta ? 'estante' : 'puerta');
       if (puerta.secreta && puerta.abierta && !this.pasadizoEncontrado) {
         this.pasadizoEncontrado = true;
         this.ui.mostrarAviso('📚 ¡El estante giró! Hay un cuarto secreto detrás', 3);
@@ -1144,7 +1250,7 @@ export class Game {
 
   // Las entradas devuelven "qué pasó"; acá lo convertimos en sonido, ruido, aviso y animación
   aplicarResultado({ sonido, aviso, ruido, animacion, llave, hollin }) {
-    if (sonido) this.audio[sonido]?.();
+    if (sonido) this.audio.enElMundo(sonido);
     if (aviso) this.ui.mostrarAviso(aviso, 3);
     if (ruido) this.hacerRuido(ruido.posicion, ruido.radio);
     if (animacion) this.player.moverAnimado(animacion);
@@ -1161,14 +1267,14 @@ export class Game {
     this.player.esconderse(escondite);
     this.dueno.alEsconderseElJugador(escondite);
     this.ui.mostrarEscondite(escondite.escondite);
-    this.audio[ESCONDITES[escondite.escondite].sonido](0.4);
+    this.audio.enElMundo(ESCONDITES[escondite.escondite].sonido, 0.4);
   }
 
   salirDelEscondite() {
     const tipo = ESCONDITES[this.player.escondite.escondite];
     this.player.salirDelEscondite();
     this.ui.mostrarEscondite(null);
-    this.audio[tipo.sonido](0.4);
+    this.audio.enElMundo(tipo.sonido, 0.4);
     if (tipo.olor) {
       // Saliste del tacho de basura: un rato oliendo mal (los perros te huelen de lejos, ver Perro.js)
       this.player.olor = tipo.olor;
@@ -1263,20 +1369,29 @@ export class Game {
   }
 }
 
-// El turno elegido en el menú se recuerda en el navegador (si no se puede, queda "al azar")
-function leerEleccionTurno() {
+// Lo que se elige en el menú (el turno, el estilo de los sonidos) se recuerda en el navegador.
+// Si no se puede (navegador en modo privado, por ejemplo), se usa el valor de siempre.
+function leerGuardado(clave, opciones, siNoHay) {
   try {
-    const guardado = localStorage.getItem('turno');
-    return ['azar', 'dia', 'noche'].includes(guardado) ? guardado : 'azar';
+    const guardado = localStorage.getItem(clave);
+    return opciones.includes(guardado) ? guardado : siNoHay;
   } catch {
-    return 'azar';
+    return siNoHay;
   }
 }
 
-function guardarEleccionTurno(eleccion) {
+function guardar(clave, valor) {
   try {
-    localStorage.setItem('turno', eleccion);
+    localStorage.setItem(clave, valor);
   } catch {
-    // (sin guardar: la próxima vez arranca "al azar")
+    // (sin guardar: la próxima vez arranca con el valor de siempre)
   }
+}
+
+function leerEleccionTurno() {
+  return leerGuardado('turno', ['azar', 'dia', 'noche'], 'azar');
+}
+
+function guardarEleccionTurno(eleccion) {
+  guardar('turno', eleccion);
 }
