@@ -382,6 +382,14 @@ export class Audio {
     this.tono({ frecuencia, frecuenciaFinal: frecuencia * 0.92, duracion: 0.06, tipo: voz.tipo, volumen: voz.volumen });
   }
 
+  // Don Ernesto rezongando ("¡¿Otra vez la luz?!"): unas sílabas graves, cada vez más agudas (etapa 16C)
+  rezongo(volumen = 1) {
+    for (let i = 0; i < 6; i++) {
+      const frecuencia = 90 + i * 12 + Math.random() * 40;
+      this.tono({ frecuencia, frecuenciaFinal: frecuencia * 0.9, duracion: 0.09, tipo: 'sawtooth', volumen: 0.06 * volumen, retraso: i * 0.11 });
+    }
+  }
+
   // Patada a la pelota: un "pum" corto y seco
   patada() {
     this.ruido({ duracion: 0.08, volumen: 0.35, filtro: 900 });
@@ -438,6 +446,15 @@ export class Audio {
     fuente.connect(filtro).connect(vol).connect(this.salida);
     fuente.start(inicio, Math.random() * 0.5);
     fuente.stop(inicio + 3.6);
+  }
+
+  // Tablero de luz (etapa 16C): "¡CLAC!" de la llave y el zumbido de la corriente que se va (al cortar)
+  // o que vuelve (al subirla). volumen: de 0 a 1 (Don Ernesto la sube lejos: se escucha bajito)
+  tablero(cortando, volumen = 1) {
+    this.ruido({ duracion: 0.08, volumen: 0.45 * volumen, filtro: 2200 });
+    this.tono({ frecuencia: 900, frecuenciaFinal: 300, duracion: 0.05, tipo: 'square', volumen: 0.08 * volumen });
+    if (cortando) this.tono({ frecuencia: 120, frecuenciaFinal: 45, duracion: 0.9, tipo: 'sawtooth', volumen: 0.07 * volumen, retraso: 0.05 });
+    else this.tono({ frecuencia: 50, frecuenciaFinal: 120, duracion: 0.7, tipo: 'sawtooth', volumen: 0.06 * volumen, retraso: 0.1 });
   }
 
   // Lluvia (etapa 16B): un "shhhh" que no para (ruido en bucle, filtrado). volumen: de 0 a 1.

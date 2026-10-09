@@ -60,7 +60,9 @@ export class Exterior {
     this.materialVidrio = materialToon('#9be7ff').clone();
     this.materialVentanaBarrio = materialToon('#9be7ff').clone();
     this.materialBombita = materialToon('#fff3b0').clone();
+    this.materialBombitaPorche = this.materialBombita.clone(); // (la del porche se apaga con los cortes de luz)
     this.lucesDeNoche = [];
+    this.noche = false;
 
     this.crearCielo();
     this.crearSuelo();
@@ -215,12 +217,23 @@ export class Exterior {
     // Farolas y luz del porche: prendidas de noche (la bombita brilla aunque no le llegue luz)
     for (const luz of this.lucesDeNoche) luz.intensity = noche ? luz.userData.intensidad : 0;
     this.materialBombita.emissive.set(noche ? '#ffd27a' : '#000000');
+    this.materialBombitaPorche.emissive.set(noche ? '#ffd27a' : '#000000');
+    this.noche = noche;
     // Las ventanas de la casa y algunas del barrio, con luz adentro
     this.materialVidrio.color.set(noche ? '#33405e' : '#9be7ff');
     this.materialVidrio.emissive.set(noche ? '#ffb85c' : '#000000');
     this.materialVidrio.emissiveIntensity = 0.32;
     this.materialVentanaBarrio.emissive.set(noche ? '#ffc46b' : '#000000');
     this.materialVentanaBarrio.color.set(noche ? '#3d3a35' : '#9be7ff');
+    this.ponerCorriente(1);
+  }
+
+  // Corte de luz en la casa (etapa 16C): se apagan la luz del porche y las ventanas de la casa (las
+  // farolas y las casas del barrio, no). corriente: de 0 (cortada) a 1 (normal)
+  ponerCorriente(corriente) {
+    this.luzPorche.intensity = this.noche ? this.luzPorche.userData.intensidad * corriente : 0;
+    this.materialBombitaPorche.emissiveIntensity = corriente;
+    this.materialVidrio.emissiveIntensity = 0.32 * corriente;
   }
 
   crearSuelo() {
@@ -460,13 +473,13 @@ export class Exterior {
     }
     // La luz del porche, colgando del alero al lado de la puerta (de noche, prendida). Es un foco que apunta
     // para abajo y hacia afuera: una luz que alumbra para todos lados se metería en la casa por las paredes.
-    this.luzDeNoche(-0.1, 2.35, 6.9, '#ffb35c', 9, 9, [-0.1, 0, 8.4]);
+    this.luzPorche = this.luzDeNoche(-0.1, 2.35, 6.9, '#ffb35c', 9, 9, [-0.1, 0, 8.4], this.materialBombitaPorche);
   }
 
   // Una bombita (que brilla de noche) con su luz. La luz arranca apagada: ver ponerTurno.
   // haciaDonde: si se pasa un punto, la luz es un foco que apunta ahí (si no, alumbra para todos lados)
-  luzDeNoche(x, y, z, color, intensidad, distancia, haciaDonde = null) {
-    const bombita = new THREE.Mesh(new THREE.SphereGeometry(0.14, 10, 8), this.materialBombita);
+  luzDeNoche(x, y, z, color, intensidad, distancia, haciaDonde = null, material = this.materialBombita) {
+    const bombita = new THREE.Mesh(new THREE.SphereGeometry(0.14, 10, 8), material);
     bombita.position.set(x, y, z);
     bombita.userData.estatico = true;
     this.scene.add(bombita);
@@ -482,6 +495,7 @@ export class Exterior {
     luz.userData.intensidad = intensidad;
     this.scene.add(luz);
     this.lucesDeNoche.push(luz);
+    return luz;
   }
 
   // Por cada ventana de adentro que da a una pared exterior, ponemos su versión de afuera.

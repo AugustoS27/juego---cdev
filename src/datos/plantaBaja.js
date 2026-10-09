@@ -153,6 +153,12 @@ export const PLANTA_BAJA = {
     { id: 'entrada-fondo', pos: [7.5, 3.3] },
     { id: 'escalera-abajo', pos: [0, 5.15] }, // donde arranca la escalera que sube
     { id: 'rellano-pb', pos: [7.8, 5.2] }, // donde arranca la escalera que baja al sótano
+    // El garaje (etapa 16C): Don Ernesto solo entra para arreglar el tablero de luz (y, a veces, revisar)
+    { id: 'p-living-garaje', pos: [-9, 3.2] },
+    { id: 'garaje', pos: [-10.3, 3.2] },
+    { id: 'tablero', pos: [-9.7, 4.9] }, // parado frente al tablero de luz
+    { id: 'garaje-sur', pos: [-12.4, 4.7] }, // entre el auto y el portón
+    { id: 'garaje-oeste', pos: [-14.3, 3.9] },
   ],
 
   // Pares de waypoints conectados (se puede caminar en línea recta entre ellos)
@@ -175,5 +181,10 @@ export const PLANTA_BAJA = {
     ['entrada-centro', 'escalera-abajo'],
     ['entrada-este', 'entrada-fondo'],
     ['entrada-fondo', 'rellano-pb'],
+    ['living', 'p-living-garaje'],
+    ['p-living-garaje', 'garaje'],
+    ['garaje', 'tablero'],
+    ['garaje', 'garaje-sur'],
+    ['garaje-sur', 'garaje-oeste'],
   ],
 };

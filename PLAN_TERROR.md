@@ -4,7 +4,7 @@ Este documento es la cuarta parte del plan (la tercera, la historia nueva, está
 [PLAN_HISTORIA.md](PLAN_HISTORIA.md)). La etapa 15F (música, pasos y cierre) no se hizo por separado: queda
 adentro de esta etapa, que cambia el sonido de punta a punta.
 
-> **Estado actual:** 🔨 en curso. Confirmado por el usuario (con cambios, ver "Decisiones"). **16A** ✅ **16B** ✅. Próxima: **16C**.
+> **Estado actual:** 🔨 en curso. Confirmado por el usuario (con cambios, ver "Decisiones"). **16A** ✅ **16B** ✅ **16C** ✅. Próxima: **16D**.
 
 ---
 
@@ -36,7 +36,7 @@ Lo que pidió el usuario y dónde se hace cada cosa:
 |---|---|---|---|
 | **16A** | Día y noche: se sortea (o se elige) el turno; cielo, sol/luna, niebla, farolas y ventanas encendidas; la linterna de Tomi (de noche); **el menú nuevo con la casa de fondo y relámpagos** | Grande | ✅ Terminada |
 | **16B** | Luces y atmósfera: lámparas de verdad en los cuartos, más contraste, viñeta y grano en la pantalla, tormenta con relámpagos (de noche) | Grande | ✅ Terminada |
-| **16C** | Cortes de luz (de noche): **solo los provoca el jugador** con el tablero de luz del garaje | Mediana | ⏳ Próxima |
+| **16C** | Cortes de luz (de noche): **solo los provoca el jugador** con el tablero de luz del garaje | Mediana | ✅ Terminada |
 | **16D** | Sonido real: eco según el cuarto, sonido que viene de un lado, pasos según el piso, ruidos de la casa (crujidos, reloj, viento, grillos), el corazón y la respiración de Tomi; **comparar sonidos grabados (CC0) contra sintetizados** | Grande | — |
 | **16E** | Música tensa y adaptativa: capas que se suman según lo cerca que esté el peligro, golpes de susto, tema de persecución, caja de música en el menú | Mediana | — |
 | **16F** | Habitaciones extrañas y oscuras + sustos: cuartos nuevos y objetos que se mueven solos | Grande | — |
@@ -194,7 +194,38 @@ Un commit por etapa (cuando se pida).
 
 > Cambio pedido por el usuario: la luz **no se corta sola**; se corta solamente cuando el jugador baja la llave.
 
-### Qué se hace
+### Qué se hizo ✅
+- **`CorteDeLuz.js` (nuevo):** el tablero de luz en el garaje (en la pared que da al living, al lado de la puerta),
+  con su llave roja y una lucecita (verde: hay luz; roja: cortada). Con E se baja la llave (solo de noche; de día
+  avisa que no cambia nada) y se puede volver a subir. Al cortar, las lámparas parpadean y se apagan; al volver,
+  parpadean y se prenden. Se apagan: las 6 luces de las lámparas, las bombitas y los plafones, las lamparitas del
+  sótano y del ático (el fuego de la caldera no), la luz del porche y las ventanas de la casa vistas desde afuera.
+  Quedan la luna por las ventanas, las farolas de la calle y tu linterna.
+- **Sin luz:** Don Ernesto y Doña Pocha ven al 35% (en vez de 55%); con la linterna prendida, al 150% (se nota
+  muchísimo). Los perros, igual. Bajar la llave hace ruido (como una puerta).
+- **Don Ernesto (`Dueno.js`):** al segundo y medio rezonga ("¡¿Otra vez la luz?!") y va al tablero con su linterna;
+  si te ve en el camino te persigue y el tablero queda para después; si escucha algo, va a ver y después sigue.
+  Al llegar sube la llave. Desde la segunda vez sospecha: después de arreglarla revisa el garaje (dos puntos).
+  Para eso hay puntos nuevos en el garaje (`plantaBaja.js`): el garaje es su zona solo mientras dura eso.
+- **Doña Pocha prende una vela** en su mesa de luz (con una luz que titila, solo si estás en su piso).
+- **Facu lo comenta** por el walkie (la primera vez, y otra cosa cuando Don Ernesto ya sospecha).
+- **Por las dudas:** si la luz estuvo cortada 75 s (Don Ernesto se trabó en algún lado), vuelve sola; y al empezar
+  otra partida siempre vuelve.
+- "Cómo se juega" tiene un consejo nuevo sobre el tablero.
+
+### Pruebas que se corrieron
+- Tres cortes seguidos con Don Ernesto de verdad (sin frenar a los enemigos): la primera vez va al tablero y la sube
+  (~13 s desde el dormitorio); la segunda, la sube y revisa los dos puntos del garaje; la tercera estaba cerca,
+  escuchó la llave, fue a ver y después la subió.
+- El jugador sube la llave: Don Ernesto deja de ir. Reiniciar a mitad del corte: todo vuelve (luces, ventanas,
+  Don Ernesto). Te ve en el camino: te persigue, te pierde y después igual arregla el tablero.
+- De día: el tablero avisa y no corta nada. Visión: con luz 0,55 · sin luz 0,35 · sin luz con linterna 1,5.
+- Capturas: el tablero, el living a oscuras, la vela de Doña Pocha y la casa desde afuera sin luz.
+- Se encontró y corrigió: el aviso de "llegué al tablero" se borraba al reiniciar la partida (Don Ernesto llegaba
+  pero la luz no volvía).
+- Rendimiento: dibujos iguales que en la 16B (frente ~2250, Facu ~890, living ~1140, patio ~1280). Build OK.
+
+### Plan original
 - **El tablero de luz del garaje:** con E bajás la llave. Las lámparas parpadean, hacen "clac" y se apagan: solo
   quedan la luna por las ventanas y tu linterna.
 - **Mientras no hay luz:** los enemigos ven mucho menos (pero tu linterna se nota muchísimo); Don Ernesto baja al

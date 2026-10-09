@@ -100,7 +100,7 @@ export const SOTANO = {
   // y = altura sobre el piso. intensidad y distancia: ver THREE.PointLight
   luces: [
     { x: -1, y: 2.4, z: 3.3, color: '#ffd6a5', intensidad: 7, distancia: 9, parpadea: true },
-    { x: -7.6, y: 0.8, z: -3.4, color: '#ff7b00', intensidad: 6, distancia: 6 },
+    { x: -7.6, y: 0.8, z: -3.4, color: '#ff7b00', intensidad: 6, distancia: 6, fuego: true }, // (fuego: no se apaga con los cortes de luz)
     { x: 6, y: 2.4, z: 0, color: '#e0aaff', intensidad: 5, distancia: 7, parpadea: true },
   ],
 

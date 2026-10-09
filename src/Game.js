@@ -24,10 +24,11 @@ import { Escenas } from './Escenas.js';
 import { TURNOS, sortearTurno, Linterna } from './Turno.js';
 import { Lamparas } from './Lamparas.js';
 import { Atmosfera } from './Atmosfera.js';
+import { CorteDeLuz } from './CorteDeLuz.js';
 import { ponerContraste } from './Materials.js';
 import { juntarMallasEstaticas } from './Optimizar.js';
 import { Decoracion } from './Decoracion.js';
-import { ALTURA_PISO, INICIO_JUGADOR, TECHO, PISO_MINIMO, NOMBRES_PISOS, ZONA_PATIO, pisoDeAltura } from './HouseData.js';
+import { ALTURA_PISO, INICIO_JUGADOR, TECHO, PISO_MINIMO, NOMBRES_PISOS, ZONA_PATIO, TABLERO_LUZ, pisoDeAltura } from './HouseData.js';
 
 // Estados posibles de la partida
 const PARTIDA = {
@@ -45,6 +46,10 @@ const PARTIDA = {
 // El menú: la casa de fondo, vista desde la vereda de enfrente (la cámara se mueve despacito)
 const CAMARA_MENU = { posicion: [0.5, 2.3, 28.5], mira: [-3.6, 3.6, 6], fov: 50 }; // (la casa queda a la derecha del panel)
 const FOV_JUEGO = 75;
+
+// Cortes de luz (etapa 16C)
+const ESPERA_DUENO_TABLERO = 1.5; // segundos hasta que Don Ernesto sale para el tablero ("¡¿Otra vez la luz?!")
+const MAXIMO_SIN_LUZ = 75; // por las dudas: si en este tiempo nadie la subió, la luz vuelve sola
 
 // Dificultad creciente: cada 30 segundos el dueño se enoja más y camina un 10% más rápido
 const SEGUNDOS_POR_NIVEL = 30;
@@ -88,6 +93,10 @@ export class Game {
     // Etapa 16B: las lámparas que alumbran de verdad y la atmósfera (luz de las ventanas, lluvia, polvo)
     this.lamparas = new Lamparas(this.scene, this.decoracion.lamparas);
     this.atmosfera = new Atmosfera(this.scene);
+    // Etapa 16C: el tablero de luz del garaje (los cortes de luz)
+    this.corte = new CorteDeLuz(this.scene, this.house);
+    this.corrienteActual = 1;
+    this.esperaDueno = 0; // > 0: cuánto falta para que Don Ernesto salga para el tablero
     // Los enemigos: el dueño (toda la casa), dos perros (el patio) y la abuela (su piso)
     this.dueno = new Dueno(this.scene, this.house, this.player);
     this.perros = PERROS.map((datos) => new Perro(this.scene, this.house, this.player, datos));
@@ -271,13 +280,75 @@ export class Game {
     this.ui.mostrarLinterna(this.linterna.prendida);
   }
 
-  // De noche los enemigos ven menos lejos... salvo que tengas la linterna prendida (ven el haz)
+  // De noche los enemigos ven menos lejos... salvo que tengas la linterna prendida (ven el haz).
+  // Con la luz cortada ven todavía menos (pero la linterna se nota más). A los perros no les cambia.
   actualizarVision() {
     const { vision } = this.datosTurno;
+    const sinLuz = this.corte.cortada;
     for (const enemigo of this.enemigos) {
       if (this.perros.includes(enemigo)) enemigo.multiplicadorVision = vision.perros;
-      else enemigo.multiplicadorVision = this.linterna.prendida ? vision.conLinterna : vision.sinLinterna;
+      else if (this.linterna.prendida) enemigo.multiplicadorVision = sinLuz ? vision.conLinternaSinLuz : vision.conLinterna;
+      else enemigo.multiplicadorVision = sinLuz ? vision.sinLuz : vision.sinLinterna;
     }
+  }
+
+  // ------------------------------------------------------------
+  //  CORTES DE LUZ (etapa 16C, ver CorteDeLuz.js)
+  // ------------------------------------------------------------
+  // E mirando el tablero: baja la llave (o la vuelve a subir, si estaba cortada)
+  usarTablero() {
+    if (this.turno !== 'noche') {
+      this.ui.mostrarAviso('☀️ Es de día: cortar la luz no cambia nada', 2);
+      return;
+    }
+    if (this.corte.cortada) this.subirLlave(false);
+    else this.bajarLlave();
+  }
+
+  bajarLlave() {
+    this.corte.bajar();
+    this.audio.tablero(true);
+    this.hacerRuido(new THREE.Vector3(TABLERO_LUZ.x - 0.6, 0, TABLERO_LUZ.z), RADIO_RUIDO.puerta);
+    this.ui.mostrarAviso('🔌 ¡Clac! Se cortó la luz de toda la casa. Ahora los vecinos casi no ven... salvo tu linterna', 4);
+    this.walkie.comentar(this.corte.veces >= 2 ? 'sospecha' : 'corte', {}, true);
+    this.esperaDueno = ESPERA_DUENO_TABLERO;
+  }
+
+  // porDueno: la subió Don Ernesto (si no, el jugador)
+  subirLlave(porDueno) {
+    this.corte.subir();
+    const volumen = porDueno ? Math.max(0.25, this.volumenPorDistancia(new THREE.Vector3(TABLERO_LUZ.x, TABLERO_LUZ.y, TABLERO_LUZ.z))) : 1;
+    this.audio.tablero(false, volumen);
+    if (porDueno) this.ui.mostrarAviso('💡 Don Ernesto volvió a subir la llave: ¡volvió la luz!', 3);
+    else this.dueno.olvidarTablero();
+    this.esperaDueno = 0;
+  }
+
+  // En la partida: Don Ernesto sale para el tablero un ratito después del corte. Y, por las dudas,
+  // si la luz estuvo cortada demasiado tiempo (se trabó en algún lado), vuelve sola.
+  actualizarCorte(dt) {
+    if (this.esperaDueno > 0) {
+      this.esperaDueno -= dt;
+      if (this.esperaDueno <= 0 && this.corte.cortada) {
+        const sospecha = this.corte.veces >= 2;
+        this.dueno.irAlTablero(this.dueno.waypoints.tablero, sospecha);
+        this.audio.rezongo(Math.max(0.3, this.volumenPorDistancia(this.dueno.position)));
+        this.ui.mostrarAviso(`💡 Don Ernesto: "¡¿Otra vez la luz?!" Va para el tablero del garaje${sospecha ? '... y sospecha' : ''}`, 3.5);
+      }
+    }
+    if (this.corte.cortada && this.corte.tiempoCortada > MAXIMO_SIN_LUZ) {
+      this.dueno.olvidarTablero();
+      this.subirLlave(true);
+    }
+  }
+
+  // La corriente (de 0 a 1) llega a todo lo que tiene luces en la casa
+  ponerCorriente(corriente) {
+    this.corrienteActual = corriente;
+    this.lamparas.ponerCorriente(corriente);
+    this.decoracion.ponerCorriente(corriente);
+    this.house.ponerCorriente(corriente);
+    this.exterior.ponerCorriente(corriente);
   }
 
   // Relámpago: un destello que titila (dos o tres veces) y se apaga; el trueno llega un poco después.
@@ -435,6 +506,9 @@ export class Game {
       this.audio.gota(this.volumenPorDistancia(posicion));
     };
 
+    // Don Ernesto llegó al tablero y subió la llave (ver Dueno.js)
+    this.dueno.alArreglarTablero = () => this.subirLlave(true);
+
     // El dueño trabó una puerta
     this.dueno.alTrabarPuerta = (puerta) => {
       this.audio.traba(Math.max(0.3, this.volumenPorDistancia(puerta.centro)));
@@ -539,8 +613,10 @@ export class Game {
 
     const objetivo = this.datosTurno.luzPorPiso[piso] || this.datosTurno.luz;
     const t = Math.min(1, dt * 3);
-    // Las lámparas: las luces se mudan a las más cercanas (ver Lamparas.js)
+    // Las lámparas: las luces se mudan a las más cercanas (ver Lamparas.js). Y los cortes de luz
     this.lamparas.actualizar(dt, p, piso);
+    const corriente = this.corte.update(dt, piso);
+    if (corriente !== this.corrienteActual) this.ponerCorriente(corriente);
     this.solInterior.intensity += (objetivo.sol - this.solInterior.intensity) * t;
     this.luzRelleno.intensity += (objetivo.relleno - this.luzRelleno.intensity) * t;
     this.luzCielo.intensity += (objetivo.cielo - this.luzCielo.intensity) * t;
@@ -696,6 +772,9 @@ export class Game {
     this.nivelEnojo = 0;
     this.tiempoParaEnojo = SEGUNDOS_POR_NIVEL;
     this.proximoRelampago = 6 + Math.random() * 6;
+    this.corte.reiniciar(); // (la luz siempre vuelve al empezar otra partida)
+    this.ponerCorriente(1);
+    this.esperaDueno = 0;
     this.linterna.prender(false);
     this.ui.mostrarLinterna(false);
 
@@ -776,6 +855,7 @@ export class Game {
       this.tiempoDesdeAvisoRuido += dt;
       this.actualizarDificultad(dt);
       this.actualizarTormenta(dt);
+      this.actualizarCorte(dt);
 
       this.house.update(dt);
       this.entradas.update(dt);
@@ -1023,6 +1103,11 @@ export class Game {
       return; // (el portón se fuerza manteniendo E: lo maneja forzarSiMantieneE)
     }
 
+    if (this.corte.mirado(this.camera)) {
+      this.usarTablero();
+      return;
+    }
+
     const escondite = this.house.esconditeMirado(this.camera);
     if (escondite) {
       this.esconderse(escondite);
@@ -1138,6 +1223,12 @@ export class Game {
     const entrada = this.entradas.mirada(this.camera);
     if (entrada) {
       this.ui.mostrarAyuda(entrada.ayuda(this.player));
+      return;
+    }
+
+    if (this.corte.mirado(this.camera)) {
+      if (this.turno !== 'noche') this.ui.mostrarAyuda('Tablero de luz (de día, cortar la luz no cambia nada)');
+      else this.ui.mostrarAyuda(this.corte.cortada ? '[E] Volver a subir la llave de la luz' : '[E] Bajar la llave: cortar la luz de toda la casa (hace ruido)');
       return;
     }
 

@@ -45,7 +45,7 @@ export class Lamparas {
       this.luces.push(luz);
     }
     this.fuerza = 1; // la del turno (de día alumbran menos: ya entra luz por las ventanas)
-    this.prendidas = true; // (para los cortes de luz de la etapa 16C)
+    this.corriente = 1; // 1 = hay luz, 0 = luz cortada (etapa 16C; en el medio, mientras parpadea)
     this.espera = 0;
     this.piso = null;
   }
@@ -89,9 +89,19 @@ export class Lamparas {
       else libres.push(luz);
     }
     for (const luz of libres) this.ponerEn(luz, cercanas.shift() ?? null);
+    this.ponerIntensidades();
+  }
+
+  // Corte de luz (etapa 16C): de 0 (cortada) a 1 (normal)
+  ponerCorriente(corriente) {
+    this.corriente = corriente;
+    this.ponerIntensidades();
+  }
+
+  ponerIntensidades() {
     for (const luz of this.luces) {
       const l = luz.userData.lampara;
-      luz.intensity = l && this.prendidas ? 9 * l.intensidad * this.fuerza : 0;
+      luz.intensity = l ? 9 * l.intensidad * this.fuerza * this.corriente : 0;
     }
   }
 

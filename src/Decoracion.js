@@ -21,6 +21,7 @@ import { ALTURA_PISO, HABITACIONES, PUERTAS, CUADROS, GOTAS, TECHO, pisoDeAltura
 const GROSOR_PISO = 0.2;
 const COLOR_MARCO = '#fffaf0';
 const GRAVEDAD_GOTA = 9;
+const COLOR_FOCO_PRENDIDO = new THREE.Color('#fff3b0');
 
 export class Decoracion {
   constructor(scene, house) {
@@ -42,6 +43,12 @@ export class Decoracion {
     this.crearTelaranas();
     this.crearGotas();
     this.crearPolvo();
+  }
+
+  // Corte de luz (etapa 16C): las bombitas y los plafones se apagan (corriente 0) o se prenden (1)
+  ponerCorriente(corriente) {
+    this.materialFoco.color.set('#4a4a4a').lerp(COLOR_FOCO_PRENDIDO, corriente);
+    this.materialPlafon.emissiveIntensity = 0.7 * corriente;
   }
 
   // Una malla estática (no se mueve: se puede juntar con otras)

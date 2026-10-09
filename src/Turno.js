@@ -24,7 +24,7 @@ export const TURNOS = {
       3: { sol: 0.8, relleno: 0.28, cielo: 0.5, ambiente: 0.14 },
     },
     // Cuánto ven los enemigos (multiplica su distancia de visión): de día, normal
-    vision: { sinLinterna: 1, conLinterna: 1, perros: 1 },
+    vision: { sinLinterna: 1, conLinterna: 1, perros: 1, sinLuz: 1, conLinternaSinLuz: 1 },
     // --- Etapa 16B ---
     // Las lámparas de los cuartos (ver Lamparas.js): de día alumbran menos (ya entra luz por las ventanas)
     lamparas: { intensidad: 0.6 },
@@ -52,7 +52,8 @@ export const TURNOS = {
       3: { sol: 0.2, relleno: 0.06, cielo: 0.18, ambiente: 0.05 },
     },
     // A oscuras ven menos... salvo que tengas la linterna prendida (ven el haz). Los perros ven bien de noche.
-    vision: { sinLinterna: 0.55, conLinterna: 1.2, perros: 0.85 },
+    // Con la luz cortada (etapa 16C) los vecinos casi no ven... pero tu linterna se nota muchísimo
+    vision: { sinLinterna: 0.55, conLinterna: 1.2, perros: 0.85, sinLuz: 0.35, conLinternaSinLuz: 1.5 },
     lamparas: { intensidad: 0.75 },
     // De noche entra la luz azul de la luna, y el vidrio brilla un poquito (el reflejo del cielo)
     ventanas: { mancha: '#6d86d8', opacidad: 0.4, vidrio: '#28324f', brilloVidrio: '#3c4f8f', intensidadBrillo: 0.35 },

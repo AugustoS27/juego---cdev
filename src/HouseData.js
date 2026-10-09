@@ -119,6 +119,10 @@ export const VENTANA_SOTANO = { x: -7, z: 6 };
 // Enredadera: sube por la pared este (adentro del patio de los perros) hasta una ventana del segundo piso
 export const ENREDADERA = { x: 9, z: -4, piso: 2 };
 
+// Tablero de luz (etapa 16C): en el garaje, en la pared que da al living, al lado de la puerta.
+// Con E se baja la llave y se corta la luz de toda la casa (solo de noche). x = la cara de la pared.
+export const TABLERO_LUZ = { x: -9.1, z: 4.9, y: 1.45 };
+
 // Escalerita de la antena: en la pared oeste, arriba del techo del garaje; llega al tragaluz del
 // ático, que está en el faldón sur del techo (x, z = centro del tragaluz)
 export const TRAGALUZ = { x: -7.9, z: 2 };

@@ -63,6 +63,8 @@ const FRASES = {
   juguete: ['¡Bien ahí! Ya recuperaste {juguete}. Te {faltan}.', '¡Eso! {Juguete} vuelve a casa. Te {faltan}.'],
   todos: ['¡LOS TRES! Volvé a la entrada de autos, te espero con las bicis. ¡Rápido!'],
   sinAyuda: ['¿Estás perdido? Apretá T y te digo algo más.'],
+  corte: ['¡Cortaste la luz! Aprovechá... pero cuidado, que Don Ernesto va a ir a arreglarla.', '¡Se apagó toda la casa! Moveté a oscuras: con la linterna te ven de lejísimos.'],
+  sospecha: ['¡Otra vez la luz! Ahora Don Ernesto sospecha: va a revisar el garaje.', 'Me parece que Don Ernesto ya se avivó... ¡no te quedes en el garaje!'],
 };
 
 // Cuántos segundos tiene que pasar para repetir un comentario del mismo tipo (Infinity = una sola vez)

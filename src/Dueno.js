@@ -4,7 +4,9 @@
 //     Debajo de una mesa, si te mira de cerca, te ve: va derecho a sacarte (sin "moneda").
 //   - Al cruzar una puerta, a veces la cierra y la traba unos segundos para cortarle el paso al jugador.
 //   - Nunca sale de la casa (¡está en pijama!): si el ruido o el jugador están afuera,
-//     va hasta el punto de adentro más cercano.
+//     va hasta el punto de adentro más cercano. La excepción es el garaje, cuando le cortan la luz
+//     (etapa 16C): va al tablero a subir la llave y, desde la segunda vez, se queda revisando el garaje.
+//     Mientras dura eso, el garaje también es su zona.
 //   - Si llega a la escalera plegable del ático y está plegada, la despliega.
 //   - Cada 30 segundos se enoja más y camina más rápido (lo maneja Game con multiplicadorVelocidad).
 //   - Animaciones: parpadea, pega un salto de sorpresa cuando te ve (y se queda duro medio segundo:
@@ -25,6 +27,10 @@ const TIEMPO_TRABA = 20; // segundos que queda trabada la puerta
 const DURACION_SORPRESA = 0.5; // segundos del salto de sorpresa (no se mueve mientras tanto)
 const DURACION_PARPADEO = 0.12;
 const COLOR_ENOJADO = new THREE.Color('#ff6b6b');
+// El garaje (etapa 16C): su rectángulo (con margen) y los puntos que revisa cuando sospecha
+const ZONA_GARAJE = [-15.05, -1.55, -9.45, 5.55];
+const PUNTOS_REVISAR_GARAJE = ['garaje-sur', 'garaje-oeste'];
+const TIEMPO_EN_EL_GARAJE = 30; // segundos que el garaje sigue siendo "su zona" después de arreglar el tablero
 
 // Si ponés acá la ruta a un modelo GLTF (ej: '/models/dueno.glb') se usa ese modelo.
 // Si es null o no carga, queda el muñeco hecho con formas básicas.
@@ -53,6 +59,7 @@ export class Dueno extends Enemigo {
     });
     // Funciones extra que conecta Game
     this.alTrabarPuerta = null; // alTrabarPuerta(puerta)
+    this.alArreglarTablero = null; // llegó al tablero: sube la llave y vuelve la luz (etapa 16C)
     if (URL_MODELO) this.cargarModeloGLTF();
   }
 
@@ -64,6 +71,55 @@ export class Dueno extends Enemigo {
     this.puertaCruzada = null; // puerta por la que está pasando (para trabarla después)
     this.sorpresa = 0; // > 0 mientras dura el salto de sorpresa
     this.tiempoParaParpadear = 2 + Math.random() * 3;
+    // Cortes de luz (etapa 16C)
+    this.tablero = null; // { punto, sospecha }: tiene que ir a subir la llave (null: no hay corte)
+    this.yendoAlTablero = false;
+    this.porRevisar = []; // puntos del garaje que le falta revisar
+    this.tiempoGaraje = 0; // mientras sea > 0, el garaje es parte de su zona
+  }
+
+  // ------------------------------------------------------------
+  //  CORTES DE LUZ (etapa 16C)
+  // ------------------------------------------------------------
+  // Se cortó la luz: tiene que ir al tablero. Si está persiguiendo o investigando algo, termina eso
+  // primero (ver actualizarEstado). sospecha: después de arreglarla se queda revisando el garaje.
+  irAlTablero(punto, sospecha) {
+    this.tablero = { punto: punto.clone(), sospecha };
+    this.tiempoGaraje = TIEMPO_EN_EL_GARAJE;
+  }
+
+  // El jugador subió la llave antes de que él llegara: ya no hace falta ir
+  olvidarTablero() {
+    this.tablero = null;
+    this.yendoAlTablero = false;
+  }
+
+  // Va al próximo lugar (el tablero o un punto del garaje), como si investigara (con el "?")
+  irComoInvestigando(punto) {
+    this.cambiarEstado(ESTADO.INVESTIGAR);
+    this.tiempoYendo = 0;
+    this.irA(punto);
+    this.empezarEspera(this.v.tiempoBuscando);
+  }
+
+  actualizarEstado(dt) {
+    this.tiempoGaraje -= dt;
+    // Cuando vuelve a patrullar, primero el tablero y después revisar el garaje
+    if (this.estado === ESTADO.PATRULLA && this.tablero && !this.yendoAlTablero) {
+      this.irComoInvestigando(this.tablero.punto);
+      this.yendoAlTablero = true;
+    } else if (this.estado === ESTADO.PATRULLA && this.porRevisar.length > 0) {
+      this.irComoInvestigando(this.waypoints[this.porRevisar.shift()]);
+      this.tiempoGaraje = Math.max(this.tiempoGaraje, this.v.tiempoBuscando + 5);
+    }
+    // Yendo al tablero no se rinde aunque tarde (está a oscuras: va despacio pero va)
+    if (this.yendoAlTablero) this.tiempoYendo = 0;
+    super.actualizarEstado(dt);
+  }
+
+  cambiarEstado(nuevo) {
+    if (nuevo !== ESTADO.INVESTIGAR) this.yendoAlTablero = false; // (si te ve en el camino, el tablero espera)
+    super.cambiarEstado(nuevo);
   }
 
   // ------------------------------------------------------------
@@ -94,6 +150,7 @@ export class Dueno extends Enemigo {
   }
 
   investigar(punto) {
+    this.yendoAlTablero = false; // (un ruido en el camino: va a ver y después sigue para el tablero)
     super.investigar(punto);
     this.esconditeARevisar = null;
   }
@@ -102,6 +159,15 @@ export class Dueno extends Enemigo {
   // Tiene que haber llegado de verdad al escondite: si es uno de afuera (un arbusto, un tacho), él
   // solo llega hasta la pared de adentro, y desde ahí no puede abrir nada.
   alLlegarAInvestigar(llego) {
+    // Llegó al tablero: sube la llave (y, si sospecha, después revisa el garaje)
+    if (this.yendoAlTablero) {
+      this.yendoAlTablero = false;
+      const { sospecha } = this.tablero;
+      this.tablero = null;
+      this.alArreglarTablero?.();
+      if (sospecha) this.porRevisar = [...PUNTOS_REVISAR_GARAJE];
+      return;
+    }
     const entrada = this.player.posicionAntesDeEsconderse;
     const alLado = Math.hypot(entrada.x - this.position.x, entrada.z - this.position.z) < 1.5 && Math.abs(entrada.y - this.position.y) < 1;
     if (llego && alLado && this.esconditeARevisar && this.player.escondite === this.esconditeARevisar) {
@@ -112,10 +178,14 @@ export class Dueno extends Enemigo {
 
   // Su zona es la casa. Si el punto está afuera, lo "acercamos" al borde de adentro
   // (a 45 cm de la pared), en el mismo piso del punto.
+  // (Mientras arregla el tablero o revisa el garaje, el garaje de la planta baja también es su zona)
   limitarAZona(punto) {
     const { x1, z1, x2, z2 } = LIMITES_CASA;
     const m = 0.45;
-    return this.puntoEnRectangulos(punto, [[x1 + m, z1 + m, x2 - m, z2 - m]], pisoDeAltura(punto.y) * ALTURA_PISO);
+    const rectangulos = [[x1 + m, z1 + m, x2 - m, z2 - m]];
+    const piso = pisoDeAltura(punto.y);
+    if (piso === 0 && (this.tablero || this.tiempoGaraje > 0)) rectangulos.push(ZONA_GARAJE);
+    return this.puntoEnRectangulos(punto, rectangulos, piso * ALTURA_PISO);
   }
 
   atrapoAlJugador() {

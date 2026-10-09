@@ -61,6 +61,7 @@ export class House {
     this.escondites = []; // donde el jugador se puede esconder: { escondite (tipo), grupo, collider }
     this.obstaculos = []; // Todo lo que tapa la vista (para los rayos de visión del dueño)
     this.lamparitas = []; // luces propias de la casa (algunas parpadean)
+    this.corriente = 1; // corte de luz (etapa 16C): 0 = las lamparitas se apagan (el fuego de la caldera, no)
     this.conductos = []; // rectángulos de adentro de los conductos (para el ruido metálico)
     this.tuneles = []; // rectángulos de adentro del túnel
     this.trampilla = null; // la escalera plegable del ático (ver Especiales.js)
@@ -730,20 +731,30 @@ export class House {
       cable.position.set(luz.position.x, luz.position.y + 0.3, luz.position.z);
       cable.userData.estatico = true;
       this.scene.add(cable);
-      this.lamparitas.push({ luz, bombita, intensidad: datos.intensidad, parpadea: !!datos.parpadea, tiempo: 0 });
+      this.lamparitas.push({ luz, bombita, intensidad: datos.intensidad, parpadea: !!datos.parpadea, fuego: !!datos.fuego, tiempo: 0 });
     }
   }
 
   // Parpadeo: cada tanto la lamparita se apaga un instante o baja de golpe (efecto de película de terror)
   actualizarLamparitas(dt) {
     for (const l of this.lamparitas) {
-      if (!l.parpadea) continue;
+      if (!l.parpadea || this.corriente < 1) continue; // (sin luz, las maneja ponerCorriente)
       l.tiempo -= dt;
       if (l.tiempo > 0) continue;
       const apagon = Math.random() < 0.25;
       l.luz.intensity = apagon ? 0 : l.intensidad * (0.6 + Math.random() * 0.4);
       l.bombita.visible = !apagon;
       l.tiempo = apagon ? 0.05 + Math.random() * 0.15 : 0.1 + Math.random() * 0.6;
+    }
+  }
+
+  // Corte de luz (etapa 16C): de 0 (cortada) a 1 (normal). El fuego de la caldera sigue igual.
+  ponerCorriente(corriente) {
+    this.corriente = corriente;
+    for (const l of this.lamparitas) {
+      if (l.fuego) continue;
+      l.luz.intensity = l.intensidad * corriente;
+      l.bombita.visible = corriente > 0.5;
     }
   }
 
