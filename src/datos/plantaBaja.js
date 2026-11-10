@@ -8,7 +8,7 @@
 //       |gara-|        +-----------+------------+ z=2
 //       | je  |        |  entrada  [escalera]   |  (la escalera sube y, debajo, baja al sótano)
 //  z=6  +-----+--------+------------------------+
-//       portón  ventana    puerta de calle
+//       portón             puerta de calle     (la ventana que se rompe: la de la cocina, atrás)
 //
 // Todas las coordenadas son (x, z); la altura la pone el número de piso.
 import { PAREDES_TIPICAS, PASILLO_CON_HUECO, BARANDA_HUECO } from './comun.js';
@@ -71,6 +71,7 @@ export const PLANTA_BAJA = {
     { tipo: 'planta', x: -8.4, z: 5.4 },
     { tipo: 'lamparaPie', x: -8.5, z: -5.4 },
     { tipo: 'ventana', x: -8.87, z: -4.5, rot: 90 }, // (corrida: en z=-2.75 está el hogar de la chimenea)
+    { tipo: 'ventana', x: -4.2, z: 5.87, rot: 180 }, // la del frente (hasta la 17B era la que se rompía)
     // Cocina
     { tipo: 'mesada', x: -0.5, z: -5.55 },
     { tipo: 'heladera', x: 2.4, z: -5.45 },
@@ -78,7 +79,7 @@ export const PLANTA_BAJA = {
     { tipo: 'silla', x: -1.4, z: -3, rot: 180 },
     { tipo: 'silla', x: -0.6, z: -3, rot: 180 },
     { tipo: 'tacho', x: 2.6, z: -4.6 },
-    { tipo: 'ventana', x: -0.5, z: -5.87 },
+    // (la ventana de la cocina, sobre la mesada, es la que se puede romper: ver VENTANA_ROMPIBLE)
     // Comedor
     { tipo: 'mesaComedor', x: 7, z: 0 },
     { tipo: 'silla', x: 6.4, z: 0.8, rot: 180 },

@@ -81,8 +81,10 @@ const CONEXIONES_ESCALERAS = [
 // ============================================================
 //  FORMAS DE ENTRAR (ver Entradas.js)
 // ============================================================
-// Ventana del living que se puede romper (hueco en la pared con alféizar abajo)
-export const VENTANA_ROMPIBLE = { piso: 0, x: -4.2, z: 6, eje: 'x', ancho: 1.4, abajo: 1, arriba: 2.2 };
+// Ventana que se puede romper (hueco en la pared con alféizar abajo). Desde la etapa 17B es la de la
+// cocina, en la pared de ATRÁS (antes era la del living, en el frente: había demasiadas entradas adelante).
+// afuera: hacia qué lado de la pared queda el jardín (-1 = hacia -Z, el fondo).
+export const VENTANA_ROMPIBLE = { piso: 0, x: -0.5, z: -6, eje: 'x', ancho: 1.4, abajo: 1, arriba: 2.2, afuera: -1 };
 
 // Portón basculante del garaje (se fuerza manteniendo E)
 export const PORTON_GARAJE = { piso: 0, x: -12.25, z: 6, eje: 'x', ancho: 4.4, alto: 2.5 };
@@ -113,8 +115,9 @@ export const TRASTOS = [
 // hogar del living (x, z = centro de la columna; boca = altura de arriba).
 export const CHIMENEA = { x: -9.65, z: -2.75, ancho: 1.1, prof: 1.2, boca: 3.9 }; // (la boca, justo debajo de la ventana del primer piso)
 
-// Ventanita del sótano: al ras del pasto, en el frente. Da a la sala de la caldera (z = la pared)
-export const VENTANA_SOTANO = { x: -7, z: 6 };
+// Ventanita del sótano: al ras del pasto, en la pared OESTE (el costado izquierdo mirando la casa de
+// frente), detrás del garaje. Da a la sala de la caldera (x = la pared). Hasta la 17B estaba en el frente.
+export const VENTANA_SOTANO = { x: -9, z: -4.8 };
 
 // Enredadera: sube por la pared este (adentro del patio de los perros) hasta una ventana del segundo piso
 export const ENREDADERA = { x: 9, z: -4, piso: 2 };

@@ -50,9 +50,9 @@ export class Atmosfera {
     this.materialManchas.userData.outlineParameters = { visible: false };
     const ventanas = UBICACION_MUEBLES.filter((m) => m.tipo === 'ventana' && !m.alReves)
       .map(({ x, z, rot = 0, piso }) => ({ x, z, rot, piso, ancho: 1.3 }));
-    // La ventana del living que se puede romper (esa sí es un hueco en la pared del frente)
+    // La ventana que se puede romper (esa sí es un hueco en la pared)
     const r = VENTANA_ROMPIBLE;
-    ventanas.push({ x: r.x, z: r.z - 0.1, rot: 180, piso: r.piso, ancho: r.ancho });
+    ventanas.push({ x: r.x, z: r.z - r.afuera * 0.1, rot: r.afuera > 0 ? 180 : 0, piso: r.piso, ancho: r.ancho });
     const LARGO = 2; // hasta dónde entra la mancha en el cuarto
     for (const v of ventanas) {
       const angulo = THREE.MathUtils.degToRad(v.rot);

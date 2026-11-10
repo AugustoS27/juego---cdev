@@ -1,6 +1,6 @@
 # Plan de mejoras (etapa 17)
 
-> **Estado actual:** 🔨 en curso. Plan confirmado por el usuario. **17A** ✅. Próxima: **17B**.
+> **Estado actual:** 🔨 en curso. Plan confirmado por el usuario. **17A** ✅ **17B** ✅. Próxima: **17C**.
 >
 > Pedido del usuario: sacar los textos que explican lo que pasa (que se entienda por la pantalla, el sonido y
 > la música), repartir las entradas de la casa, mejorar sonidos y música (sobre todo los pasos), sacar el enojo
@@ -14,8 +14,8 @@
 | Etapa | Qué | Tamaño | Estado |
 |---|---|---|---|
 | **17A** | Sacar el enojo de Don Ernesto | Chica | ✅ Terminada |
-| **17B** | Entradas repartidas: ventana rompible atrás y ventanita del sótano al costado izquierdo | Mediana | ⏳ Próxima |
-| **17C** | Sonidos y música que cuenten lo que pasa (pasos más claros, música por capas) | Grande | — |
+| **17B** | Entradas repartidas: ventana rompible atrás y ventanita del sótano al costado izquierdo | Mediana | ✅ Terminada |
+| **17C** | Sonidos y música que cuenten lo que pasa (pasos más claros, música por capas) | Grande | ⏳ Próxima |
 | **17D** | Sin textos que explican: todo por pantalla, sonido y música | Grande | — |
 | **17E** | Interfaz nueva: cómo aparecen los textos que quedan, HUD más limpio | Mediana | — |
 
@@ -34,7 +34,16 @@ ya no muestran el enojo.
 - Se van la barra "😠 Enojo" del HUD, el aviso de "cada vez más enojado" y el gruñido que lo acompañaba.
 - **Cómo se prueba:** una partida simulada de 4 minutos: la velocidad de Don Ernesto no cambia.
 
-## 17B — Entradas repartidas
+## 17B — Entradas repartidas ✅
+
+**Hecho:** la ventana que se rompe ahora es la de la cocina (pared de atrás, sobre la mesada: se cae del otro
+lado, ya en el piso) y la del frente del living quedó como una ventana común. La ventanita del sótano pasó a la
+pared oeste, detrás del garaje, y sigue cayendo en la sala de la caldera (la caldera se corrió 90 cm para dejar
+lugar). Dos arbustos nuevos para cubrirse: uno atrás y otro al costado. Ojo: el fondo de la casa es parte del
+patio de los perros, así que la ventana de la cocina queda del lado de los perros; la ventanita, no.
+Probado: romper y trepar en los dos sentidos, entrar y salir por la ventanita, sin quedar trabado en ningún
+mueble; el vidrio roto hace el mismo ruido que antes (radio 15); en el frente ya no hay nada que usar ahí.
+Ahora hay 4 entradas adelante, 4 al costado izquierdo, 3 a la derecha y 1 atrás.
 
 Hoy, de 12 formas de entrar, 6 están en el frente (puerta con llave, gatera, ventana rompible, portón, escalera
 al balcón, ventanita del sótano). Al costado izquierdo hay 3 (trastos al techo del garaje, chimenea, tragaluz) y

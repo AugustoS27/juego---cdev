@@ -559,6 +559,8 @@ export class Exterior {
     for (const x of [3.5, 5.5, 7.5, -8.4]) this.arbusto(x, 6.8);
     for (const [x, z] of [[-3.5, 20.5], [1.8, 20.5], [16, 21], [-18, 21]]) this.arbusto(x, z);
     for (const [x, z] of [[16.6, 3.5], [18.2, -7.6], [-1.5, -11.5]]) this.arbusto(x, z);
+    // Etapa 17B: uno atrás, cerca de la ventana de la cocina, y otro al costado, cerca de la ventanita del sótano
+    for (const [x, z] of [[-4.5, -7.2], [-11.2, -6.2]]) this.arbusto(x, z);
 
     // Tachos de basura al lado de la tranquera del patio (escondite: salís oliendo a basura)
     this.tachoDeBasura(14.4, 6.95);

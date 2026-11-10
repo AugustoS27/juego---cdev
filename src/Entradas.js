@@ -30,7 +30,7 @@ const TIEMPO_FORZAR = 3; // segundos manteniendo E para abrir el portón
 // ------------------------------------------------------------
 class VentanaRompible {
   constructor(scene) {
-    const { x, z, ancho, abajo, arriba } = VENTANA_ROMPIBLE;
+    const { x, z, ancho, abajo, arriba, afuera } = VENTANA_ROMPIBLE;
     const alto = arriba - abajo;
     this.raiz = new THREE.Group();
     this.raiz.position.set(x, 0, z);
@@ -61,15 +61,16 @@ class VentanaRompible {
     this.vidriosRotos = new THREE.Group();
     for (let i = 0; i < 16; i++) {
       const pedazo = new THREE.Mesh(new THREE.TetrahedronGeometry(0.06 + Math.random() * 0.06), materialToon('#caf0f8'));
-      pedazo.position.set((Math.random() - 0.5) * 1.6, 0.03, (Math.random() - 0.5) * 2.2);
+      pedazo.position.set((Math.random() - 0.5) * 1.6, 0.03, afuera * (0.25 + Math.random() * 1.1)); // (caen afuera)
       pedazo.rotation.set(Math.random() * 3, Math.random() * 3, 0);
       this.vidriosRotos.add(pedazo);
     }
     this.raiz.add(this.vidriosRotos);
 
-    // Puntos de un lado y del otro de la ventana (para trepar)
-    this.afuera = new THREE.Vector3(x, 0, z + 0.9);
-    this.adentro = new THREE.Vector3(x, 0, z - 0.9);
+    // Puntos de un lado y del otro de la ventana (para trepar). Adentro está la mesada de la cocina:
+    // se cae del otro lado, ya en el piso.
+    this.afuera = new THREE.Vector3(x, 0, z + afuera * 0.9);
+    this.adentro = new THREE.Vector3(x, 0, z - afuera * 1.3);
   }
 
   ayuda() {
@@ -88,8 +89,9 @@ class VentanaRompible {
       };
     }
     // Trepar al otro lado
-    const estaAfuera = jugador.position.z > VENTANA_ROMPIBLE.z;
-    return { sonido: 'trepar', animacion: { destino: estaAfuera ? this.adentro : this.afuera, duracion: 1.1, arco: 0.9 } };
+    const { z, afuera } = VENTANA_ROMPIBLE;
+    const estaAfuera = (jugador.position.z - z) * afuera > 0;
+    return { sonido: 'trepar', animacion: { destino: estaAfuera ? this.adentro : this.afuera, duracion: 1.2, arco: 1.3 } };
   }
 
   update() {}

@@ -128,23 +128,27 @@ export class VentanaSotano {
     this.raiz = new THREE.Group();
     scene.add(this.raiz);
 
-    // Afuera: al ras del pasto, con rejita (z + 0.12 = la cara de afuera de la pared)
-    parte(this.raiz, new THREE.BoxGeometry(0.9, 0.45, 0.06), '#ffffff', x, 0.25, z + 0.12);
-    parte(this.raiz, new THREE.BoxGeometry(0.76, 0.33, 0.02), negro('#22223b'), x, 0.25, z + 0.155, false);
-    for (const dx of [-0.2, 0, 0.2]) parte(this.raiz, new THREE.BoxGeometry(0.03, 0.33, 0.03), '#495057', x + dx, 0.25, z + 0.17);
-    parte(this.raiz, new THREE.BoxGeometry(1.1, 0.06, 0.35), '#adb5bd', x, 0.02, z + 0.3); // piedra del borde
-    zona(this.raiz, 1, 0.6, 0.35, x, 0.25, z + 0.2);
+    // Está en la pared oeste (una pared que corre a lo largo de Z): "d" son metros hacia afuera (-X) y
+    // las cajas se dan como (ancho sobre la pared, alto, grosor)
+    const caja = (ancho, alto, grosor) => new THREE.BoxGeometry(grosor, alto, ancho);
+
+    // Afuera: al ras del pasto, con rejita (0.12 = la cara de afuera de la pared)
+    parte(this.raiz, caja(0.9, 0.45, 0.06), '#ffffff', x - 0.12, 0.25, z);
+    parte(this.raiz, caja(0.76, 0.33, 0.02), negro('#22223b'), x - 0.155, 0.25, z, false);
+    for (const dz of [-0.2, 0, 0.2]) parte(this.raiz, caja(0.03, 0.33, 0.03), '#495057', x - 0.17, 0.25, z + dz);
+    parte(this.raiz, caja(1.1, 0.06, 0.35), '#adb5bd', x - 0.3, 0.02, z); // piedra del borde
+    zona(this.raiz, 0.35, 0.6, 1, x - 0.2, 0.25, z);
 
     // Adentro: arriba de la pared de la sala de la caldera (entra un poco de luz)
     const yAdentro = sotano + 2.5;
-    parte(this.raiz, new THREE.BoxGeometry(0.9, 0.45, 0.06), '#adb5bd', x, yAdentro, z - 0.12);
-    parte(this.raiz, new THREE.BoxGeometry(0.76, 0.33, 0.02), negro('#9be7ff'), x, yAdentro, z - 0.155, false);
-    zona(this.raiz, 1, 0.6, 0.3, x, yAdentro, z - 0.2);
+    parte(this.raiz, caja(0.9, 0.45, 0.06), '#adb5bd', x + 0.12, yAdentro, z);
+    parte(this.raiz, caja(0.76, 0.33, 0.02), negro('#9be7ff'), x + 0.155, yAdentro, z, false);
+    zona(this.raiz, 0.3, 0.6, 1, x + 0.2, yAdentro, z);
     this.raiz.updateMatrixWorld(true);
 
-    this.afuera = V(x, 0, z + 0.85);
-    this.paso = V(x, -0.2, z + 0.3); // agachado, metiéndote por el hueco
-    this.adentro = V(x, sotano, z - 1);
+    this.afuera = V(x - 0.85, 0, z);
+    this.paso = V(x - 0.3, -0.2, z); // agachado, metiéndote por el hueco
+    this.adentro = V(x + 1, sotano, z);
   }
 
   ayuda(jugador) {

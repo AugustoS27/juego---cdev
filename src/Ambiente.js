@@ -21,7 +21,7 @@ const punto = (m, y) => new THREE.Vector3(m.x, m.piso * ALTURA_PISO + y, m.z);
 const RELOJES = CUADROS.filter((c) => c.dibujo === 'reloj').map((c) => punto(c, c.y ?? 1.6));
 const HELADERAS = UBICACION_MUEBLES.filter((m) => m.tipo === 'heladera').map((m) => punto(m, 1));
 const TELE_POCHA = UBICACION_MUEBLES.filter((m) => m.tipo === 'televisionVieja').map((m) => punto(m, 0.8))[0];
-const CANERIAS = [new THREE.Vector3(-7.6, -1.2, -3.4), new THREE.Vector3(0.5, -0.6, -5.6), new THREE.Vector3(7, -0.6, -5.6)];
+const CANERIAS = [new THREE.Vector3(-6.7, -1.2, -3.4), new THREE.Vector3(0.5, -0.6, -5.6), new THREE.Vector3(7, -0.6, -5.6)];
 
 export class Ambiente {
   constructor(audio, house) {
