@@ -1,4 +1,4 @@
-// UI: todo lo que se muestra "encima" del juego (HUD, avisos y pantallas en HTML).
+// UI: todo lo que se muestra "encima" del juego (HUD y pantallas en HTML).
 // Game le dice QUÉ mostrar; UI sabe CÓMO mostrarlo.
 import { RADIO_MAXIMO_PASOS } from './Noise.js';
 
@@ -50,7 +50,7 @@ export class UI {
     // Cosas que aparecen encima del juego
     this.mira = $('mira');
     this.ayuda = $('ayuda');
-    this.avisos = $('avisos');
+    this.botin = $('hud-botin');
     this.textoRuido = $('texto-ruido');
     this.rellenoRuido = $('relleno-ruido');
     this.vistaEscondite = $('vista-escondite');
@@ -175,17 +175,11 @@ export class UI {
     this.ayuda.classList.toggle('oculto', !texto);
   }
 
-  // Aviso que aparece unos segundos y desaparece solo
-  mostrarAviso(texto, segundos = 3) {
-    const aviso = document.createElement('div');
-    aviso.className = 'aviso';
-    aviso.textContent = texto;
-    this.avisos.appendChild(aviso);
-    setTimeout(() => aviso.remove(), segundos * 1000);
-  }
-
-  borrarAvisos() {
-    this.avisos.innerHTML = '';
+  // La lista de juguetes late un instante (recuperaste uno, o te faltan para escapar)
+  resaltarBotin() {
+    this.botin.classList.remove('late');
+    void this.botin.offsetWidth; // (para que la animación vuelva a arrancar si ya estaba)
+    this.botin.classList.add('late');
   }
 
   // Ruidómetro: "radio" es el alcance del ruido de tus pasos ahora mismo (0 = quieto).
@@ -291,7 +285,6 @@ export class UI {
     this.mostrarWalkie(null);
     this.mostrarRed(0);
     this.hollin.classList.add('oculto');
-    this.borrarAvisos();
   }
 
   // ------------------------------------------------------------

@@ -1,6 +1,6 @@
 # Plan de mejoras (etapa 17)
 
-> **Estado actual:** 🔨 en curso. Plan confirmado por el usuario. **17A** ✅ **17B** ✅ **17C** ✅. Próxima: **17D**.
+> **Estado actual:** 🔨 en curso. Plan confirmado por el usuario. **17A** ✅ **17B** ✅ **17C** ✅ **17D** ✅. Próxima: **17E**.
 >
 > Pedido del usuario: sacar los textos que explican lo que pasa (que se entienda por la pantalla, el sonido y
 > la música), repartir las entradas de la casa, mejorar sonidos y música (sobre todo los pasos), sacar el enojo
@@ -16,8 +16,8 @@
 | **17A** | Sacar el enojo de Don Ernesto | Chica | ✅ Terminada |
 | **17B** | Entradas repartidas: ventana rompible atrás y ventanita del sótano al costado izquierdo | Mediana | ✅ Terminada |
 | **17C** | Sonidos y música que cuenten lo que pasa (pasos más claros, música por capas) | Grande | ✅ Terminada |
-| **17D** | Sin textos que explican: todo por pantalla, sonido y música | Grande | ⏳ Próxima |
-| **17E** | Interfaz nueva: cómo aparecen los textos que quedan, HUD más limpio | Mediana | — |
+| **17D** | Sin textos que explican: todo por pantalla, sonido y música | Grande | ✅ Terminada |
+| **17E** | Interfaz nueva: cómo aparecen los textos que quedan, HUD más limpio | Mediana | ⏳ Próxima |
 
 El orden importa: la 17D saca los avisos, así que antes (17C) tienen que existir los sonidos y la música que los
 reemplazan. La 17E va al final porque trabaja sobre lo poco de texto que quede.
@@ -89,7 +89,17 @@ Don Ernesto. No lo puedo escuchar: falta el oído del usuario para ajustar volú
 - **Cómo se prueba:** con el probador de sonidos, y midiendo que los pasos de Don Ernesto a 10 m se escuchen por
   encima del ambiente.
 
-## 17D — Sin textos que explican
+## 17D — Sin textos que explican ✅
+
+**Hecho:** se sacaron los ~50 avisos de texto (los de Game.js y los que traían las entradas), la caja de avisos de
+la pantalla y todos los comentarios espontáneos de Facu. Facu habla solo al pedirle una pista con T; el piso de
+cada juguete queda anotado en la lista desde el principio, sin que él hable. Señales nuevas: los perros gruñen
+(desde donde están) cuando escuchan algo; un "no" de dos notas cuando pedís una pista antes de tiempo o llegás
+a las bicis sin los tres juguetes; la lista de juguetes late al recuperar uno o cuando te faltan; el roce de la
+red al soltarte. Quedan, como se acordó, los carteles de "[E]" al mirar algo (incluida la puerta trabada).
+
+**Probado:** no queda ningún aviso ni la función que los mostraba; pistas, juguetes, corte de luz, golpes de
+música y las 12 entradas funcionan sin errores; dos partidas simuladas (noche y día) sin errores.
 
 Hoy hay unos 30 avisos de texto ("¡TE VIO!", "Don Ernesto escuchó algo", "trabó una puerta"...). Se sacan todos y
 cada situación pasa a contarse sola:

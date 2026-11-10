@@ -110,7 +110,7 @@ export class Game {
     this.audio.estilo = leerGuardado('estiloSonido', ['grabado', 'codigo'], 'grabado');
     if (import.meta.env.DEV) this.crearProbadorDeSonidos();
     this.ui = new UI();
-    this.walkie = new Walkie(); // Facu, por radio (pistas y comentarios)
+    this.walkie = new Walkie(); // Facu, por radio (pistas, cuando se las pedís con T)
     // Cinemáticas: el reproductor (Cinematica.js) y los guiones con sus actores (Escenas.js)
     this.cinematica = new Cinematica(this.camera);
     this.cinematica.alHablar = (quien) => this.audio.voz(quien);
@@ -146,7 +146,6 @@ export class Game {
 
     this.estado = PARTIDA.MENU;
     this.tiempoPartida = 0; // segundos jugados en esta partida
-    this.tiempoDesdeAvisoRuido = 99; // para no llenar la pantalla de avisos
     this.estabaEnLaZona = false; // para avisar "te faltan objetos" solo al entrar a la zona
 
     this.conectarEventos();
@@ -275,10 +274,7 @@ export class Game {
 
   // F: prende o apaga la linterna (solo de noche)
   alternarLinterna() {
-    if (this.turno !== 'noche') {
-      this.ui.mostrarAviso('☀️ Es de día: la linterna no hace falta', 1.5);
-      return;
-    }
+    if (this.turno !== 'noche') return; // (de día no hace falta: ni se prende)
     this.linterna.prender(!this.linterna.prendida);
     this.audio.linterna();
     this.ui.mostrarLinterna(this.linterna.prendida);
@@ -301,10 +297,7 @@ export class Game {
   // ------------------------------------------------------------
   // E mirando el tablero: baja la llave (o la vuelve a subir, si estaba cortada)
   usarTablero() {
-    if (this.turno !== 'noche') {
-      this.ui.mostrarAviso('☀️ Es de día: cortar la luz no cambia nada', 2);
-      return;
-    }
+    if (this.turno !== 'noche') return; // (de día no cambia nada: lo dice el cartel al mirarlo)
     if (this.corte.cortada) this.subirLlave(false);
     else this.bajarLlave();
   }
@@ -313,8 +306,6 @@ export class Game {
     this.corte.bajar();
     this.audio.enElMundo('tablero', true);
     this.hacerRuido(new THREE.Vector3(TABLERO_LUZ.x - 0.6, 0, TABLERO_LUZ.z), RADIO_RUIDO.puerta);
-    this.ui.mostrarAviso('🔌 ¡Clac! Se cortó la luz de toda la casa. Ahora los vecinos casi no ven... salvo tu linterna', 4);
-    this.walkie.comentar(this.corte.veces >= 2 ? 'sospecha' : 'corte', {}, true);
     this.esperaDueno = ESPERA_DUENO_TABLERO;
   }
 
@@ -323,8 +314,7 @@ export class Game {
     this.corte.subir();
     if (porDueno) this.audio.desde(new THREE.Vector3(TABLERO_LUZ.x, TABLERO_LUZ.y, TABLERO_LUZ.z), 'tablero', false);
     else this.audio.enElMundo('tablero', false);
-    if (porDueno) this.ui.mostrarAviso('💡 Don Ernesto volvió a subir la llave: ¡volvió la luz!', 3);
-    else this.dueno.olvidarTablero();
+    if (!porDueno) this.dueno.olvidarTablero();
     this.esperaDueno = 0;
   }
 
@@ -336,8 +326,7 @@ export class Game {
       if (this.esperaDueno <= 0 && this.corte.cortada) {
         const sospecha = this.corte.veces >= 2;
         this.dueno.irAlTablero(this.dueno.waypoints.tablero, sospecha);
-        this.audio.desde(this.cabezaDe(this.dueno), 'rezongo');
-        this.ui.mostrarAviso(`💡 Don Ernesto: "¡¿Otra vez la luz?!" Va para el tablero del garaje${sospecha ? '... y sospecha' : ''}`, 3.5);
+        this.audio.desde(this.cabezaDe(this.dueno), 'rezongo'); // ("¡¿Otra vez la luz?!")
       }
     }
     if (this.corte.cortada && this.corte.tiempoCortada > MAXIMO_SIN_LUZ) {
@@ -464,7 +453,7 @@ export class Game {
 
   // ------------------------------------------------------------
   //  CONEXIONES: el jugador y el dueño "avisan" que pasó algo,
-  //  y acá decidimos qué sonido, ruido o aviso corresponde.
+  //  y acá decidimos qué sonido o ruido corresponde.
   // ------------------------------------------------------------
   conectarEventos() {
     // Cada paso del jugador suena y hace ruido según cómo se mueve
@@ -487,7 +476,6 @@ export class Game {
     this.player.alHacerRuido = (tipo) => {
       if (tipo === 'choque') {
         this.audio.enElMundo('choque');
-        this.ui.mostrarAviso('💥 ¡PUM! Te llevaste puesto un mueble', 1.5);
       } else if (tipo === 'salto') {
         this.audio.enElMundo('salto');
       } else if (tipo === 'aterrizaje') {
@@ -527,8 +515,6 @@ export class Game {
     // El dueño trabó una puerta
     this.dueno.alTrabarPuerta = (puerta) => {
       this.audio.desde(puerta.centro, 'traba');
-      const donde = NOMBRES_PISOS[puerta.piso].toLowerCase();
-      this.ui.mostrarAviso(`🔒 ¡Don Ernesto trabó una puerta (${donde})! Se destraba en 20 s`, 4);
     };
 
     // El walkie: "kshhh" al empezar y terminar cada mensaje, y la vocecita de Facu mientras se escribe
@@ -542,8 +528,6 @@ export class Game {
       if (this.estado !== PARTIDA.JUGANDO) return;
       if (nuevo === ESTADO.PERSEGUIR) {
         this.musica.golpe('visto');
-        this.ui.mostrarAviso('❗ ¡TE VIO! ¡Corré o escondete!', 2);
-        this.walkie.comentar('persecucion', {}, true);
       } else if (nuevo === ESTADO.INVESTIGAR && anterior === ESTADO.PATRULLA) {
         this.musica.golpe('oyo');
       }
@@ -555,22 +539,18 @@ export class Game {
         this.audio.desde(perro.position.clone().setY(perro.position.y + 0.6), 'ladrido');
         this.hacerRuido(perro.position, RADIO_RUIDO.ladrido, perro);
       };
-      perro.alCambiarEstado = (nuevo) => {
-        if (this.estado === PARTIDA.JUGANDO && nuevo === ESTADO.PERSEGUIR) {
-          this.musica.golpe('susto');
-          this.ui.mostrarAviso(`🐕 ¡${perro.v.nombre} te vio! Metete en la casa o subite a algo alto`, 3);
-          this.walkie.comentar('perros', {}, true);
-        }
+      // Te vio: un susto de música. Escuchó algo: gruñe (se escucha de qué lado está)
+      perro.alCambiarEstado = (nuevo, anterior) => {
+        if (this.estado !== PARTIDA.JUGANDO) return;
+        if (nuevo === ESTADO.PERSEGUIR) this.musica.golpe('susto');
+        else if (nuevo === ESTADO.INVESTIGAR && anterior === ESTADO.PATRULLA) this.audio.desde(this.cabezaDe(perro), 'grunido');
       };
-      perro.alAburrirse = () => this.ui.mostrarAviso(`🥱 ${perro.v.nombre} se aburrió de ladrarte y vuelve a la cucha`, 3);
     }
 
     // Doña Pocha: "clic" al apuntar, ¡FUAP! al disparar la red (hace ruido) y ruiditos al recargar
     this.abuela.alApuntar = () => {
       this.audio.clic(Math.max(0.5, this.volumenPorDistancia(this.abuela.position)));
       this.musica.golpe('susto');
-      this.ui.mostrarAviso('🎯 ¡Doña Pocha te apunta con el lanzarredes! ¡Cubrite o corré de costado!', 2);
-      this.walkie.comentar('abuela', {}, true);
     };
     this.abuela.alDisparar = () => {
       this.audio.desde(this.cabezaDe(this.abuela), 'fuap');
@@ -578,21 +558,16 @@ export class Game {
       // El ruido sale de donde te vio (a la altura de tus pies): el dueño va a ir a ver ahí
       this.hacerRuido(this.abuela.ultimaPosicionVista, RADIO_RUIDO.red, this.abuela);
     };
-    this.abuela.alErrar = () => {
-      if (this.player.enRed <= 0) this.ui.mostrarAviso('💨 ¡La red no te agarró! Tarda en recargar: ¡aprovechá!', 2.5);
-    };
     // La red te enredó: 3 s sin moverte, y Doña Pocha grita "¡ERNESTOOO!" (un ruido grande donde estás)
     this.abuela.alAtrapar = () => {
       this.player.atraparEnRed();
       this.audio.enredado();
       this.audio.gritoPocha(Math.max(0.5, this.volumenPorDistancia(this.abuela.position)));
-      this.ui.mostrarAviso('🕸️ ¡Te enredó la red! Quedás atrapado 3 segundos... ¡y Doña Pocha llama a Don Ernesto!', 3);
-      this.walkie.comentar('red', {}, true);
       this.hacerRuido(this.player.position.clone(), RADIO_RUIDO.grito, this.abuela);
     };
     this.player.alSoltarseDeLaRed = () => {
       this.abuela.redes.dejarEnElPiso(this.player.position);
-      this.ui.mostrarAviso('💪 ¡Te soltaste! Rajá de ahí', 2);
+      this.audio.enElMundo('trepar'); // (el roce de la red al soltarte)
     };
     this.abuela.alRecargar = () => this.audio.desde(this.cabezaDe(this.abuela), 'recarga');
   }
@@ -741,23 +716,9 @@ export class Game {
   }
 
   // Genera un ruido. fuente: el enemigo que lo hizo (o null si fue el jugador).
-  // Si el dueño o los perros lo escuchan, avisamos (como mucho cada 3 segundos)
+  // (Si alguien lo escucha, no se avisa con texto: se nota en la música y en sus pasos, ver Musica.js)
   hacerRuido(posicion, radio, fuente = null) {
-    const oyeron = this.ruido.hacerRuido(posicion, radio, fuente);
-    if (this.tiempoDesdeAvisoRuido <= 3 || this.estado !== PARTIDA.JUGANDO) return;
-    let aviso = null;
-    if (oyeron.includes(this.dueno)) {
-      if (fuente === this.abuela && radio === RADIO_RUIDO.grito) aviso = '📢 "¡ERNESTOOO, LO AGARRÉ!" Don Ernesto viene para acá...';
-      else if (fuente === this.abuela) aviso = '🕸️ ¡El FUAP del lanzarredes alertó a Don Ernesto! Viene a ver...';
-      else if (fuente) aviso = '🐕 ¡Los ladridos alertaron a Don Ernesto! Viene a ver...';
-      else aviso = '👂 Don Ernesto escuchó algo y viene a ver...';
-    } else if (!fuente && this.perros.some((perro) => oyeron.includes(perro))) {
-      aviso = '🐕 Los perros escucharon algo... ¡andá agachado por el patio!';
-    }
-    if (aviso) {
-      this.ui.mostrarAviso(aviso, 2.5);
-      this.tiempoDesdeAvisoRuido = 0;
-    }
+    this.ruido.hacerRuido(posicion, radio, fuente);
   }
 
   // ------------------------------------------------------------
@@ -777,10 +738,6 @@ export class Game {
       this.estado = PARTIDA.JUGANDO;
       this.ui.mostrarPantalla(null);
       this.ui.mostrarHUD(true);
-      if (this.tiempoPartida === 0) {
-        this.ui.mostrarAviso('🏠 Estás afuera. Buscá una forma de entrar... ¡hay varias!', 4);
-        if (this.turno === 'noche') this.ui.mostrarAviso('🌙 Es de noche. [F] prende la linterna... pero con la luz te ven desde más lejos', 6);
-      }
     });
 
     controls.addEventListener('unlock', () => {
@@ -873,10 +830,8 @@ export class Game {
     this.efectos.limpiar();
     this.player.setPosition(INICIO_JUGADOR.x, INICIO_JUGADOR.y, INICIO_JUGADOR.z);
     this.camera.rotation.set(0, 0, 0); // mirando hacia adentro de la casa
-    this.pasadizoEncontrado = false;
     this.items.sortearObjetivos();
     this.walkie.reiniciar(this.items.objetivos);
-    this.yaEntroALaCasa = false; // (para que Facu lo comente una vez)
     // Las habilidades se reparten donde no haya un juguete
     this.habilidades.reiniciar(this.items.objetivos.map((o) => o.ubicacion));
     this.aplicarHabilidades();
@@ -968,7 +923,6 @@ export class Game {
 
     if (this.estado === PARTIDA.JUGANDO) {
       this.tiempoPartida += dt;
-      this.tiempoDesdeAvisoRuido += dt;
       this.actualizarTormenta(dt);
       this.actualizarCorte(dt);
 
@@ -994,7 +948,6 @@ export class Game {
       this.ui.mostrarApuntado(this.abuela.estado === ESTADO_ABUELA.APUNTAR);
       this.ui.mostrarRed(this.player.enRed);
       this.actualizarAyuda();
-      this.comentarSiEntro();
       this.ui.mostrarFundido(this.player.oscuridad); // (negro mientras atravesás una pared trepando)
       this.ui.actualizarHUD(this.tiempoPartida);
       this.ui.mostrarHabilidades([...this.habilidades.paraElHUD, ...this.olorParaElHUD()]);
@@ -1028,17 +981,11 @@ export class Game {
     this.efectos.agarrar(objetivo.malla, '#ffd23f'); // vuela hacia la mochila con un destello dorado
     this.audio.guardar();
     this.ui.mostrarBotin(this.items.objetivos, this.walkie);
-    this.walkie.alRecuperar(objetivo);
-
-    const { nombre, icono } = objetivo.objeto;
+    this.ui.resaltarBotin(); // (se tilda en la lista, que late un instante)
     if (this.items.todosEncontrados) {
-      // ¡Los tres! Se prende la zona de escape
+      // ¡Los tres! Fanfarria y se prende la zona de escape
       this.zonaEscape.activar(true);
       this.audio.todoListo();
-      this.ui.mostrarAviso(`${icono} ¡Recuperaste ${nombre}! Ya tenés los tres: volvé a la entrada de autos, Facu te espera con las bicis 🚲`, 5);
-    } else {
-      const faltan = this.items.objetivos.length - this.items.cantidadEncontrados;
-      this.ui.mostrarAviso(`${icono} ¡Recuperaste ${nombre}! Te ${faltan === 1 ? 'falta 1 juguete' : `faltan ${faltan} juguetes`}`, 2.5);
     }
   }
 
@@ -1050,20 +997,10 @@ export class Game {
   pedirPista() {
     const respuesta = this.walkie.pedirPista();
     if (respuesta.esperar) {
-      this.ui.mostrarAviso(`📻 Facu está mirando con los binoculares... probá en ${respuesta.esperar} s`, 2);
+      this.audio.negar(); // (todavía no: en el HUD se ve cuánto falta)
       return;
     }
     this.hacerRuido(this.player.position.clone(), RADIO_RUIDO_WALKIE);
-  }
-
-  // Facu comenta cuando entrás a la casa por primera vez
-  comentarSiEntro() {
-    if (this.yaEntroALaCasa) return;
-    const p = this.player.position;
-    if (p.x > -15.5 && p.x < 9 && p.z > -6 && p.z < 6) {
-      this.yaEntroALaCasa = true;
-      this.walkie.comentar('entrar');
-    }
   }
 
   // ------------------------------------------------------------
@@ -1072,36 +1009,18 @@ export class Game {
   // Agarraste una: se activa en el momento
   usarHabilidad(habilidad) {
     const { tipo } = habilidad;
-    const { duracion } = HABILIDADES[tipo];
     this.habilidades.agarrar(habilidad);
     this.efectos.agarrar(habilidad.malla, HABILIDADES[tipo].color);
     this.audio.habilidad(tipo);
 
-    if (tipo === 'zanahoria') {
-      const revelado = this.habilidades.revelar(this.items.objetivos);
-      this.ui.mostrarAviso(
-        revelado
-          ? `🥕 ¡Ñam! Durante ${duracion} s ves ${revelado.objeto.nombre} a través de las paredes (buscá el brillo naranja)`
-          : '🥕 ¡Ñam! Rica, pero ya tenés todos tus juguetes',
-        4,
-      );
-    } else if (tipo === 'botas') {
-      this.ui.mostrarAviso(`🧦 Te pusiste las botas de lana: ${duracion} s de pasos silenciosos (¡hasta corriendo!)`, 3);
-    } else if (tipo === 'bebida') {
-      this.ui.mostrarAviso(`🥤 ¡Glup glup! Durante ${duracion} s vas un 50% más rápido`, 3);
-    }
+    // (Qué hace cada una se ve en el HUD: su ícono con el tiempo que le queda)
+    if (tipo === 'zanahoria') this.habilidades.revelar(this.items.objetivos);
     this.aplicarHabilidades();
   }
 
   // Se terminó el efecto de una habilidad
-  alTerminarHabilidad(tipo) {
+  alTerminarHabilidad() {
     this.audio.finHabilidad();
-    const avisos = {
-      zanahoria: '🥕 Se terminó el efecto de la zanahoria',
-      botas: '🧦 Se te salieron las botas de lana: ¡tus pasos vuelven a sonar!',
-      bebida: '🥤 Se te pasó el efecto de la bebida: volvés a tu velocidad normal',
-    };
-    this.ui.mostrarAviso(avisos[tipo], 2.5);
   }
 
   // Le pasa al jugador los efectos de las habilidades activas
@@ -1116,9 +1035,9 @@ export class Game {
     if (adentro && this.items.todosEncontrados) {
       this.ganar();
     } else if (adentro && !this.estabaEnLaZona) {
-      // Llegó antes de tiempo: avisamos una vez (al entrar), no en cada frame
-      const faltan = this.items.objetivos.length - this.items.cantidadEncontrados;
-      this.ui.mostrarAviso(`🚲 Facu: "¡Todavía no! Te ${faltan === 1 ? 'falta 1 juguete' : `faltan ${faltan} juguetes`}"`, 3);
+      // Llegó antes de tiempo: un "no" y la lista de juguetes late (una vez, al entrar)
+      this.audio.negar();
+      this.ui.resaltarBotin();
     }
     this.estabaEnLaZona = adentro;
   }
@@ -1226,10 +1145,6 @@ export class Game {
     if (puerta.alternar()) {
       const chiquita = puerta.estilo === 'rejilla' || puerta.estilo === 'tabla';
       this.audio.enElMundo(chiquita ? 'rejilla' : puerta.secreta ? 'estante' : 'puerta');
-      if (puerta.secreta && puerta.abierta && !this.pasadizoEncontrado) {
-        this.pasadizoEncontrado = true;
-        this.ui.mostrarAviso('📚 ¡El estante giró! Hay un cuarto secreto detrás', 3);
-      }
       this.hacerRuido(puerta.centro.clone().setY(this.player.position.y), RADIO_RUIDO[chiquita ? 'rejilla' : 'puerta']);
     }
   }
@@ -1242,10 +1157,9 @@ export class Game {
     for (const resultado of entrada.forzar(dt)) this.aplicarResultado(resultado);
   }
 
-  // Las entradas devuelven "qué pasó"; acá lo convertimos en sonido, ruido, aviso y animación
-  aplicarResultado({ sonido, aviso, ruido, animacion, llave, hollin }) {
+  // Las entradas devuelven "qué pasó"; acá lo convertimos en sonido, ruido y animación
+  aplicarResultado({ sonido, ruido, animacion, llave, hollin }) {
     if (sonido) this.audio.enElMundo(sonido);
-    if (aviso) this.ui.mostrarAviso(aviso, 3);
     if (ruido) this.hacerRuido(ruido.posicion, ruido.radio);
     if (animacion) this.player.moverAnimado(animacion);
     if (llave) this.house.puertaDeCalle.conLlave = false;
@@ -1271,8 +1185,7 @@ export class Game {
     this.audio.enElMundo(tipo.sonido, 0.4);
     if (tipo.olor) {
       // Saliste del tacho de basura: un rato oliendo mal (los perros te huelen de lejos, ver Perro.js)
-      this.player.olor = tipo.olor;
-      this.ui.mostrarAviso(`🤢 Salís oliendo a basura: durante ${tipo.olor} s los perros te huelen de lejos`, 3);
+      this.player.olor = tipo.olor; // (se ve: la pantalla se pone verdosa y aparece en el HUD)
     }
   }
 
@@ -1280,7 +1193,6 @@ export class Game {
   actualizarOlor(dt) {
     if (this.player.olor <= 0) return;
     this.player.olor = Math.max(0, this.player.olor - dt);
-    if (this.player.olor === 0) this.ui.mostrarAviso('🧼 Ya no olés a basura (o te acostumbraste)', 2.5);
   }
 
   // El olor se muestra en el HUD como si fuera una habilidad (una "habilidad" bastante mala)

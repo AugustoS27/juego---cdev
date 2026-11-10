@@ -7,7 +7,7 @@
 //     llega a la bodega del sótano. Es una forma nueva de entrar a la casa.
 //
 // Funcionan igual que las entradas (ver Entradas.js): tienen una "raiz" (lo que se mira), un texto
-// de ayuda y un usar() que devuelve qué pasó { sonido, ruido, aviso, animacion }. Game lo aplica.
+// de ayuda y un usar() que devuelve qué pasó { sonido, ruido, animacion }. Game lo aplica.
 import * as THREE from 'three';
 import { materialToon } from './Materials.js';
 
@@ -77,11 +77,9 @@ export class Trampilla {
     const ruido = { posicion: this.centro, radio: RUIDO_TRAMPILLA };
     if (this.plegada) {
       this.desplegar();
-      const aviso = this.yaSeAbrio ? null : '🪜 ¡Se desplegó una escalera al ático!';
-      this.yaSeAbrio = true;
-      return { sonido: 'trampilla', ruido, aviso };
+      return { sonido: 'trampilla', ruido };
     }
-    if (jugador.obtenerCaja().intersectsBox(this.zona)) return { aviso: 'No podés plegar la escalera con vos encima' };
+    if (jugador.obtenerCaja().intersectsBox(this.zona)) return null;
     this.plegar();
     return { sonido: 'trampilla', ruido };
   }
@@ -124,7 +122,6 @@ export class Trampilla {
   reiniciar() {
     this.angulo = this.anguloPlegada;
     this.objetivo = this.anguloPlegada;
-    this.yaSeAbrio = false;
     this.quitarRebanadas();
     this.update(0);
   }
@@ -196,9 +193,7 @@ export class Pozo {
 
   usar(jugador) {
     if (jugador.position.y > -1.5) {
-      const aviso = this.yaBajo ? null : '🕳️ En el fondo del pozo hay un túnel... ¡agachate (C) para pasar!';
-      this.yaBajo = true;
-      return { sonido: 'trepar', aviso, animacion: { destino: this.abajo, duracion: 1.8, arco: 0.15 } };
+      return { sonido: 'trepar', animacion: { destino: this.abajo, duracion: 1.8, arco: 0.15 } };
     }
     return { sonido: 'trepar', animacion: { destino: this.arriba, duracion: 1.8, arco: 0.15 } };
   }
@@ -206,6 +201,5 @@ export class Pozo {
   update() {}
 
   reiniciar() {
-    this.yaBajo = false;
   }
 }

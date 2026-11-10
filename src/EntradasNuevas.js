@@ -106,7 +106,6 @@ export class Chimenea {
         fundido: { desde: 0.3, hasta: 0.88 }, // negro mientras caés por adentro y atravesás la pared
         alTerminar: {
           sonido: 'chimenea',
-          aviso: '💨 ¡PUF! Caíste en el hogar del living... lleno de hollín y haciendo ruido',
           ruido: { posicion: this.llegada, radio: RUIDO_CHIMENEA },
           hollin: true,
         },
@@ -159,11 +158,9 @@ export class VentanaSotano {
 
   usar(jugador) {
     if (jugador.position.y > -1.5) {
-      const aviso = this.yaEntro ? null : '🕯️ Estás en el sótano. Está oscuro... y algo gotea';
-      this.yaEntro = true;
       return {
         sonido: 'ventanita',
-        animacion: { destino: this.adentro, por: [this.paso], duracion: 1.8, fundido: { desde: 0.3, hasta: 0.8 }, alTerminar: aviso ? { aviso } : null },
+        animacion: { destino: this.adentro, por: [this.paso], duracion: 1.8, fundido: { desde: 0.3, hasta: 0.8 } },
       };
     }
     return { sonido: 'ventanita', animacion: { destino: this.afuera, por: [this.paso], duracion: 1.8, fundido: { desde: 0.2, hasta: 0.7 } } };
@@ -172,7 +169,6 @@ export class VentanaSotano {
   update() {}
 
   reiniciar() {
-    this.yaEntro = false;
   }
 }
 
@@ -197,14 +193,11 @@ export class Gatera {
 
   usar(jugador) {
     if (this.puerta.abierta) return null;
-    if (!jugador.agachado) return { aviso: '🐈 Así parado no entrás: agachate (C) para pasar por la gatera' };
+    if (!jugador.agachado) return null;
     const estaAfuera = jugador.position.z > this.puerta.centro.z;
     this.tiempoTapa = -DURACION_GATERA / 2 + 0.3; // la tapita se mueve cuando pasás por el medio
-    const aviso = this.yaPaso ? null : '🐈 Miau... pasando por la gatera (despacito)';
-    this.yaPaso = true;
     return {
       sonido: 'gatera',
-      aviso,
       animacion: { destino: estaAfuera ? this.adentro : this.afuera, duracion: DURACION_GATERA, fundido: { desde: 0.42, hasta: 0.58 } },
     };
   }
@@ -220,7 +213,6 @@ export class Gatera {
 
   reiniciar() {
     this.tiempoTapa = null;
-    this.yaPaso = false;
     this.raiz.userData.tapa.rotation.x = 0;
   }
 }
@@ -278,7 +270,6 @@ export class Enredadera {
     }
     return {
       sonido: 'hojas',
-      aviso: '🌿 Trepando... ¡mientras subís, cualquiera que mire te ve!',
       ruido: { posicion: this.abajo, radio: RUIDO_HOJAS },
       animacion: { destino: this.adentro, por: this.trepando, duracion: DURACION_ENREDADERA, fundido: { desde: 0.8, hasta: 0.9 } },
     };
@@ -359,7 +350,6 @@ export class Tragaluz {
         fundido: { desde: 0.82, hasta: 0.9 },
         alTerminar: {
           sonido: 'tragaluz',
-          aviso: '🪟 ¡Adentro! Entraste al ático por el tragaluz',
           ruido: { posicion: this.adentro, radio: RUIDO_TRAGALUZ },
         },
       },

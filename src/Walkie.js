@@ -7,11 +7,12 @@
 //       nivel 3: el lugar exacto  "...en la mesa de la bodega"
 //     Se arman solas con los datos: el piso y el cuarto salen de la posición del juguete (las
 //     habitaciones de HouseData.js) y el lugar exacto es el "lugar" de su ubicación (Items.js).
-//     Al empezar, Facu dice el nivel 1 de los tres. Con T le pedís una más precisa (ver pedirPista):
-//     hay que esperar ESPERA_PISTA segundos entre una y otra, y el walkie hace un ruidito.
+//     Al empezar, el nivel 1 de los tres queda anotado en la lista de juguetes (sin que Facu hable).
+//     Con T le pedís una más precisa (ver pedirPista): hay que esperar ESPERA_PISTA segundos entre una
+//     y otra, y el walkie hace un ruidito.
 //
-//  2. COMENTARIOS de lo que pasa (te vio Don Ernesto, los perros, recuperaste un juguete...).
-//     Cada tipo de comentario tiene su tiempo de espera, para que Facu no hable todo el tiempo.
+//  Facu habla SOLO cuando le pedís una pista (etapa 17D): antes también comentaba lo que pasaba
+//  ("¡Te vio Don Ernesto!"), pero eso ahora lo cuentan la música, los sonidos y la pantalla.
 //
 // Los mensajes van a una cola y se muestran de a uno, con el texto apareciendo letra por letra.
 // Este archivo no dibuja nada: Game le pregunta qué mostrar (textoVisible) y se lo pasa a UI.
@@ -20,9 +21,7 @@ import { NOMBRES_PISOS, ZONA_PATIO, HABITACIONES } from './HouseData.js';
 export const ESPERA_PISTA = 20; // segundos entre una pista pedida y la siguiente
 export const RADIO_RUIDO_WALKIE = 3; // metros: el "kshhh" del walkie se escucha
 const LETRAS_POR_SEGUNDO = 45;
-const MAXIMO_EN_COLA = 3; // si hay más mensajes esperando, los comentarios nuevos se descartan
-const DEMORA_SALUDO = 1.5; // segundos desde que empieza la partida hasta el primer mensaje
-const TIEMPO_SIN_AYUDA = 90; // si pasa esto sin recuperar nada ni pedir pistas, Facu ofrece ayuda
+const MAXIMO_EN_COLA = 3; // si hay más mensajes esperando, los nuevos se descartan
 
 // Cómo dice Facu cada piso y cada cuarto
 const PISOS_DICHOS = { '-1': 'en el sótano', 0: 'en la planta baja', 1: 'en el primer piso', 2: 'en el segundo piso', 3: 'en el ático' };
@@ -51,24 +50,10 @@ const CUARTOS_DICHOS = {
 // Frases (se elige una al azar). {juguete}, {Juguete} (con mayúscula), {donde}, {faltan}.
 // (Escritas sin "lo"/"la" ni "tuyo"/"tuya": así sirven para juguetes masculinos y femeninos.)
 const FRASES = {
-  saludo: '¡Tomi! ¿Me escuchás? Cambio. Con los binoculares vi {lista}. Si necesitás más ayuda, apretá T.',
   nivel2: ['Dejame mirar bien... ¡Sí! {Juguete} está {donde}.', 'Ahora se ve mejor: {juguete} está {donde}. Cambio.'],
   nivel3: ['¡Lo veo clarito! {Juguete} está {donde}.', 'Ajusté los binoculares: {juguete} está {donde}. ¡Andá!'],
   nadaMas: ['Ya te dije todo lo que vi, Tomi. ¡Vos podés!'],
-  entrar: ['¡Entraste! Andá despacito, que Don Ernesto anda dando vueltas.', 'Ya estás adentro. Shhh... ¡caminá agachado si lo escuchás cerca!'],
-  persecucion: ['¡Te vio Don Ernesto! ¡Corré y escondete!', '¡Uy, uy, uy! ¡Rajá de ahí, Tomi!'],
-  perros: ['¡Los perros! ¡Subite a algo alto o metete en la casa!', '¡Firulais y Manchita te vieron! ¡Corré!'],
-  abuela: ['¡Cuidado! ¡Doña Pocha te está apuntando!', '¡Corré de costado! ¡Doña Pocha tiene el lanzarredes!'],
-  red: ['¡Te enredó! ¡Zafá rápido que Don Ernesto viene para allá!', '¡Noooo, la red! ¡Forcejeá, Tomi!'],
-  juguete: ['¡Bien ahí! Ya recuperaste {juguete}. Te {faltan}.', '¡Eso! {Juguete} vuelve a casa. Te {faltan}.'],
-  todos: ['¡LOS TRES! Volvé a la entrada de autos, te espero con las bicis. ¡Rápido!'],
-  sinAyuda: ['¿Estás perdido? Apretá T y te digo algo más.'],
-  corte: ['¡Cortaste la luz! Aprovechá... pero cuidado, que Don Ernesto va a ir a arreglarla.', '¡Se apagó toda la casa! Moveté a oscuras: con la linterna te ven de lejísimos.'],
-  sospecha: ['¡Otra vez la luz! Ahora Don Ernesto sospecha: va a revisar el garaje.', 'Me parece que Don Ernesto ya se avivó... ¡no te quedes en el garaje!'],
 };
-
-// Cuántos segundos tiene que pasar para repetir un comentario del mismo tipo (Infinity = una sola vez)
-const ESPERA_COMENTARIO = { entrar: Infinity, persecucion: 40, perros: 40, abuela: 40, sinAyuda: Infinity };
 
 const alAzar = (lista) => (Array.isArray(lista) ? lista[Math.floor(Math.random() * lista.length)] : lista);
 const mayuscula = (texto) => texto[0].toUpperCase() + texto.slice(1);
@@ -128,10 +113,7 @@ export class Walkie {
     this.cola = [];
     this.actual = null; // { texto, letras (cuántas se ven), tiempo (cuánto le queda en pantalla) }
     this.esperaPista = 0;
-    this.ultimoComentario = {}; // tipo -> tiempo de la partida en que se dijo
-    this.tiempo = 0;
-    this.tiempoSinAyuda = 0;
-    this.saludo = objetivos.length > 0 ? DEMORA_SALUDO : -1;
+    if (objetivos.length > 0) this.anotarPisos();
   }
 
   // ¿Qué tanto sabe el jugador de este juguete? (0 = nada, 3 = el lugar exacto)
@@ -162,14 +144,9 @@ export class Walkie {
   // ------------------------------------------------------------
   //  PISTAS
   // ------------------------------------------------------------
-  // El saludo del principio: el nivel 1 de los tres juguetes en un solo mensaje
-  saludar() {
-    const partes = this.objetivos.map((o) => {
-      this.niveles.set(o, 1);
-      return `${o.objeto.nombre} ${dondeEsta(o.ubicacion).piso}`;
-    });
-    const lista = partes.length > 1 ? `${partes.slice(0, -1).join(', ')} y ${partes.at(-1)}` : partes[0];
-    this.decir(completar(FRASES.saludo, { lista }));
+  // Al empezar: el nivel 1 (el piso) de los tres juguetes queda anotado en la lista, sin decir nada
+  anotarPisos() {
+    for (const o of this.objetivos) this.niveles.set(o, 1);
     this.alCambiarPistas?.();
   }
 
@@ -179,7 +156,6 @@ export class Walkie {
     if (this.esperaPista > 0) return { esperar: Math.ceil(this.esperaPista) };
     const candidatos = this.objetivos.filter((o) => !o.encontrado && this.nivelDe(o) < 3);
     this.esperaPista = ESPERA_PISTA;
-    this.tiempoSinAyuda = 0;
     if (candidatos.length === 0) {
       this.decir(alAzar(FRASES.nadaMas), true);
       return { hablo: true };
@@ -195,37 +171,10 @@ export class Walkie {
   }
 
   // ------------------------------------------------------------
-  //  COMENTARIOS
-  // ------------------------------------------------------------
-  // tipo: una clave de FRASES. Respeta la espera de cada tipo (ESPERA_COMENTARIO).
-  comentar(tipo, valores = {}, urgente = false) {
-    const espera = ESPERA_COMENTARIO[tipo] ?? 0;
-    const ultimo = this.ultimoComentario[tipo];
-    if (ultimo !== undefined && this.tiempo - ultimo < espera) return;
-    this.ultimoComentario[tipo] = this.tiempo;
-    this.decir(completar(alAzar(FRASES[tipo]), valores), urgente);
-  }
-
-  // Recuperaste un juguete
-  alRecuperar(objetivo) {
-    this.tiempoSinAyuda = 0;
-    const faltan = this.objetivos.filter((o) => !o.encontrado).length;
-    if (faltan === 0) this.comentar('todos', {}, true);
-    else this.comentar('juguete', { juguete: objetivo.objeto.nombre, faltan: faltan === 1 ? 'falta uno' : `faltan ${faltan}` });
-  }
-
-  // ------------------------------------------------------------
   //  LOOP
   // ------------------------------------------------------------
   update(dt) {
-    this.tiempo += dt;
     this.esperaPista = Math.max(0, this.esperaPista - dt);
-    this.tiempoSinAyuda += dt;
-    if (this.saludo > 0) {
-      this.saludo -= dt;
-      if (this.saludo <= 0) this.saludar();
-    }
-    if (this.tiempoSinAyuda > TIEMPO_SIN_AYUDA && this.objetivos.some((o) => !o.encontrado)) this.comentar('sinAyuda');
 
     // El mensaje actual: van apareciendo las letras y después se queda un rato en pantalla
     if (this.actual) {

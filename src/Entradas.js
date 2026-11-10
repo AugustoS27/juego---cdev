@@ -13,7 +13,7 @@
 //
 // Todas funcionan igual: tienen una "raiz" (el objeto 3D que se mira), un texto de ayuda,
 // y un usar() que hace la acción y DEVUELVE qué pasó (un "resultado"):
-//   { aviso, sonido, ruido: { posicion, radio }, animacion: { destino, duracion, arco, ... }, llave, hollin }
+//   { sonido, ruido: { posicion, radio }, animacion: { destino, duracion, arco, ... }, llave, hollin }
 // Game lee ese resultado y se encarga del sonido, el ruido, el cartel y la animación.
 import * as THREE from 'three';
 import { materialToon } from './Materials.js';
@@ -84,7 +84,6 @@ class VentanaRompible {
       this.vidriosRotos.visible = true;
       return {
         sonido: 'vidrio',
-        aviso: '💥 ¡CRASH! Rompiste la ventana... te escuchó todo el barrio',
         ruido: { posicion: this.adentro, radio: RUIDO.romperVentana },
       };
     }
@@ -153,7 +152,6 @@ class EscaleraBalcon {
       this.estado = 'levantando';
       return {
         sonido: 'escalera',
-        aviso: '🪜 Apoyaste la escalera contra el balcón',
         ruido: { posicion: this.abajo, radio: RUIDO.levantarEscalera },
       };
     }
@@ -222,7 +220,7 @@ class PortonGaraje {
   }
 
   // Se llama en cada frame mientras el jugador mantiene E mirando el portón.
-  // Devuelve una lista de resultados (tirones con ruido, y el aviso final).
+  // Devuelve una lista de resultados (tirones con ruido, y el portón que cede).
   forzar(dt) {
     if (this.abierto) return [];
     const resultados = [];
@@ -236,7 +234,7 @@ class PortonGaraje {
     if (this.progreso >= 1) {
       this.abierto = true;
       this.house.quitarCollider(this.collider);
-      resultados.push({ sonido: 'porton', aviso: '🚗 ¡El portón cedió! Ya podés entrar al garaje' });
+      resultados.push({ sonido: 'porton' });
     }
     return resultados;
   }
@@ -265,12 +263,6 @@ class PortonGaraje {
 // ------------------------------------------------------------
 //  MACETA (en una de ellas está la llave de la puerta de calle)
 // ------------------------------------------------------------
-const FRASES_SIN_LLAVE = [
-  'Nada... solo una lombriz 🪱',
-  'Nada. Un bicho bolita te saluda.',
-  'Nada, pero encontraste 10 pesos. No alcanzan para nada.',
-];
-
 class Maceta {
   constructor(scene, house, x, z) {
     this.raiz = new THREE.Group();
@@ -315,9 +307,9 @@ class Maceta {
     this.tiempoAnimacion = 0;
     if (this.tieneLlave) {
       this.llave.visible = true;
-      return { sonido: 'llave', aviso: '🔑 ¡La llave de repuesto! Ya podés abrir la puerta de calle', llave: true };
+      return { sonido: 'llave', llave: true };
     }
-    return { sonido: 'maceta', aviso: FRASES_SIN_LLAVE[Math.floor(Math.random() * FRASES_SIN_LLAVE.length)] };
+    return { sonido: 'maceta' };
   }
 
   // Animación: la maceta se inclina (como si la levantaras) y vuelve a su lugar

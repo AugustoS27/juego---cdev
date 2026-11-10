@@ -753,6 +753,12 @@ export class Audio {
     }
   }
 
+  // "No": dos notas graves cortitas (todavía no se puede)
+  negar() {
+    this.tono({ frecuencia: 220, duracion: 0.09, tipo: 'square', volumen: 0.07 });
+    this.tono({ frecuencia: 165, duracion: 0.16, tipo: 'square', volumen: 0.07, retraso: 0.11 });
+  }
+
   // Arpegio alegre (Do - Mi - Sol - Do)
   victoria() {
     [523, 659, 784, 1047].forEach((f, i) => {
