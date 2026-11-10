@@ -726,6 +726,40 @@ export class Audio {
   }
 
   // ------------------------------------------------------------
+  //  SUSTOS (etapa 16F, ver Sustos.js)
+  // ------------------------------------------------------------
+  // Un timbrazo de teléfono viejo: "rrring" (dos notas que tiemblan)
+  telefono() {
+    for (let i = 0; i < 12; i++) {
+      this.tono({ frecuencia: i % 2 ? 1320 : 1100, duracion: 0.05, tipo: 'square', volumen: 0.07, retraso: i * 0.055 });
+    }
+  }
+
+  // Atendiste: un clic y, del otro lado, alguien que respira... y corta
+  llamada() {
+    this.ruido({ duracion: 0.04, volumen: 0.2, filtro: 3000 });
+    for (let i = 0; i < 3; i++) {
+      this.ruido({ duracion: 0.5, volumen: 0.05, filtro: 500, q: 1.2, tipoFiltro: 'bandpass', retraso: 0.4 + i * 0.9 });
+      this.ruido({ duracion: 0.4, volumen: 0.035, filtro: 800, q: 1.2, tipoFiltro: 'bandpass', retraso: 0.85 + i * 0.9 });
+    }
+    this.tono({ frecuencia: 440, duracion: 0.5, tipo: 'sine', volumen: 0.05, retraso: 3.2 }); // tono de cortado
+  }
+
+  // Estática de tele: medio segundo de "shhhh" áspero (se repite mientras está prendida)
+  estatica() {
+    this.ruido({ duracion: 0.55, volumen: 0.1, filtro: 4500, q: 0.5, tipoFiltro: 'bandpass' });
+  }
+
+  // Una nota de la cajita de música (va recorriendo una melodía cortita, lenta y un poco triste)
+  cajita(i = 0) {
+    const melodia = [1319, 1175, 1047, 1175, 1319, 1319, 1319, 0, 1175, 1175, 1175, 0, 1319, 1568, 1568, 0];
+    const frecuencia = melodia[i % melodia.length];
+    if (!frecuencia) return;
+    this.tono({ frecuencia, duracion: 0.9, tipo: 'sine', volumen: 0.07 });
+    this.tono({ frecuencia: frecuencia * 2.005, duracion: 0.3, tipo: 'triangle', volumen: 0.015 });
+  }
+
+  // ------------------------------------------------------------
   //  TOMI (etapa 16D): el corazón y la respiración (suenan "adentro tuyo")
   // ------------------------------------------------------------
   // Un latido: "pum-pum" grave. fuerza: de 0 a 1 (más fuerte si el enemigo está más cerca)

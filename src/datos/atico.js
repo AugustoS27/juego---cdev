@@ -62,7 +62,7 @@ export const ATICO = {
   muebles: [
     { tipo: 'baul', x: -6, z: -3.8 },
     { tipo: 'baul', x: 6.5, z: 3.8, rot: 180 },
-    { tipo: 'caballitoMecedor', x: -3.5, z: 2.5 },
+    { tipo: 'caballitoMecedor', x: -3.5, z: 2.5, animado: true }, // (a veces se hamaca solo)
     { tipo: 'munecaGigante', x: -7.8, z: 2, rot: 90 },
     { tipo: 'maniqui', x: 7.8, z: -3.3 },
     { tipo: 'espejoViejo', x: -8.6, z: -1, rot: 90 },
@@ -77,7 +77,7 @@ export const ATICO = {
     { tipo: 'sabanaFantasma', x: 4.2, z: -4.3 },
     { tipo: 'cajaAbierta', x: -7.6, z: -4.2 },
     // Etapa 16F: detrás de las sábanas colgadas hay otro maniquí...
-    { tipo: 'maniqui', x: -8, z: 0.4, rot: 90 },
+    { tipo: 'maniqui', x: -8, z: 0.4, rot: 90, animado: true }, // (gira hacia vos cuando no lo mirás: ver Sustos.js)
   ],
 
   // El rincón de las sábanas: sábanas colgadas de sogas, que forman un laberinto (ver Decoracion.crearTelas)

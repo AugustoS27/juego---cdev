@@ -332,7 +332,7 @@ Un commit por etapa (cuando se pida).
 
 ## Etapa 16F — Habitaciones extrañas y oscuras + sustos
 
-> Se hace en dos partes: **16F-1 cuartos nuevos ✅** y **16F-2 sustos ⏳ (próxima)**.
+> Se hizo en dos partes: **16F-1 cuartos nuevos ✅** y **16F-2 sustos ✅**. Próxima: **16G** (cierre).
 
 ### 16F-1: qué se hizo ✅
 - **Sala de los relojes** (planta baja, al fondo del living): un cuarto de 6 x 2,5 m con 11 relojes de pared de
@@ -353,6 +353,24 @@ Un commit por etapa (cuando se pida).
 - Todos los tramos del recorrido de Don Ernesto se pueden caminar; llega a la sala de los relojes, al vestidor y
   al rincón del ático. Los juguetes de los tres lugares nuevos se pueden mirar y agarrar. Las telas se hamacan al
   pasar (hasta 0,5 rad) y se frenan solas. Dos partidas simuladas sin errores. Capturas de los cuatro lugares.
+
+### 16F-2: qué se hizo ✅ (`Sustos.js`, nuevo)
+- **Siempre:** el maniquí del ático gira hacia vos solo cuando no lo mirás; una muñeca aparece en otro lugar de
+  tu piso cada vez que le sacás los ojos de encima (12 lugares); 5 tablas flojas (apenas más oscuras que el piso)
+  que crujen si las pisás parado (ruido 5) o corriendo (ruido 9), y agachado no.
+- **Una vez por partida, con 35 s o más entre uno y otro:** el teléfono de la entrada suena 5 veces (se atiende
+  con E: del otro lado alguien respira; si no, el último timbrazo hace un ruido de radio 16 y Don Ernesto viene);
+  la tele del living se prende sola con estática (ruido 6); un cuadro del pasillo de arriba se cae al pasar (ruido
+  9); una puerta que acabás de cruzar se cierra de un portazo a tu espalda (ruido 7); en el cuarto de las muñecas
+  la mecedora vacía se hamaca sola y suena una cajita de música; en el ático se hamaca el caballito.
+- Los muebles que se mueven llevan `animado: true` en los datos (no se juntan con los demás).
+- No se hizo "la tele se prende" con luz propia (sería una luz más para toda la escena): solo brilla la pantalla.
+
+### 16F-2: pruebas
+- Cada susto disparado a mano: arranca, hace el ruido que corresponde y termina. El teléfono atendido no hace
+  ruido; sin atender, sí. El maniquí gira 0,7 rad en 2 s sin mirarlo y nada mirándolo. La muñeca se mudó 20 de 20
+  veces a un lugar del piso del jugador. Tablas: agachado nada, parado 5, corriendo 9.
+- Dos partidas simuladas con los enemigos de verdad, sin errores.
 
 ### Plan original
 - **Cuartos nuevos** (dividiendo los cuartos más grandes, que hoy miden 6 x 12 m, y aprovechando el ático):

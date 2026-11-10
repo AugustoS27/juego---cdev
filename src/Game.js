@@ -28,6 +28,7 @@ import { CorteDeLuz } from './CorteDeLuz.js';
 import { Superficies, zonaDeEco } from './Sonido.js';
 import { Ambiente } from './Ambiente.js';
 import { Musica } from './Musica.js';
+import { Sustos } from './Sustos.js';
 import { ponerContraste } from './Materials.js';
 import { juntarMallasEstaticas } from './Optimizar.js';
 import { Decoracion } from './Decoracion.js';
@@ -106,6 +107,7 @@ export class Game {
     this.superficies = new Superficies(this.house);
     this.ambiente = new Ambiente(this.audio, this.house);
     this.musica = new Musica(this.audio); // etapa 17C: música por capas, según lo que pasa
+    this.sustos = new Sustos(this.scene, this.house, this.audio); // etapa 16F: cosas raras de la casa
     this.audio.alIniciar = () => (this.audio.espacio.tapado = (posicion) => this.tapadoHasta(posicion));
     this.audio.estilo = leerGuardado('estiloSonido', ['grabado', 'codigo'], 'grabado');
     if (import.meta.env.DEV) this.crearProbadorDeSonidos();
@@ -841,6 +843,7 @@ export class Game {
 
     this.tiempoPartida = 0;
     this.proximoRelampago = 6 + Math.random() * 6;
+    this.sustos.reiniciar();
     this.corte.reiniciar(); // (la luz siempre vuelve al empezar otra partida)
     this.ponerCorriente(1);
     this.esperaDueno = 0;
@@ -925,6 +928,15 @@ export class Game {
       this.tiempoPartida += dt;
       this.actualizarTormenta(dt);
       this.actualizarCorte(dt);
+      this.sustos.update(dt, {
+        jugador: this.player.position,
+        camara: this.camera,
+        agachado: this.player.agachado,
+        corriendo: this.player.estaCorriendo,
+        enElSuelo: this.player.enSuelo,
+        corriente: this.corrienteActual,
+        hacerRuido: (posicion, radio) => this.hacerRuido(posicion, radio),
+      });
 
       this.house.update(dt);
       this.entradas.update(dt);
@@ -1129,6 +1141,11 @@ export class Game {
       return;
     }
 
+    if (this.sustos.mirandoElTelefono(this.camera)) {
+      this.sustos.atender();
+      return;
+    }
+
     const escondite = this.house.esconditeMirado(this.camera);
     if (escondite) {
       this.esconderse(escondite);
@@ -1241,6 +1258,11 @@ export class Game {
     if (this.corte.mirado(this.camera)) {
       if (this.turno !== 'noche') this.ui.mostrarAyuda('Tablero de luz (de día, cortar la luz no cambia nada)');
       else this.ui.mostrarAyuda(this.corte.cortada ? '[E] Volver a subir la llave de la luz' : '[E] Bajar la llave: cortar la luz de toda la casa (hace ruido)');
+      return;
+    }
+
+    if (this.sustos.mirandoElTelefono(this.camera)) {
+      this.ui.mostrarAyuda('[E] Atender');
       return;
     }
 

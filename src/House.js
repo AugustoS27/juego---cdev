@@ -581,7 +581,8 @@ export class House {
   //   y: altura extra (para apoyarlo arriba de otro mueble, o colgarlo en la pared)
   //   escala: [x, y, z] para estirarlo (ej: una alfombra larga)
   //   colores: { nombre: color } para las partes cuyo color es '$nombre' (ej: la tela de las cortinas)
-  agregarMueble({ tipo, piso, x, z, rot = 0, alReves = false, patasArriba = false, y = 0, escala = null, colores = {} }) {
+  //   animado: el mueble se mueve solo (ver Sustos.js): sus mallas no se juntan con las de los demás
+  agregarMueble({ tipo, piso, x, z, rot = 0, alReves = false, patasArriba = false, y = 0, escala = null, colores = {}, animado = false }) {
     const def = MUEBLES[tipo];
     const grupo = new THREE.Group();
     const colorDe = (color) => (color.startsWith('$') ? colores[color.slice(1)] ?? def.colores?.[color.slice(1)] ?? '#ffffff' : color);
@@ -633,7 +634,7 @@ export class House {
       collider = new THREE.Box3().setFromObject(grupo);
       this.colliders.push(collider);
     }
-    const mueble = { tipo, piso, grupo, collider, escondite: def.escondite || null };
+    const mueble = { tipo, piso, grupo, collider, escondite: def.escondite || null, animado };
     this.muebles.push(mueble);
     if (mueble.escondite && collider) this.escondites.push(mueble); // (la mesa del cuarto al revés no)
 
@@ -641,7 +642,7 @@ export class House {
     // estáticas, en la "capa" de su piso, para juntarlas con las de los otros muebles del piso
     const marcarEstatico = () =>
       grupo.traverse((m) => {
-        if (!m.isMesh) return;
+        if (!m.isMesh || animado) return;
         m.userData.estatico = true;
         m.userData.capa = `piso${piso}`;
       });

@@ -70,7 +70,7 @@ export const SOTANO = {
     // Cuarto de las muñecas
     { tipo: 'estanteMunecas', x: 8.7, z: 0, rot: -90 },
     { tipo: 'munecaGigante', x: 3.7, z: 1.5, rot: 90 },
-    { tipo: 'mecedora', x: 7.5, z: -1.3 },
+    { tipo: 'mecedora', x: 7.5, z: -1.3, animado: true }, // (a veces se hamaca sola)
     { tipo: 'camaSimple', x: 4.2, z: -1.35, rot: 90 },
     // Pasillo
     { tipo: 'cajas', x: 8.4, z: 5.3 },
