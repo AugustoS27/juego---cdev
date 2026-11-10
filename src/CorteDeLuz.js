@@ -90,6 +90,7 @@ export class CorteDeLuz {
 
   // ¿El jugador está mirando el tablero? (el primer objeto que toca el rayo tiene que ser el tablero)
   mirado(camera) {
+    if (camera.position.distanceToSquared(this.raiz.position) > 16) return false; // (lejos: ni tiramos el rayo)
     this.raycaster.setFromCamera(this.centroPantalla, camera);
     const choques = this.raycaster.intersectObjects([...this.house.obstaculos, this.raiz], true);
     if (choques.length === 0) return false;

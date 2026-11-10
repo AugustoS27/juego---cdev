@@ -264,6 +264,7 @@ export class Decoracion {
 
     // Telas: si pasás cerca, reciben un empujón; después se hamacan solas hasta frenarse
     for (const t of this.telas) {
+      t.colgada.parent.visible = Math.abs(t.piso - piso) <= 1; // (las de pisos lejanos no se dibujan)
       if (t.piso !== piso && t.angulo === 0) continue;
       const cerca = t.piso === piso && Math.hypot(camara.position.x - t.x, camara.position.z - t.z) < 0.9;
       if (cerca && !t.tocada) t.velocidad += 2.2 * t.lado;

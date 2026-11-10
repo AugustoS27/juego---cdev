@@ -4,7 +4,7 @@ Este documento es la cuarta parte del plan (la tercera, la historia nueva, está
 [PLAN_HISTORIA.md](PLAN_HISTORIA.md)). La etapa 15F (música, pasos y cierre) no se hizo por separado: queda
 adentro de esta etapa, que cambia el sonido de punta a punta.
 
-> **Estado actual:** 🔨 en curso. Confirmado por el usuario (con cambios, ver "Decisiones"). **16A** ✅ **16B** ✅ **16C** ✅ **16D** ✅. Próxima: **16E**.
+> **Estado actual:** ✅ terminada. **16A** a **16G** ✅ (la 16E quedó dentro de la 17C de PLAN_MEJORAS.md). Etapa 16 completa.
 
 ---
 
@@ -347,7 +347,7 @@ Un commit por etapa (cuando se pida).
 - Don Ernesto patrulla la sala de los relojes y el vestidor (puntos de recorrido nuevos). Un lugar de juguete nuevo
   en cada cuarto, y Facu los nombra bien en las pistas.
 - **No se hizo el cuarto clausurado** del segundo piso: no hay lugar sin mover la escalera del ático o achicar la
-  sala de trofeos. Queda como decisión del usuario.
+  sala de trofeos. ✅ Decisión del usuario: queda afuera.
 
 ### 16F-1: pruebas
 - Todos los tramos del recorrido de Don Ernesto se pueden caminar; llega a la sala de los relojes, al vestidor y
@@ -401,7 +401,29 @@ Un commit por etapa (cuando se pida).
 
 ---
 
-## Etapa 16G — Cierre
+## Etapa 16G — Cierre ✅
+
+**Hecho:**
+- El cartel de "[E]" tiraba varios rayos contra la casa en cada cuadro (2 a 2,7 ms medidos): ahora se revisa 20
+  veces por segundo en vez de 60, y el tablero de luz ni tira el rayo si estás a más de 4 m.
+- Las telas colgadas de pisos lejanos no se dibujan.
+- README al día: día y noche, linterna, tormenta, cortes de luz, cuartos nuevos, sustos, sonido, música, sin
+  carteles, archivos nuevos y los sonidos de Kenney.
+
+**Pruebas generales (día y noche):**
+- Flujo completo: menú → intro → "¡A recuperarlos!" → partida → derrota → menú, y victoria → menú. La música se
+  calla en las cinemáticas y vuelve la cajita en el menú.
+- Todos los tramos del recorrido de Don Ernesto se pueden caminar (el único que falla es el de la escalera del
+  ático cuando está plegada, que es lo esperado). Dos cortes de luz seguidos: la luz vuelve a los 15 y 10 s.
+  Las 13 entradas se usan sin errores. 40 sorteos de juguetes sin lugares vacíos.
+- Tres partidas simuladas de ~45 s con los enemigos de verdad (noche con tormenta, día, noche): sin errores;
+  entre 1,4 y 1,8 ms de lógica por cuadro.
+- Dibujos por vista (frente / Facu / living / pasillo de arriba / patio): de día 2375 / 910 / 1306 / 1689 / 1375;
+  de noche 2457 / 958 / 1421 / 1786 / 1423; con linterna 2809 / 987 / 1483 / 2006 / 1582; en un corte de luz
+  con linterna 2826 / 994 / 1493 / 1952 / 1557. Son entre 5% y 13% más que al terminar la 16B: es lo que suman
+  los cuartos nuevos, los relojes, el tablero y los objetos de los sustos.
+
+### Plan original
 
 - Volver a correr todas las pruebas de todas las etapas (de día y de noche).
 - Rendimiento final en las vistas de siempre, de día, de noche y en un corte de luz.

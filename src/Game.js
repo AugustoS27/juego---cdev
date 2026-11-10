@@ -959,7 +959,9 @@ export class Game {
       this.ui.mostrarAlertaPersecucion(alerta);
       this.ui.mostrarApuntado(this.abuela.estado === ESTADO_ABUELA.APUNTAR);
       this.ui.mostrarRed(this.player.enRed);
-      this.actualizarAyuda();
+      // El cartel de "[E]" tira varios rayos contra la casa (unos 2 ms): alcanza con revisarlo 20 veces
+      // por segundo en vez de 60 (al apretar E se vuelve a mirar en el momento, así que no se pierde nada)
+      if (this.numeroDeFrame % 3 === 0) this.actualizarAyuda();
       this.ui.mostrarFundido(this.player.oscuridad); // (negro mientras atravesás una pared trepando)
       this.ui.actualizarHUD(this.tiempoPartida);
       this.ui.mostrarHabilidades([...this.habilidades.paraElHUD, ...this.olorParaElHUD()]);
