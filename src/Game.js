@@ -27,6 +27,7 @@ import { Atmosfera } from './Atmosfera.js';
 import { CorteDeLuz } from './CorteDeLuz.js';
 import { Superficies, zonaDeEco } from './Sonido.js';
 import { Ambiente } from './Ambiente.js';
+import { Musica } from './Musica.js';
 import { ponerContraste } from './Materials.js';
 import { juntarMallasEstaticas } from './Optimizar.js';
 import { Decoracion } from './Decoracion.js';
@@ -104,6 +105,7 @@ export class Game {
     // Etapa 16D: sobre qué se pisa (para los pasos), los ruidos de ambiente y cuánto tapan las paredes
     this.superficies = new Superficies(this.house);
     this.ambiente = new Ambiente(this.audio, this.house);
+    this.musica = new Musica(this.audio); // etapa 17C: música por capas, según lo que pasa
     this.audio.alIniciar = () => (this.audio.espacio.tapado = (posicion) => this.tapadoHasta(posicion));
     this.audio.estilo = leerGuardado('estiloSonido', ['grabado', 'codigo'], 'grabado');
     if (import.meta.env.DEV) this.crearProbadorDeSonidos();
@@ -501,7 +503,12 @@ export class Game {
     // paredes) y según lo que pisan: los de Don Ernesto pesados, las pantuflas de Doña Pocha, las uñas
     // de los perros
     const pasoDe = (enemigo, efecto) => () => this.audio.desde(enemigo.position.clone().setY(enemigo.position.y + 0.1), efecto, this.superficies.en(enemigo.position));
-    this.dueno.alDarPaso = pasoDe(this.dueno, 'pasoDueno');
+    const pasoDueno = pasoDe(this.dueno, 'pasoDueno');
+    this.dueno.alDarPaso = () => {
+      pasoDueno();
+      // Si está cerca, la música baja un instante: sus pasos se tienen que escuchar siempre
+      if (this.dueno.position.distanceTo(this.player.position) < 14) this.musica.agachar();
+    };
     this.abuela.alDarPaso = pasoDe(this.abuela, 'pasoPocha');
     for (const perro of this.perros) perro.alDarPaso = pasoDe(perro, 'pasoPerro');
     for (const enemigo of [this.dueno, this.abuela]) {
@@ -534,11 +541,11 @@ export class Game {
     this.dueno.alCambiarEstado = (nuevo, anterior) => {
       if (this.estado !== PARTIDA.JUGANDO) return;
       if (nuevo === ESTADO.PERSEGUIR) {
-        this.audio.alerta();
+        this.musica.golpe('visto');
         this.ui.mostrarAviso('❗ ¡TE VIO! ¡Corré o escondete!', 2);
         this.walkie.comentar('persecucion', {}, true);
       } else if (nuevo === ESTADO.INVESTIGAR && anterior === ESTADO.PATRULLA) {
-        this.audio.duda();
+        this.musica.golpe('oyo');
       }
     };
 
@@ -550,6 +557,7 @@ export class Game {
       };
       perro.alCambiarEstado = (nuevo) => {
         if (this.estado === PARTIDA.JUGANDO && nuevo === ESTADO.PERSEGUIR) {
+          this.musica.golpe('susto');
           this.ui.mostrarAviso(`🐕 ¡${perro.v.nombre} te vio! Metete en la casa o subite a algo alto`, 3);
           this.walkie.comentar('perros', {}, true);
         }
@@ -560,6 +568,7 @@ export class Game {
     // Doña Pocha: "clic" al apuntar, ¡FUAP! al disparar la red (hace ruido) y ruiditos al recargar
     this.abuela.alApuntar = () => {
       this.audio.clic(Math.max(0.5, this.volumenPorDistancia(this.abuela.position)));
+      this.musica.golpe('susto');
       this.ui.mostrarAviso('🎯 ¡Doña Pocha te apunta con el lanzarredes! ¡Cubrite o corré de costado!', 2);
       this.walkie.comentar('abuela', {}, true);
     };
@@ -660,6 +669,15 @@ export class Game {
     const jugando = this.estado === PARTIDA.JUGANDO;
     this.audio.espacio.ponerZona(jugando ? zonaDeEco(this.house, this.player.position) : 'afuera');
     const p = this.player.position;
+    // La música: cuenta lo que pasa (calma, alguien cerca, te buscan, te persiguen)
+    const afuera = !this.jugadorAdentro;
+    this.musica.update({
+      modo: jugando ? 'juego' : this.estado === PARTIDA.MENU ? 'menu' : 'silencio',
+      peligro: this.cercania,
+      persiguiendo: jugando && alerta,
+      // (te busca Don Ernesto; los perros solo cuentan si estás afuera, que es donde te pueden agarrar)
+      buscando: jugando && (this.dueno.estado === ESTADO.INVESTIGAR || (afuera && this.perros.some((perro) => perro.estado === ESTADO.INVESTIGAR))),
+    });
     this.ambiente.update(dt, {
       jugando,
       posicion: p,
@@ -972,7 +990,6 @@ export class Game {
       // Si algún enemigo te está cazando (o Doña Pocha te apunta): música tensa y borde rojo
       const alerta = this.enemigos.some((enemigo) => enemigo.estaAlerta);
       this.alertaAnterior = alerta;
-      this.audio.actualizarMusica(dt, alerta);
       this.ui.mostrarAlertaPersecucion(alerta);
       this.ui.mostrarApuntado(this.abuela.estado === ESTADO_ABUELA.APUNTAR);
       this.ui.mostrarRed(this.player.enRed);

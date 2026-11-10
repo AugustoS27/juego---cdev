@@ -70,13 +70,14 @@ export class Espacio {
     this.tapado = () => 0;
   }
 
-  // Un nodo donde conectar un sonido que sale de "posicion" (un Vector3)
-  en(posicion) {
+  // Un nodo donde conectar un sonido que sale de "posicion" (un Vector3).
+  // alcance: hasta cuántos metros se escucha (los pasos de Don Ernesto llegan más lejos: ver Audio.js)
+  en(posicion, alcance = DISTANCIA_MAXIMA) {
     const panner = this.ctx.createPanner();
     panner.panningModel = 'HRTF';
     panner.distanceModel = 'linear';
     panner.refDistance = DISTANCIA_REFERENCIA;
-    panner.maxDistance = DISTANCIA_MAXIMA;
+    panner.maxDistance = alcance;
     panner.rolloffFactor = 1;
     ponerPosicion(panner, posicion);
     // Tapado por las paredes: le sacamos los agudos y un poco de volumen
@@ -91,9 +92,9 @@ export class Espacio {
   }
 
   // ¿Llega hasta los oídos? (más lejos que DISTANCIA_MAXIMA no se escucha: ni lo armamos)
-  seEscucha({ x, y, z }) {
+  seEscucha({ x, y, z }, alcance = DISTANCIA_MAXIMA) {
     const o = this.oidos;
-    return (x - o.x) ** 2 + (y - o.y) ** 2 + (z - o.z) ** 2 < DISTANCIA_MAXIMA ** 2;
+    return (x - o.x) ** 2 + (y - o.y) ** 2 + (z - o.z) ** 2 < alcance ** 2;
   }
 
   // Los oídos van con la cámara (posición y hacia dónde mira)

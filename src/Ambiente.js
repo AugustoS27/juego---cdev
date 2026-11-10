@@ -150,13 +150,13 @@ export class Ambiente {
     c.rafaga -= dt;
     if (c.rafaga <= 0) {
       c.rafaga = alAzar(2, 5);
-      const base = tormenta ? 0.09 : turno === 'noche' ? 0.05 : 0.025;
+      const base = tormenta ? 0.06 : turno === 'noche' ? 0.03 : 0.015; // (bajito: que no tape los pasos)
       const fuerza = base * alAzar(0.5, 1.4) * (adentro ? (piso === -1 ? 0.2 : 0.45) : 1);
       c.volumenViento.gain.setTargetAtTime(fuerza, ahora, 1.2);
       c.filtroViento.frequency.setTargetAtTime(alAzar(300, 900) * (adentro ? 0.6 : 1), ahora, 1.5);
     }
     // La heladera anda si hay luz
-    c.volumenMotor.gain.setTargetAtTime(corriente > 0.5 ? 0.05 : 0, ahora, 0.1);
+    c.volumenMotor.gain.setTargetAtTime(corriente > 0.5 ? 0.03 : 0, ahora, 0.1);
   }
 
   // ------------------------------------------------------------

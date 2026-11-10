@@ -35,16 +35,19 @@ const PASOS_GRABADOS = {
   chapa: ['chapa', 1.1, 0.2],
 };
 
-// Melodías de fondo: listas de frecuencias (Hz). 0 = silencio.
-const MUSICA_SIGILO = [110, 0, 131, 0, 147, 131, 110, 0, 98, 0, 110, 0, 131, 147, 165, 0];
-const MUSICA_PERSECUCION = [196, 277, 196, 277, 185, 262, 185, 262];
+// (La música está en Musica.js)
+
+// Hasta cuántos metros se escucha cada efecto ubicado (los que no están acá: 17 m).
+// Los pasos de Don Ernesto llegan lejos a propósito: es la mejor pista de por dónde anda.
+const ALCANCE = { pasoDueno: 28, puerta: 22, portazo: 24, rezongo: 24 };
+
+// Cuánto más fuertes suenan los pasos de Tomi (etapa 17C: antes casi no se escuchaban)
+const VOLUMEN_PASOS = 1.7;
 
 export class Audio {
   constructor() {
     this.ctx = null; // AudioContext (se crea en iniciar)
     this.silenciado = false;
-    this.notaMusica = 0;
-    this.tiempoProximaNota = 0;
     this.destino = null; // a dónde van los ladrillos si no se dice otra cosa (lo usa desde())
     this.estilo = 'grabado'; // 'grabado' o 'codigo' (ver arriba)
   }
@@ -83,8 +86,10 @@ export class Audio {
 
   // Hace sonar un efecto en un punto del mundo: desde(posicion, 'puerta') o desde(posicion, 'ladrido', 0.8)
   desde(posicion, efecto, ...args) {
-    if (!this.ctx || !this.espacio.seEscucha(posicion)) return; // (muy lejos: no se escucha)
-    this.destino = this.espacio.en(posicion);
+    // Cada efecto se escucha hasta 17 m, salvo los que tienen su propio alcance (ver ALCANCE)
+    const alcance = ALCANCE[efecto];
+    if (!this.ctx || !this.espacio.seEscucha(posicion, alcance)) return; // (muy lejos: no se escucha)
+    this.destino = this.espacio.en(posicion, alcance);
     try {
       this[efecto](...args);
     } finally {
@@ -214,13 +219,13 @@ export class Audio {
       return;
     }
     if (tipo === 'conducto') superficie = 'chapa';
-    const fuerza = { pasosAgachado: 0.35, pasos: 1, pasosCorriendo: 2.2 }[tipo] ?? 1;
-    this.pisada(superficie, fuerza);
+    const fuerza = { pasosAgachado: 0.4, pasos: 1, pasosCorriendo: 2 }[tipo] ?? 1;
+    this.pisada(superficie, fuerza * VOLUMEN_PASOS);
   }
 
   // Pasos de Don Ernesto: pesados y graves (usar con desde())
   pasoDueno(superficie = 'madera') {
-    this.pisada(superficie, 2.6, 1.8);
+    this.pisada(superficie, 4.2, 1.8);
   }
 
   // Doña Pocha arrastra las pantuflas: "shhh-shhh"
@@ -652,26 +657,26 @@ export class Audio {
     const f = 2600 + Math.random() * 1600;
     const n = 2 + Math.floor(Math.random() * 3);
     for (let i = 0; i < n; i++) {
-      this.tono({ frecuencia: f, frecuenciaFinal: f * (1.15 + Math.random() * 0.3), duracion: 0.07, tipo: 'sine', volumen: 0.05, retraso: i * 0.11 });
+      this.tono({ frecuencia: f, frecuenciaFinal: f * (1.15 + Math.random() * 0.3), duracion: 0.07, tipo: 'sine', volumen: 0.03, retraso: i * 0.11 });
     }
   }
 
   // Grillos (de noche): "cri-cri-cri" (pulsos agudos muy seguidos)
   grillo() {
     const f = 4200 + Math.random() * 600;
-    for (let i = 0; i < 3; i++) this.tono({ frecuencia: f, duracion: 0.025, tipo: 'sine', volumen: 0.03, retraso: i * 0.045 });
+    for (let i = 0; i < 3; i++) this.tono({ frecuencia: f, duracion: 0.025, tipo: 'sine', volumen: 0.018, retraso: i * 0.045 });
   }
 
   // Tic-tac de reloj de pared
   tictac(tac) {
-    this.ruido({ duracion: 0.02, volumen: 0.07, filtro: tac ? 2600 : 3400, q: 3, tipoFiltro: 'bandpass' });
+    this.ruido({ duracion: 0.02, volumen: 0.045, filtro: tac ? 2600 : 3400, q: 3, tipoFiltro: 'bandpass' });
   }
 
   // La tele de Doña Pocha: una "sílaba" de una voz que habla atrás de la pared
   palabraTele() {
     const f = 700 + Math.random() * 700;
-    this.ruido({ duracion: 0.07 + Math.random() * 0.08, volumen: 0.05, filtro: f, q: 2.5, tipoFiltro: 'bandpass' });
-    if (Math.random() < 0.4) this.tono({ frecuencia: 160 + Math.random() * 80, duracion: 0.08, tipo: 'triangle', volumen: 0.02 });
+    this.ruido({ duracion: 0.07 + Math.random() * 0.08, volumen: 0.03, filtro: f, q: 2.5, tipoFiltro: 'bandpass' });
+    if (Math.random() < 0.4) this.tono({ frecuencia: 160 + Math.random() * 80, duracion: 0.08, tipo: 'triangle', volumen: 0.012 });
   }
 
   // Un sonido "lejos" (más allá del barrio): sin ubicación exacta, de un costado (pan: -1 izquierda,
@@ -759,30 +764,6 @@ export class Audio {
   derrota() {
     [392, 370, 349, 330].forEach((f, i) => {
       this.tono({ frecuencia: f, frecuenciaFinal: f * 0.97, duracion: i === 3 ? 1.2 : 0.4, tipo: 'sawtooth', volumen: 0.1, retraso: i * 0.45 });
-    });
-  }
-
-  // ------------------------------------------------------------
-  //  MÚSICA DE FONDO
-  // ------------------------------------------------------------
-  // Se llama en cada frame: cuando pasa el tiempo de una nota, toca la siguiente.
-  // Tranquila y "de puntillas" normalmente; rápida y tensa si el dueño te persigue.
-  actualizarMusica(dt, persiguiendo) {
-    if (!this.ctx) return;
-    this.tiempoProximaNota -= dt;
-    if (this.tiempoProximaNota > 0) return;
-
-    const melodia = persiguiendo ? MUSICA_PERSECUCION : MUSICA_SIGILO;
-    const frecuencia = melodia[this.notaMusica % melodia.length];
-    this.notaMusica++;
-    this.tiempoProximaNota = persiguiendo ? 0.13 : 0.28;
-
-    if (frecuencia === 0) return; // silencio
-    this.tono({
-      frecuencia,
-      duracion: persiguiendo ? 0.12 : 0.22,
-      tipo: persiguiendo ? 'square' : 'triangle',
-      volumen: persiguiendo ? 0.05 : 0.1,
     });
   }
 }

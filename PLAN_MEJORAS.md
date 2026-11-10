@@ -1,6 +1,6 @@
 # Plan de mejoras (etapa 17)
 
-> **Estado actual:** 🔨 en curso. Plan confirmado por el usuario. **17A** ✅ **17B** ✅. Próxima: **17C**.
+> **Estado actual:** 🔨 en curso. Plan confirmado por el usuario. **17A** ✅ **17B** ✅ **17C** ✅. Próxima: **17D**.
 >
 > Pedido del usuario: sacar los textos que explican lo que pasa (que se entienda por la pantalla, el sonido y
 > la música), repartir las entradas de la casa, mejorar sonidos y música (sobre todo los pasos), sacar el enojo
@@ -15,8 +15,8 @@
 |---|---|---|---|
 | **17A** | Sacar el enojo de Don Ernesto | Chica | ✅ Terminada |
 | **17B** | Entradas repartidas: ventana rompible atrás y ventanita del sótano al costado izquierdo | Mediana | ✅ Terminada |
-| **17C** | Sonidos y música que cuenten lo que pasa (pasos más claros, música por capas) | Grande | ⏳ Próxima |
-| **17D** | Sin textos que explican: todo por pantalla, sonido y música | Grande | — |
+| **17C** | Sonidos y música que cuenten lo que pasa (pasos más claros, música por capas) | Grande | ✅ Terminada |
+| **17D** | Sin textos que explican: todo por pantalla, sonido y música | Grande | ⏳ Próxima |
 | **17E** | Interfaz nueva: cómo aparecen los textos que quedan, HUD más limpio | Mediana | — |
 
 El orden importa: la 17D saca los avisos, así que antes (17C) tienen que existir los sonidos y la música que los
@@ -58,7 +58,23 @@ a la derecha/atrás 3 (puerta trasera, enredadera, pozo), todas dentro del patio
 - **Cómo se prueba:** entrar por las dos entradas nuevas, que Don Ernesto escuche el vidrio roto y llegue, y que
   en el frente ya no se pueda entrar por los lugares viejos.
 
-## 17C — Sonidos y música que cuenten lo que pasa
+## 17C — Sonidos y música que cuenten lo que pasa ✅
+
+**Hecho:**
+- `Musica.js` (nuevo) reemplaza las dos melodías de antes por capas: calma (zumbido grave y una nota suelta cada
+  tanto), alguien cerca (pulso de dos notas, más rápido y fuerte cuanto más cerca), te buscan (cuerdas que
+  tiemblan), te persiguen (bajo rápido, bombo, redoblante y platillo) y una cajita de música en el menú. Golpes de
+  música: "visto" (reemplaza el pitido de alerta), "oyó" (reemplaza el "¿?") y "susto" (un perro te ve, Doña Pocha
+  apunta). En pausa, cinemáticas y finales, silencio. Las notas se programan con el reloj del audio.
+- Pasos de Tomi 1,7 veces más fuertes. Pasos de Don Ernesto 1,6 veces más fuertes y se escuchan hasta 28 m
+  (antes 17): a 10 m llegan unas 2,5 veces más fuertes y a 20 m, donde antes no se oía nada, ahora se oyen.
+  Puertas, portazos y su rezongo también llegan más lejos. Con Don Ernesto a menos de 14 m, la música baja un
+  instante en cada paso suyo.
+- El ambiente baja entre 35% y 40% (viento, tele, heladera, reloj, grillos, pájaros).
+
+**Probado:** cada capa entra con su situación (menú, calma, cerca, te buscan, persecución, pausa); los tres
+golpes suenan sin errores; partida simulada de 80 s de noche sin errores, con la música bajando en 119 pasos de
+Don Ernesto. No lo puedo escuchar: falta el oído del usuario para ajustar volúmenes.
 
 - **Pasos más claros:** más fuertes y con más cuerpo los tuyos; los de Don Ernesto se tienen que escuchar desde
   más lejos y distinguirse bien (hoy se pierden contra el ambiente). El ambiente (viento, tele, grillos) baja.
