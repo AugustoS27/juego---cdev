@@ -1,6 +1,6 @@
 # Plan de mejoras (etapa 17)
 
-> **Estado actual:** 🔨 en curso. Plan confirmado por el usuario. **17A** ✅ **17B** ✅ **17C** ✅ **17D** ✅. Próxima: **17E**.
+> **Estado actual:** 🔨 en curso. Plan confirmado por el usuario. **17A** ✅ **17B** ✅ **17C** ✅ **17D** ✅ **17E** ✅. Etapa 17 completa. Quedan pendientes del plan anterior: 16F (cuartos extraños y sustos) y 16G (cierre).
 >
 > Pedido del usuario: sacar los textos que explican lo que pasa (que se entienda por la pantalla, el sonido y
 > la música), repartir las entradas de la casa, mejorar sonidos y música (sobre todo los pasos), sacar el enojo
@@ -17,7 +17,7 @@
 | **17B** | Entradas repartidas: ventana rompible atrás y ventanita del sótano al costado izquierdo | Mediana | ✅ Terminada |
 | **17C** | Sonidos y música que cuenten lo que pasa (pasos más claros, música por capas) | Grande | ✅ Terminada |
 | **17D** | Sin textos que explican: todo por pantalla, sonido y música | Grande | ✅ Terminada |
-| **17E** | Interfaz nueva: cómo aparecen los textos que quedan, HUD más limpio | Mediana | ⏳ Próxima |
+| **17E** | Interfaz nueva: cómo aparecen los textos que quedan, HUD más limpio | Mediana | ✅ Terminada |
 
 El orden importa: la 17D saca los avisos, así que antes (17C) tienen que existir los sonidos y la música que los
 reemplazan. La 17E va al final porque trabaja sobre lo poco de texto que quede.
@@ -121,7 +121,23 @@ cada situación pasa a contarse sola:
 - Los comentarios espontáneos de Facu ("¡Te vio Don Ernesto!") se sacan: también explican lo que pasa.
 - **Cómo se prueba:** una partida completa sin un solo aviso de texto, revisando que cada situación tenga su señal.
 
-## 17E — Interfaz nueva
+## 17E — Interfaz nueva ✅
+
+**Hecho:**
+- Un solo estilo para todo: paneles de vidrio oscuro sin bordes de color, colores y medidas en variables de CSS,
+  letra más prolija en el HUD (la de dibujito queda para los títulos y para lo que dice Facu).
+- Juguetes: una ficha por juguete con su ícono; al recuperarlo se tacha y lleva un tilde verde. Con los tres,
+  "¡A las bicis!". Abajo, la tecla T y cuánto falta para la próxima pista.
+- Carteles de "[E]": la tecla dibujada como tecla, en una píldora que aparece suave. La mira es un puntito.
+- Abajo a la izquierda: el lugar donde estás (se ilumina al cambiar y se apaga solo) y, chiquitos, el turno, la
+  linterna (brilla si está prendida) y el tiempo. Ruidómetro: un ícono y una barra finita. Sonido: ícono y tecla.
+- Facu por el walkie entra deslizándose; los subtítulos de las cinemáticas aparecen suave.
+- Menú, pausa, ayuda y finales con el mismo estilo; los botones responden al pasar y al apretar.
+- "Cómo se juega" actualizado: se fue el consejo del enojo y se explican las pistas anotadas y el sonido.
+
+**Probado:** capturas de la partida (lista, cartel de [E], walkie, estado), del menú, de la ayuda y de la
+derrota. Se corrigió que el desenfoque nuevo de las pantallas borroneaba la casa del menú. No se pudo probar en
+ventana angosta (el simulador de tamaño del navegador de prueba falla); los anchos usan mínimos para adaptarse.
 
 - HUD más limpio: sin el recuadro de estado (el piso, el turno y el reloj pasan a ser chiquitos o se van); la
   lista de juguetes como íconos; el ruidómetro como una onda discreta.

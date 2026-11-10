@@ -36,21 +36,18 @@
     <div id="red"></div>
 
     <!-- Mira en el centro de la pantalla -->
-    <div id="mira">+</div>
+    <div id="mira"></div>
 
     <!-- Cartel de ayuda para interactuar (ej: "[E] Abrir puerta") -->
     <div id="ayuda" class="oculto"></div>
-
-    <!-- Avisos que aparecen un par de segundos (ej: "¡El dueño trabó una puerta!") -->
-
 
     <!-- ============ HUD ============ -->
     <div id="hud" class="oculto">
       <!-- Los 3 juguetes que hay que recuperar (se tildan al encontrarlos), arriba a la izquierda -->
       <div id="hud-botin">
-        <div id="titulo-botin">🧸 Juguetes 0/3</div>
         <ul id="lista-pistas"></ul>
-        <div id="pie-walkie">📻 [T] Pedirle una pista a Facu</div>
+        <div id="titulo-botin"></div>
+        <div id="pie-walkie"></div>
       </div>
       <!-- Facu hablando por el walkie-talkie (aparece mientras habla), abajo a la izquierda -->
       <div id="walkie" class="oculto">
@@ -62,19 +59,22 @@
       </div>
       <!-- Dónde estás, el turno y el tiempo, abajo a la izquierda -->
       <div id="hud-estado">
-        <div>📍 <span id="texto-piso">Afuera</span></div>
-        <div><span id="texto-turno">☀️ De día</span><span id="linea-linterna" class="oculto"> · 🔦 [F] <span id="estado-linterna">apagada</span></span></div>
-        <div>⏱ <span id="texto-tiempo">0:00</span></div>
+        <div id="texto-piso">Afuera</div>
+        <div class="datos">
+          <span id="texto-turno">☀️</span>
+          <span id="linea-linterna" class="oculto">🔦 <kbd>F</kbd></span>
+          <span id="texto-tiempo">0:00</span>
+        </div>
       </div>
       <!-- "Ruidómetro": cuánto ruido hacen tus pasos, abajo al centro -->
       <div id="ruidometro">
-        <span id="texto-ruido">🤫 Silencio</span>
+        <span id="texto-ruido">🤫</span>
         <span id="barra-ruido"><span id="relleno-ruido"></span></span>
       </div>
       <!-- Habilidades activas (zanahoria, botas, bebida) con su barra de tiempo, abajo a la derecha -->
       <div id="hud-habilidades"></div>
       <!-- Sonido, abajo a la derecha -->
-      <div id="hud-sonido">🔊 [M] Sonido</div>
+      <div id="hud-sonido"><span id="icono-sonido">🔊</span> <kbd>M</kbd></div>
     </div>
 
     <!-- ============ CINEMÁTICAS (ver Cinematica.js) ============ -->
@@ -87,7 +87,7 @@
         <span id="cine-quien"></span>
         <span id="cine-texto"></span>
       </div>
-      <button id="cine-saltear">[Espacio] Saltear ⏭</button>
+      <button id="cine-saltear"><kbd>Espacio</kbd> Saltear</button>
     </div>
     <div id="cine-negro"></div>
 
@@ -151,13 +151,13 @@
         <div class="tarjeta">
           <h2>💡 Consejos</h2>
           <ul>
-            <li>Empezás afuera: hay como diez formas de entrar. ¡Mirá bien el jardín (y los techos)!</li>
-            <li>📻 Facu te dice por el walkie dónde vio tus juguetes. Con <b>T</b> te da una pista más precisa (cada 20 s, y el walkie hace un poquito de ruido).</li>
+            <li>Empezás afuera: hay muchas formas de entrar, repartidas por los cuatro costados. ¡Mirá bien el jardín (y los techos)!</li>
+            <li>📻 En la lista de arriba está anotado en qué piso vio Facu cada juguete. Con <b>T</b> te da una pista más precisa por el walkie (cada 20 s, y hace un poquito de ruido).</li>
             <li>Correr, abrir puertas y chocar cosas hace ruido.</li>
             <li>🌙 De noche está todo oscuro y los vecinos ven menos lejos... pero si prendés la linterna (<b>F</b>), te ven desde más lejos que de día. Don Ernesto también tiene la suya: mirá el haz por los pasillos.</li>
             <li>🔌 En el garaje está el tablero de luz: si bajás la llave (<b>E</b>), toda la casa queda a oscuras y los vecinos casi no ven... hasta que Don Ernesto va a arreglarla. ¡Y la segunda vez sospecha!</li>
             <li>Escondete en placards, camas, mesas, la bañera, cajas, arbustos... pero si te ve entrar, te encuentra. (¿Y el tacho de basura? Funciona, pero salís con olor.)</li>
-            <li>👴 Cada 30 s Don Ernesto se enoja más y camina más rápido.</li>
+            <li>🎧 Escuchá: los pasos y la música te avisan quién anda cerca, si te buscan o si te vieron.</li>
             <li>Puerta roja = Don Ernesto la trabó. Se abre sola en 20 s.</li>
             <li>🐕 En el patio hay dos perros: ven poco pero oyen mucho. No saben saltar.</li>
             <li>👵 Doña Pocha, en el primer piso, tiene un lanzarredes: si te apunta, cubrite o corré de costado. Si la red te agarra, quedás quieto 3 s... ¡y llama a Don Ernesto!</li>

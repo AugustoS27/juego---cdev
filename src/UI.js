@@ -20,7 +20,8 @@ export class UI {
     this.turnoListo = $('turno-listo');
     this.textoTurno = $('texto-turno');
     this.lineaLinterna = $('linea-linterna');
-    this.estadoLinterna = $('estado-linterna');
+    this.iconoSonido = $('icono-sonido');
+    this.ruidometro = $('ruidometro');
     this.relampago = $('relampago');
     this.vineta = $('vineta');
     this.vinetaCerca = $('vineta-cerca');
@@ -88,29 +89,25 @@ export class UI {
     this.mira.style.visibility = visible ? '' : 'hidden'; // (en el menú y las pantallas, sin mira)
   }
 
-  // Lista de juguetes: una línea por juguete, con su ícono y su nombre (se tilda cuando lo recuperás).
-  // Abajo de cada uno, lo que te dijo Facu de dónde está (walkie.pistaCorta). Arriba, "🧸 Juguetes 2/3".
+  // Lista de juguetes: una ficha por juguete, con su ícono grande (con un tilde cuando lo recuperás), su
+  // nombre y, abajo, lo que te dijo Facu de dónde está (walkie.pistaCorta). Con los tres: "a las bicis".
   mostrarBotin(objetivos, walkie = null) {
     const encontrados = objetivos.filter((o) => o.encontrado).length;
-    const todos = encontrados === objetivos.length;
-    this.tituloBotin.textContent = todos
-      ? '🚲 ¡Los tenés todos! Volvé con Facu (entrada de autos)'
-      : `🧸 Juguetes ${encontrados}/${objetivos.length}`;
+    const todos = objetivos.length > 0 && encontrados === objetivos.length;
+    this.tituloBotin.textContent = todos ? '🚲 ¡A las bicis!' : '';
     this.tituloBotin.classList.toggle('listo', todos);
 
     this.listaPistas.innerHTML = '';
     for (const o of objetivos) {
-      const linea = document.createElement('li');
-      linea.classList.toggle('encontrado', o.encontrado);
-      linea.textContent = `${o.encontrado ? '✅' : '⬜'} ${o.objeto.icono} ${mayuscula(o.objeto.nombre)}`;
+      const ficha = document.createElement('li');
+      ficha.classList.toggle('encontrado', o.encontrado);
+      ficha.append(crear('span', 'icono', o.objeto.icono));
+      const textos = crear('div', 'textos');
+      textos.append(crear('div', 'nombre', mayuscula(o.objeto.nombre)));
       const pista = !o.encontrado && walkie?.pistaCorta(o);
-      if (pista) {
-        const detalle = document.createElement('div');
-        detalle.className = 'pista';
-        detalle.textContent = `📻 ${pista}`;
-        linea.appendChild(detalle);
-      }
-      this.listaPistas.appendChild(linea);
+      if (pista) textos.append(crear('div', 'pista', pista));
+      ficha.append(textos);
+      this.listaPistas.appendChild(ficha);
     }
   }
 
@@ -122,10 +119,12 @@ export class UI {
     if (texto !== null) this.textoWalkie.textContent = texto;
   }
 
-  // Abajo de la lista de juguetes: si ya se puede pedir otra pista o cuánto falta
+  // Abajo de la lista de juguetes: la tecla del walkie y, si Facu todavía está mirando, cuánto falta
   mostrarEsperaPista(segundos) {
-    const texto = segundos > 0 ? `📻 Facu está mirando... (${Math.ceil(segundos)} s)` : '📻 [T] Pedirle una pista a Facu';
-    if (texto !== this.pieWalkie.textContent) this.pieWalkie.textContent = texto;
+    const texto = segundos > 0 ? `${Math.ceil(segundos)} s` : 'Pista de Facu';
+    if (texto === this.textoEsperaPista) return;
+    this.textoEsperaPista = texto;
+    this.pieWalkie.replaceChildren(crear('kbd', null, 'T'), ` ${texto}`);
     this.pieWalkie.classList.toggle('esperando', segundos > 0);
   }
 
@@ -134,9 +133,12 @@ export class UI {
     this.textoTiempo.textContent = formatearTiempo(segundos);
   }
 
-  // Dónde está el jugador: 'Sótano', 'Planta baja'... o 'Afuera'
+  // Dónde está el jugador: 'Sótano', 'Planta baja'... o 'Afuera'. Al cambiar, el cartel aparece de nuevo
+  // (se ilumina un instante y después queda apagadito)
   mostrarPiso(nombre) {
-    if (nombre !== this.textoPiso.textContent) this.textoPiso.textContent = nombre;
+    if (nombre === this.textoPiso.textContent) return;
+    this.textoPiso.textContent = nombre;
+    reanimar(this.textoPiso, 'cambio');
   }
 
   // Habilidades activas (abajo a la derecha): ícono, barrita que se vacía y segundos que quedan.
@@ -164,22 +166,26 @@ export class UI {
   }
 
   mostrarSilencio(silenciado) {
-    this.hudSonido.textContent = silenciado ? '🔇 [M] Sonido' : '🔊 [M] Sonido';
+    this.iconoSonido.textContent = silenciado ? '🔇' : '🔊';
   }
 
-  // Muestra un texto abajo de la mira (ej: "[E] Abrir puerta"). Con null se oculta.
+  // Muestra un cartelito abajo de la mira (ej: "[E] Abrir puerta"). Con null se oculta.
+  // Si el texto empieza con una tecla entre corchetes, se dibuja como una tecla.
   mostrarAyuda(texto) {
     if (texto === this.textoAyuda) return;
+    const estabaOculto = !this.textoAyuda;
     this.textoAyuda = texto;
-    this.ayuda.textContent = texto || '';
     this.ayuda.classList.toggle('oculto', !texto);
+    if (!texto) return;
+    const tecla = texto.match(/^\[(\w+)\]\s*(.*)$/);
+    if (tecla) this.ayuda.replaceChildren(crear('kbd', null, tecla[1]), ` ${tecla[2]}`);
+    else this.ayuda.textContent = texto;
+    if (estabaOculto) reanimar(this.ayuda, 'aparece');
   }
 
   // La lista de juguetes late un instante (recuperaste uno, o te faltan para escapar)
   resaltarBotin() {
-    this.botin.classList.remove('late');
-    void this.botin.offsetWidth; // (para que la animación vuelva a arrancar si ya estaba)
-    this.botin.classList.add('late');
+    reanimar(this.botin, 'late');
   }
 
   // Ruidómetro: "radio" es el alcance del ruido de tus pasos ahora mismo (0 = quieto).
@@ -203,9 +209,11 @@ export class UI {
       color = '#f4a261'; // naranja
     }
     if (conBotas) texto = '🧦 Botas de lana';
+    // (En pantalla va solo el ícono: cuánto ruido hacés lo dicen la barra y su color)
     if (texto !== this.textoRuidoActual) {
       this.textoRuidoActual = texto;
-      this.textoRuido.textContent = texto;
+      this.textoRuido.textContent = texto.split(' ')[0];
+      this.ruidometro.classList.toggle('fuerte', radio > 3);
     }
     this.rellenoRuido.style.width = `${porcentaje}%`;
     this.rellenoRuido.style.background = color;
@@ -311,12 +319,13 @@ export class UI {
 
   // En el HUD: "🌙 De noche" (y, de noche, la línea de la linterna)
   mostrarTurno({ icono, nombre }) {
-    this.textoTurno.textContent = `${icono} ${nombre}`;
+    this.textoTurno.textContent = icono;
     this.lineaLinterna.classList.toggle('oculto', nombre !== 'De noche');
   }
 
+  // La linterna en el HUD: apagadita si está apagada, brillante si está prendida
   mostrarLinterna(prendida) {
-    this.estadoLinterna.textContent = prendida ? 'prendida' : 'apagada';
+    this.lineaLinterna.classList.toggle('prendida', prendida);
   }
 
   // El destello del relámpago (0 = nada, 1 = todo blanco)
@@ -425,4 +434,19 @@ function imagenDeRuido() {
   }
   ctx.putImageData(imagen, 0, 0);
   return lienzo.toDataURL();
+}
+
+// Crea un elemento con su clase y su texto
+function crear(etiqueta, clase, texto = '') {
+  const elemento = document.createElement(etiqueta);
+  if (clase) elemento.className = clase;
+  elemento.textContent = texto;
+  return elemento;
+}
+
+// Vuelve a arrancar una animación de CSS (sacando y poniendo la clase que la tiene)
+function reanimar(elemento, clase) {
+  elemento.classList.remove(clase);
+  void elemento.offsetWidth; // (obliga al navegador a "darse cuenta" de que la clase se sacó)
+  elemento.classList.add(clase);
 }

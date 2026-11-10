@@ -4,34 +4,80 @@
   box-sizing: border-box;
 }
 
+/* Colores y medidas de la interfaz (etapa 17E): todo el HUD usa lo mismo */
+:root {
+  --panel: rgba(12, 8, 24, 0.55);
+  --panel-borde: rgba(255, 255, 255, 0.1);
+  --texto: #f4f1ff;
+  --texto-suave: rgba(244, 241, 255, 0.62);
+  --acento: #ffd23f;
+  --radio: 14px;
+  --letra-hud: 'Segoe UI', 'Trebuchet MS', system-ui, sans-serif;
+  --letra-titulo: 'Comic Sans MS', 'Trebuchet MS', sans-serif;
+}
+
 body {
   overflow: hidden;
   background: #000;
-  font-family: 'Comic Sans MS', 'Trebuchet MS', sans-serif;
+  font-family: var(--letra-titulo);
 }
 
+/* Una tecla dibujada ("E", "T", "Espacio") */
+kbd {
+  display: inline-block;
+  min-width: 1.5em;
+  padding: 0.05em 0.4em;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-bottom-width: 3px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font: 700 0.85em var(--letra-hud);
+  text-align: center;
+  line-height: 1.3;
+}
+
+/* La mira: un puntito con un aro apenas visible */
 #mira {
   position: fixed;
   top: 50%;
   left: 50%;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.55), 0 0 0 7px rgba(255, 255, 255, 0.08);
   transform: translate(-50%, -50%);
-  color: white;
-  font-size: 24px;
-  text-shadow: 0 0 3px black;
   pointer-events: none;
 }
 
+/* El cartelito de "[E] Abrir puerta", abajo de la mira */
 #ayuda {
   position: fixed;
-  top: calc(50% + 40px);
+  top: calc(50% + 34px);
   left: 50%;
-  transform: translateX(-50%);
+  max-width: min(520px, calc(100% - 32px));
   padding: 6px 14px;
-  border-radius: 10px;
-  background: rgba(0, 0, 0, 0.55);
-  color: #ffd23f;
-  font-size: 18px;
+  border: 1px solid var(--panel-borde);
+  border-radius: 999px;
+  background: var(--panel);
+  backdrop-filter: blur(6px);
+  color: var(--texto);
+  font: 500 16px var(--letra-hud);
+  text-align: center;
+  transform: translateX(-50%);
   pointer-events: none;
+}
+
+#ayuda.aparece {
+  animation: subir 0.18s ease-out;
+}
+
+@keyframes subir {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 8px);
+  }
 }
 
 /* Vista desde el escondite: una "máscara" encima del juego */
@@ -132,41 +178,6 @@ body {
     opacity: 0;
     transform: translateY(-10px);
   }
-}
-
-/* Ruidómetro: cuánto ruido hacen los pasos (abajo al centro) */
-#ruidometro {
-  position: absolute;
-  bottom: 16px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 6px 14px;
-  border-radius: 12px;
-  background: rgba(20, 10, 40, 0.8);
-  font-size: 15px;
-}
-
-#texto-ruido {
-  min-width: 130px;
-}
-
-#barra-ruido {
-  width: 110px;
-  height: 12px;
-  border: 2px solid #ffffff88;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-#relleno-ruido {
-  display: block;
-  width: 0;
-  height: 100%;
-  background: #52b788;
-  transition: width 0.15s, background 0.15s;
 }
 
 /* Borde rojo que late mientras te persiguen */
@@ -357,135 +368,277 @@ body {
   }
 }
 
-/* ============ HUD ============ */
+/* ============ HUD (rehecho en la etapa 17E) ============ */
+/* Paneles de "vidrio oscuro", sin bordes de color, y lo menos posible de texto */
 #hud {
   position: fixed;
   inset: 0;
   pointer-events: none;
-  color: white;
+  color: var(--texto);
+  font-family: var(--letra-hud);
 }
 
-/* Botín (las 5 pistas), arriba a la izquierda */
+#hud-botin,
+#walkie,
+#hud-estado,
+#ruidometro,
+#hud-sonido,
+.habilidad {
+  border: 1px solid var(--panel-borde);
+  border-radius: var(--radio);
+  background: var(--panel);
+  backdrop-filter: blur(6px);
+}
+
+/* --- Los juguetes, arriba a la izquierda: una ficha por juguete --- */
 #hud-botin {
   position: absolute;
   top: 16px;
   left: 16px;
-  width: min(320px, calc(100% - 32px));
-  padding: 8px 12px;
-  border: 3px solid #ffd23f;
-  border-radius: 14px;
-  background: rgba(20, 10, 40, 0.8);
-  font-size: 13px;
-}
-
-/* En pantallas bajitas, letra más chica para que la lista no tape el juego */
-@media (max-height: 600px) {
-  #hud-botin {
-    width: min(270px, calc(100% - 32px));
-    font-size: 11px;
-  }
-}
-
-#titulo-botin {
-  margin-bottom: 6px;
-  color: #ffd23f;
-  font-size: 16px;
-  letter-spacing: 1px;
-}
-
-/* Con los cinco: el título se pone verde y late */
-#titulo-botin.listo {
-  color: #52ff8a;
-  animation: latido 0.6s ease-in-out infinite alternate;
+  width: min(250px, calc(100% - 32px));
+  padding: 8px 10px;
+  transform-origin: top left;
 }
 
 #lista-pistas {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
   list-style: none;
 }
 
 #lista-pistas li {
-  margin: 4px 0;
-  line-height: 1.3;
+  display: flex;
+  align-items: center;
+  gap: 9px;
 }
 
-#lista-pistas li.encontrado {
-  color: #95d5b2;
+#lista-pistas .icono {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  font-size: 20px;
 }
 
-/* Lo que dijo Facu de dónde está cada juguete (abajo de su nombre) */
+#lista-pistas .nombre {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+/* Lo que dijo Facu de dónde está (abajo del nombre) */
 #lista-pistas .pista {
-  margin-left: 22px;
-  color: #b8f2e6;
-  font-size: 0.92em;
-  font-style: italic;
+  color: var(--texto-suave);
+  font-size: 12px;
+  line-height: 1.25;
 }
 
-/* "[T] Pedirle una pista a Facu" (o cuánto falta) */
+/* Recuperado: se apaga, se tacha y el ícono lleva un tilde verde */
+#lista-pistas li.encontrado .nombre {
+  color: var(--texto-suave);
+  text-decoration: line-through;
+}
+
+#lista-pistas li.encontrado .icono {
+  background: rgba(82, 183, 136, 0.3);
+}
+
+#lista-pistas li.encontrado .icono::after {
+  content: '✓';
+  position: absolute;
+  right: -5px;
+  bottom: -5px;
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #52b788;
+  color: #0b2b1c;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+/* Con los tres: "¡A las bicis!", que late */
+#titulo-botin:empty {
+  display: none;
+}
+
+#titulo-botin.listo {
+  margin-top: 8px;
+  color: #7dffa8;
+  font-size: 15px;
+  font-weight: 700;
+  text-align: center;
+  animation: latido 0.6s ease-in-out infinite alternate;
+}
+
+/* La tecla del walkie (o cuánto falta para la próxima pista) */
 #pie-walkie {
-  margin-top: 6px;
-  padding-top: 5px;
-  border-top: 1px dashed rgba(255, 210, 63, 0.4);
-  color: #ffd23f;
-  font-size: 0.92em;
+  margin-top: 8px;
+  padding-top: 7px;
+  border-top: 1px solid var(--panel-borde);
+  color: var(--texto-suave);
+  font-size: 12px;
 }
 
 #pie-walkie.esperando {
-  color: #adb5bd;
+  opacity: 0.6;
 }
 
-/* Facu hablando por el walkie: una "radio" verde con su carita, arriba del tiempo */
+/* En pantallas bajitas, todo más chico para que la lista no tape el juego */
+@media (max-height: 600px) {
+  #hud-botin {
+    width: min(210px, calc(100% - 32px));
+  }
+
+  #lista-pistas .icono {
+    width: 28px;
+    height: 28px;
+    font-size: 16px;
+  }
+}
+
+/* --- Facu por el walkie: aparece deslizándose, arriba del cartel de dónde estás --- */
 #walkie {
   position: absolute;
-  bottom: 140px; /* (arriba del recuadro del piso, el turno y el tiempo) */
+  bottom: 84px;
   left: 16px;
   display: flex;
   gap: 10px;
   align-items: flex-start;
-  width: min(400px, calc(100% - 32px));
+  width: min(380px, calc(100% - 32px));
   padding: 10px 12px;
-  border: 3px solid #2a9d8f;
-  border-radius: 14px;
-  background: rgba(10, 35, 32, 0.88);
-  animation: aparecer 0.2s ease-out;
+  border-left: 3px solid #52ff8a;
+  animation: entrarDeCostado 0.25s ease-out;
+}
+
+@keyframes entrarDeCostado {
+  from {
+    opacity: 0;
+    transform: translateX(-16px);
+  }
 }
 
 .cara-walkie {
   flex: none;
   display: grid;
   place-items: center;
-  width: 44px;
-  height: 44px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   background: #e76f51;
-  font-size: 28px;
+  font-size: 23px;
 }
 
 .nombre-walkie {
-  color: #52ff8a;
-  font-size: 13px;
-  letter-spacing: 1px;
+  color: #7dffa8;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
 }
 
+/* (Facu "escribe" con letra de chico) */
 #texto-walkie {
-  color: #ffffff;
-  font-size: 15px;
-  line-height: 1.35;
+  font: 15px/1.35 var(--letra-titulo);
 }
 
-/* Dónde estás, el turno y el tiempo, abajo a la izquierda */
+/* --- Dónde estás, abajo a la izquierda: el lugar y, chiquito, el turno, la linterna y el tiempo --- */
 #hud-estado {
   position: absolute;
   bottom: 16px;
   left: 16px;
-  padding: 8px 14px;
-  border-radius: 14px;
-  background: rgba(20, 10, 40, 0.8);
-  font-size: 17px;
-  line-height: 1.6;
+  padding: 7px 12px;
 }
 
-/* Habilidades activas, abajo a la derecha, encima del sonido (una fila por habilidad).
-   No van arriba porque ahí aparecen los avisos y en pantallas angostas se pisarían. */
+#texto-piso {
+  color: var(--texto-suave);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+/* Al cambiar de lugar, el nombre se ilumina y vuelve a apagarse */
+#texto-piso.cambio {
+  animation: cambioDeLugar 2.2s ease-out;
+}
+
+@keyframes cambioDeLugar {
+  0% {
+    color: #fff;
+    letter-spacing: 2px;
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  60% {
+    color: #fff;
+    letter-spacing: 0.5px;
+  }
+}
+
+#hud-estado .datos {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 2px;
+  color: var(--texto-suave);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+#linea-linterna {
+  opacity: 0.45;
+  transition: opacity 0.15s, filter 0.15s;
+}
+
+#linea-linterna.prendida {
+  opacity: 1;
+  filter: drop-shadow(0 0 6px #ffe58a);
+}
+
+/* --- Ruidómetro, abajo al centro: un ícono y una barra finita --- */
+#ruidometro {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  transform: translateX(-50%);
+  font-size: 15px;
+}
+
+#ruidometro.fuerte {
+  border-color: rgba(230, 57, 70, 0.7);
+}
+
+#barra-ruido {
+  width: 120px;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  overflow: hidden;
+}
+
+#relleno-ruido {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: 999px;
+  background: #52b788;
+  transition: width 0.15s, background 0.15s;
+}
+
+/* --- Habilidades activas, abajo a la derecha, encima del sonido (una fila por habilidad) --- */
 #hud-habilidades {
   position: absolute;
   bottom: 56px;
@@ -501,32 +654,33 @@ body {
   align-items: center;
   gap: 8px;
   padding: 5px 12px;
-  border-radius: 12px;
-  background: rgba(20, 10, 40, 0.8);
-  font-size: 15px;
+  font-size: 13px;
   animation: aparecer 0.25s ease-out;
 }
 
 .habilidad .icono {
-  font-size: 22px;
+  font-size: 20px;
 }
 
 .habilidad .barra {
-  width: 90px;
-  height: 10px;
-  border: 2px solid #ffffff88;
-  border-radius: 8px;
+  width: 80px;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
   overflow: hidden;
 }
 
 .habilidad .relleno {
   display: block;
   height: 100%;
+  border-radius: 999px;
 }
 
 .habilidad .segundos {
-  min-width: 34px;
+  min-width: 30px;
+  color: var(--texto-suave);
   text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 /* Cuando le quedan menos de 3 segundos, titila */
@@ -547,15 +701,15 @@ body {
   }
 }
 
-/* Sonido, abajo a la derecha */
+/* --- Sonido, abajo a la derecha (apagadito: casi no se usa) --- */
 #hud-sonido {
   position: absolute;
   bottom: 16px;
   right: 16px;
-  padding: 6px 12px;
-  border-radius: 12px;
-  background: rgba(20, 10, 40, 0.6);
-  font-size: 14px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 13px;
+  opacity: 0.6;
 }
 
 /* ============ CINEMÁTICAS ============ */
@@ -605,7 +759,8 @@ body {
   color: #fff;
   font-size: clamp(16px, 2.4vw, 24px);
   text-align: center;
-  text-shadow: 2px 2px 0 #000;
+  text-shadow: 0 2px 6px #000, 0 0 2px #000;
+  animation: aparecer 0.25s ease-out;
 }
 
 #cine-quien {
@@ -629,11 +784,11 @@ body {
   right: 16px;
   padding: 6px 12px;
   border: none;
-  border-radius: 10px;
-  background: rgba(0, 0, 0, 0.5);
-  color: #fff;
-  font: inherit;
-  font-size: 14px;
+  border: 1px solid var(--panel-borde);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--texto-suave);
+  font: 13px var(--letra-hud);
   cursor: pointer;
   pointer-events: auto;
 }
@@ -688,8 +843,9 @@ body.en-cine #mira {
   gap: 16px;
   padding: 24px 16px;
   overflow-y: auto;
-  background: rgba(20, 10, 40, 0.82);
-  color: white;
+  background: rgba(10, 6, 22, 0.8);
+  backdrop-filter: blur(5px);
+  color: var(--texto);
   text-align: center;
   /* Fundido: las pantallas no aparecen de golpe, se van haciendo visibles (y al revés) */
   transition: opacity 0.35s ease, visibility 0.35s;
@@ -726,7 +882,7 @@ body.en-cine #mira {
 
 .pantalla p {
   max-width: 600px;
-  font-size: 20px;
+  font: 18px/1.45 var(--letra-hud);
 }
 
 .pantalla .creditos {
@@ -740,10 +896,12 @@ body.en-cine #mira {
 }
 
 .pantalla .estadisticas {
-  padding: 8px 16px;
-  border-radius: 12px;
-  background: rgba(0, 0, 0, 0.3);
-  font-size: 18px;
+  padding: 8px 18px;
+  border: 1px solid var(--panel-borde);
+  border-radius: 999px;
+  background: var(--panel);
+  font-size: 17px;
+  font-variant-numeric: tabular-nums;
 }
 
 /* Tarjetas del menú */
@@ -759,9 +917,10 @@ body.en-cine #mira {
   flex: 1 1 260px;
   max-width: 320px;
   padding: 14px 18px;
-  border: 3px solid rgba(255, 210, 63, 0.6);
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--panel-borde);
+  border-top: 3px solid var(--acento);
+  border-radius: var(--radio);
+  background: rgba(255, 255, 255, 0.06);
   text-align: left;
 }
 
@@ -773,8 +932,7 @@ body.en-cine #mira {
 
 .tarjeta p,
 .tarjeta li {
-  font-size: 16px;
-  line-height: 1.45;
+  font: 15px/1.5 var(--letra-hud);
 }
 
 .tarjeta ul {
@@ -782,11 +940,11 @@ body.en-cine #mira {
 }
 
 #pantalla-victoria {
-  background: rgba(20, 90, 50, 0.85);
+  background: radial-gradient(ellipse at center, rgba(24, 110, 62, 0.82), rgba(6, 30, 18, 0.92));
 }
 
 #pantalla-derrota {
-  background: rgba(120, 20, 30, 0.85);
+  background: radial-gradient(ellipse at center, rgba(120, 22, 32, 0.82), rgba(30, 4, 10, 0.94));
 }
 
 .botones {
@@ -806,6 +964,7 @@ body.en-cine #mira {
   font-size: 22px;
   box-shadow: 0 5px 0 #e4572e;
   cursor: pointer;
+  transition: transform 0.12s, filter 0.12s, box-shadow 0.12s;
 }
 
 .pantalla button.secundario {
@@ -816,6 +975,17 @@ body.en-cine #mira {
 
 .pantalla button:hover {
   transform: translateY(-2px);
+  filter: brightness(1.08);
+}
+
+.pantalla button:active {
+  transform: translateY(3px);
+  box-shadow: 0 2px 0 #e4572e;
+}
+
+.pantalla button:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 3px;
 }
 
 /* Clase para ocultar cualquier pantalla */
@@ -828,6 +998,7 @@ body.en-cine #mira {
 .pantalla.menu {
   align-items: flex-start;
   background: linear-gradient(to right, rgba(8, 4, 20, 0.88) 0%, rgba(8, 4, 20, 0.6) 32%, rgba(8, 4, 20, 0) 60%);
+  backdrop-filter: none; /* (la casa de fondo se tiene que ver nítida) */
 }
 
 .panel-menu {
@@ -853,8 +1024,10 @@ body.en-cine #mira {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  font-size: 16px;
-  opacity: 0.95;
+  color: var(--texto-suave);
+  font: 600 12px var(--letra-hud);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
 }
 
 .opciones-turno {
@@ -864,17 +1037,25 @@ body.en-cine #mira {
 }
 
 .opciones-turno button {
-  padding: 8px 12px;
-  font-size: 15px;
-  background: rgba(255, 255, 255, 0.12);
-  color: #fff;
+  padding: 7px 12px;
+  border: 1px solid var(--panel-borde);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--texto);
+  font: 500 14px var(--letra-hud);
+  letter-spacing: 0;
+  text-transform: none;
   box-shadow: none;
-  border: 2px solid transparent;
+}
+
+.opciones-turno button:active {
+  box-shadow: none;
 }
 
 .opciones-turno button.elegido {
-  border-color: #ffd23f;
+  border-color: var(--acento);
   background: rgba(255, 210, 63, 0.22);
+  color: #fff;
 }
 
 /* Celular / ventana angosta: el panel ocupa todo el ancho */
