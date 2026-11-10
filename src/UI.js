@@ -2,7 +2,6 @@
 // Game le dice QUÉ mostrar; UI sabe CÓMO mostrarlo.
 import { RADIO_MAXIMO_PASOS } from './Noise.js';
 
-const NIVEL_MAXIMO_ENOJO = 6;
 
 export class UI {
   constructor() {
@@ -44,7 +43,6 @@ export class UI {
     this.textoWalkie = $('texto-walkie');
     this.textoTiempo = $('texto-tiempo');
     this.textoPiso = $('texto-piso');
-    this.rellenoEnojo = $('relleno-enojo');
     this.hudSonido = $('hud-sonido');
     this.hudHabilidades = $('hud-habilidades');
     this.filasHabilidad = new Map(); // tipo -> { elemento, relleno, segundos } (una fila por habilidad activa)
@@ -131,10 +129,9 @@ export class UI {
     this.pieWalkie.classList.toggle('esperando', segundos > 0);
   }
 
-  // Tiempo de la partida y barra de enojo del dueño (se llena de 0% a 100%)
-  actualizarHUD(segundos, nivelEnojo) {
+  // Tiempo de la partida
+  actualizarHUD(segundos) {
     this.textoTiempo.textContent = formatearTiempo(segundos);
-    this.rellenoEnojo.style.width = `${(nivelEnojo / NIVEL_MAXIMO_ENOJO) * 100}%`;
   }
 
   // Dónde está el jugador: 'Sótano', 'Planta baja'... o 'Afuera'
@@ -369,15 +366,15 @@ export class UI {
   //  PANTALLAS DE FIN DE PARTIDA
   // ------------------------------------------------------------
   // nombres: los juguetes que recuperaste (ej: ['la pelota de fútbol', 'el robot', ...])
-  mostrarVictoria(nombres, segundos, nivelEnojo) {
+  mostrarVictoria(nombres, segundos) {
     const lista = `${nombres.slice(0, -1).join(', ')} y ${nombres.at(-1)}`;
     this.textoVictoria.textContent = `Recuperaste ${lista}. Facu y vos se fueron en bici mientras Don Ernesto gritaba desde la puerta. ¡Misión cumplida!`;
-    this.estadisticasVictoria.textContent = `⏱ Tiempo: ${formatearTiempo(segundos)} · 😠 Enojo de Don Ernesto: ${nivelEnojo}/${NIVEL_MAXIMO_ENOJO}`;
+    this.estadisticasVictoria.textContent = `⏱ Tiempo: ${formatearTiempo(segundos)}`;
     this.terminarPartida('victoria');
   }
 
   // Si no se pasa un texto, elige una frase cómica al azar
-  mostrarDerrota(texto, segundos, nivelEnojo) {
+  mostrarDerrota(texto, segundos) {
     const frases = [
       'Don Ernesto te agarró de una oreja y te llevó hasta tu casa. Tu mamá ya está enterada.',
       '"¡Y no vuelvas más!" Y encima ahora también se quedó con tu gorrita.',
@@ -385,7 +382,7 @@ export class UI {
       '"¡Lo que entra en mi casa es mío!" Por suerte, a vos te devolvió... de una oreja.',
     ];
     this.textoDerrota.textContent = texto || frases[Math.floor(Math.random() * frases.length)];
-    this.estadisticasDerrota.textContent = `⏱ Duraste: ${formatearTiempo(segundos)} · 😠 Enojo de Don Ernesto: ${nivelEnojo}/${NIVEL_MAXIMO_ENOJO}`;
+    this.estadisticasDerrota.textContent = `⏱ Duraste: ${formatearTiempo(segundos)}`;
     this.terminarPartida('derrota');
   }
 

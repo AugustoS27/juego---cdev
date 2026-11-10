@@ -748,11 +748,6 @@ export class Audio {
     }
   }
 
-  // Gruñido de Don Ernesto cuando se enoja más
-  enojo() {
-    this.tono({ frecuencia: 110, frecuenciaFinal: 70, duracion: 0.6, tipo: 'sawtooth', volumen: 0.12 });
-  }
-
   // Arpegio alegre (Do - Mi - Sol - Do)
   victoria() {
     [523, 659, 784, 1047].forEach((f, i) => {

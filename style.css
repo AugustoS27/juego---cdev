@@ -439,10 +439,10 @@ body {
   color: #adb5bd;
 }
 
-/* Facu hablando por el walkie: una "radio" verde con su carita, arriba del tiempo y el enojo */
+/* Facu hablando por el walkie: una "radio" verde con su carita, arriba del tiempo */
 #walkie {
   position: absolute;
-  bottom: 140px; /* (arriba del recuadro del piso, el turno, el tiempo y el enojo) */
+  bottom: 140px; /* (arriba del recuadro del piso, el turno y el tiempo) */
   left: 16px;
   display: flex;
   gap: 10px;
@@ -478,7 +478,7 @@ body {
   line-height: 1.35;
 }
 
-/* Tiempo y enojo, abajo a la izquierda */
+/* Dónde estás, el turno y el tiempo, abajo a la izquierda */
 #hud-estado {
   position: absolute;
   bottom: 16px;
@@ -488,26 +488,6 @@ body {
   background: rgba(20, 10, 40, 0.8);
   font-size: 17px;
   line-height: 1.6;
-}
-
-/* Barra de enojo: se llena a medida que el dueño se enoja */
-#barra-enojo {
-  display: inline-block;
-  width: 90px;
-  height: 12px;
-  margin-left: 4px;
-  border: 2px solid #ff6b6b;
-  border-radius: 8px;
-  overflow: hidden;
-  vertical-align: middle;
-}
-
-#relleno-enojo {
-  display: block;
-  width: 0;
-  height: 100%;
-  background: linear-gradient(to right, #ffd23f, #e63946);
-  transition: width 0.4s;
 }
 
 /* Habilidades activas, abajo a la derecha, encima del sonido (una fila por habilidad).

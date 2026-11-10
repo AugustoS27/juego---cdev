@@ -106,7 +106,7 @@ export class Enemigo {
     this.tiempoRecalculo = 0;
     this.tiempoAtascado = 0;
     this.tiempoYendo = 0;
-    this.multiplicadorVelocidad = 1; // sube con el enojo (solo el dueño)
+    this.multiplicadorVelocidad = 1; // (para acelerar o frenar a un enemigo; hoy siempre 1)
     this.estado = null;
     this.cambiarEstado(ESTADO.PATRULLA);
     this.empezarEspera(1); // se queda un segundo quieto antes de empezar a patrullar

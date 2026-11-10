@@ -8,7 +8,6 @@
 //     (etapa 16C): va al tablero a subir la llave y, desde la segunda vez, se queda revisando el garaje.
 //     Mientras dura eso, el garaje también es su zona.
 //   - Si llega a la escalera plegable del ático y está plegada, la despliega.
-//   - Cada 30 segundos se enoja más y camina más rápido (lo maneja Game con multiplicadorVelocidad).
 //   - Animaciones: parpadea, pega un salto de sorpresa cuando te ve (y se queda duro medio segundo:
 //     es tu ventaja para arrancar), se rasca la cabeza y gira la cabeza mientras busca, y se pone
 //     colorado de bronca cuando te persigue.

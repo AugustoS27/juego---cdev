@@ -53,11 +53,6 @@ const FOV_JUEGO = 75;
 const ESPERA_DUENO_TABLERO = 1.5; // segundos hasta que Don Ernesto sale para el tablero ("¡¿Otra vez la luz?!")
 const MAXIMO_SIN_LUZ = 75; // por las dudas: si en este tiempo nadie la subió, la luz vuelve sola
 
-// Dificultad creciente: cada 30 segundos el dueño se enoja más y camina un 10% más rápido
-const SEGUNDOS_POR_NIVEL = 30;
-const NIVEL_MAXIMO_ENOJO = 6; // como mucho, un 60% más rápido
-const AUMENTO_POR_NIVEL = 0.1;
-
 export class Game {
   constructor(contenedor) {
     // --- Renderer: dibuja la escena en un <canvas> ---
@@ -149,8 +144,6 @@ export class Game {
 
     this.estado = PARTIDA.MENU;
     this.tiempoPartida = 0; // segundos jugados en esta partida
-    this.nivelEnojo = 0;
-    this.tiempoParaEnojo = SEGUNDOS_POR_NIVEL;
     this.tiempoDesdeAvisoRuido = 99; // para no llenar la pantalla de avisos
     this.estabaEnLaZona = false; // para avisar "te faltan objetos" solo al entrar a la zona
 
@@ -874,8 +867,6 @@ export class Game {
     for (const enemigo of this.enemigos) enemigo.reiniciar();
 
     this.tiempoPartida = 0;
-    this.nivelEnojo = 0;
-    this.tiempoParaEnojo = SEGUNDOS_POR_NIVEL;
     this.proximoRelampago = 6 + Math.random() * 6;
     this.corte.reiniciar(); // (la luz siempre vuelve al empezar otra partida)
     this.ponerCorriente(1);
@@ -885,7 +876,7 @@ export class Game {
 
     this.ui.ocultarCosasDelJuego();
     this.ui.mostrarBotin(this.items.objetivos, this.walkie);
-    this.ui.actualizarHUD(0, 0);
+    this.ui.actualizarHUD(0);
   }
 
   // ------------------------------------------------------------
@@ -960,7 +951,6 @@ export class Game {
     if (this.estado === PARTIDA.JUGANDO) {
       this.tiempoPartida += dt;
       this.tiempoDesdeAvisoRuido += dt;
-      this.actualizarDificultad(dt);
       this.actualizarTormenta(dt);
       this.actualizarCorte(dt);
 
@@ -989,7 +979,7 @@ export class Game {
       this.actualizarAyuda();
       this.comentarSiEntro();
       this.ui.mostrarFundido(this.player.oscuridad); // (negro mientras atravesás una pared trepando)
-      this.ui.actualizarHUD(this.tiempoPartida, this.nivelEnojo);
+      this.ui.actualizarHUD(this.tiempoPartida);
       this.ui.mostrarHabilidades([...this.habilidades.paraElHUD, ...this.olorParaElHUD()]);
       this.ui.mostrarWalkie(this.walkie.textoVisible);
       this.ui.mostrarEsperaPista(this.walkie.esperaPista);
@@ -1013,19 +1003,6 @@ export class Game {
     // Dibujamos con bordes (o sin, si se apagaron con B)
     const dibujante = this.conBordes ? this.efectoBordes : this.renderer;
     dibujante.render(this.scene, this.camera);
-  }
-
-  // Tensión creciente: cada SEGUNDOS_POR_NIVEL el dueño camina más rápido
-  actualizarDificultad(dt) {
-    if (this.nivelEnojo >= NIVEL_MAXIMO_ENOJO) return;
-    this.tiempoParaEnojo -= dt;
-    if (this.tiempoParaEnojo > 0) return;
-
-    this.tiempoParaEnojo = SEGUNDOS_POR_NIVEL;
-    this.nivelEnojo++;
-    this.dueno.multiplicadorVelocidad = 1 + this.nivelEnojo * AUMENTO_POR_NIVEL;
-    this.audio.enojo();
-    this.ui.mostrarAviso(`😠 Don Ernesto está cada vez más enojado: ¡ahora camina más rápido! (nivel ${this.nivelEnojo})`, 3);
   }
 
   // Tomi recuperó uno de sus juguetes: va a la mochila
@@ -1138,7 +1115,7 @@ export class Game {
       this.estado = PARTIDA.VICTORIA;
       this.audio.victoria();
       const nombres = this.items.objetivos.map((o) => o.objeto.nombre);
-      this.ui.mostrarVictoria(nombres, this.tiempoPartida, this.nivelEnojo);
+      this.ui.mostrarVictoria(nombres, this.tiempoPartida);
     });
   }
 
@@ -1168,7 +1145,7 @@ export class Game {
     this.verCinematica(escena, () => {
       this.estado = PARTIDA.DERROTA;
       this.audio.derrota();
-      this.ui.mostrarDerrota(texto, this.tiempoPartida, this.nivelEnojo);
+      this.ui.mostrarDerrota(texto, this.tiempoPartida);
     });
   }
 
