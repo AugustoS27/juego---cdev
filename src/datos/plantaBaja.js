@@ -23,13 +23,15 @@ export const PLANTA_BAJA = {
   // pared: empapelado ('rayas', 'flores', 'azulejos', 'ladrillos', 'tablas', 'rombos', 'lunares', 'estrellas')
   // lampara: 'colgante' (si no se pone nada), 'plafon', 'tubo' o false; lamparaEn: [x, z] (si no, al centro)
   habitaciones: [
-    { nombre: 'living', rects: [[-9, -6, -3, 6]], colorPiso: '#f4a261', textura: 'madera', pared: 'rayas' },
+    { nombre: 'living', rects: [[-9, -3.5, -3, 6]], colorPiso: '#f4a261', textura: 'madera', pared: 'rayas' },
+    // Etapa 16F: al fondo del living, un cuarto angosto lleno de relojes (todos hacen tic-tac... y a veces se paran)
+    { nombre: 'sala de los relojes', rects: [[-9, -6, -3, -3.5]], colorPiso: '#7f5539', textura: 'madera', colorParedes: '#5a4a6a', pared: 'rombos', colorLampara: '#3d405b' },
     { nombre: 'cocina', rects: [[-3, -6, 3, 2]], colorPiso: '#b5e48c', textura: 'ceramica', pared: 'azulejos', lampara: 'plafon' },
     { nombre: 'comedor', rects: [[3, -2, 9, 2]], colorPiso: '#ffd6a5', textura: 'madera', pared: 'rombos', lamparaEn: [7, 0] },
     { nombre: 'baño', rects: [[3, -6, 9, -2]], colorPiso: '#a0e7e5', textura: 'ceramica', pared: 'azulejos', lampara: 'plafon' },
     // La entrada deja el hueco de la escalera que baja al sótano
     { nombre: 'entrada', rects: PASILLO_CON_HUECO, colorPiso: '#cdb4db', textura: 'madera', pared: 'rayas', lampara: 'plafon' },
-    { nombre: 'garaje', rects: [[-15.5, -2, -9, 6]], colorPiso: '#b8c0c8', textura: 'baldosas', colorParedes: '#dfe4e8', lampara: 'tubo', lamparaEn: [-12.3, 1.5] },
+    { nombre: 'garaje', rects: [[-15.5, -2, -9, 6]], colorPiso: '#b8c0c8', textura: 'baldosas', colorParedes: '#dfe4e8', lampara: 'balanceo', lamparaEn: [-12.3, -0.5] }, // (el taller: una lamparita que se balancea sobre la mesa de trabajo)
   ],
 
   // Paredes: líneas rectas [x1, z1, x2, z2]. Los huecos (puertas, ventana, portón) se recortan solos.
@@ -39,6 +41,7 @@ export const PLANTA_BAJA = {
     [-15.5, -2, -9, -2],
     [-15.5, -2, -15.5, 6],
     [-15.5, 6, -9, 6],
+    [-9, -3.5, -3, -3.5], // living | sala de los relojes
   ],
 
   // Puertas: centro (x, z) y "eje" = hacia dónde corre la pared donde está
@@ -54,6 +57,7 @@ export const PLANTA_BAJA = {
     { x: -1, z: 6, eje: 'x', conLlave: true, deCalle: true, gatera: true }, // puerta de calle (hay una llave escondida... y una gatera)
     { x: 9, z: 1.1, eje: 'z', abierta: true }, // puerta trasera del comedor (¡se la olvidaron abierta!)
     { x: -9, z: 3.2, eje: 'z' }, // garaje ↔ living
+    { x: -6, z: -3.5, eje: 'x' }, // living ↔ sala de los relojes
   ],
 
   barandas: [BARANDA_HUECO],
@@ -67,9 +71,13 @@ export const PLANTA_BAJA = {
     { tipo: 'mesaRatona', x: -7, z: 0, rot: 90 },
     { tipo: 'alfombra', x: -6.8, z: 0, rot: 90 },
     { tipo: 'tv', x: -3.45, z: 0.8, rot: -90 },
-    { tipo: 'biblioteca', x: -6, z: -5.7 },
     { tipo: 'planta', x: -8.4, z: 5.4 },
-    { tipo: 'lamparaPie', x: -8.5, z: -5.4 },
+    { tipo: 'lamparaPie', x: -8.5, z: -3 },
+    // Sala de los relojes (los relojes de pared están en "cuadros")
+    { tipo: 'biblioteca', x: -6, z: -5.7 },
+    { tipo: 'relojDePie', x: -8.5, z: -5.6 },
+    { tipo: 'relojDePie', x: -3.5, z: -5.6 },
+    { tipo: 'relojDePie', x: -3.45, z: -4.1, rot: -90 },
     { tipo: 'ventana', x: -8.87, z: -4.5, rot: 90 }, // (corrida: en z=-2.75 está el hogar de la chimenea)
     { tipo: 'ventana', x: -4.2, z: 5.87, rot: 180 }, // la del frente (hasta la 17B era la que se rompía)
     // Cocina
@@ -118,7 +126,18 @@ export const PLANTA_BAJA = {
   // Cuadros (ver Cuadros.js): x, z sobre la pared; rot: hacia dónde mira; y: altura del centro
   cuadros: [
     { dibujo: 'retratoDueno', x: -8.89, z: 0, rot: 90, y: 1.75, ancho: 0.7, alto: 0.9 }, // sobre el sillón
-    { dibujo: 'paisaje', x: -8, z: -5.89, rot: 0, y: 1.7, ancho: 1, alto: 0.7 },
+    // La sala de los relojes: relojes de todos los tamaños en las cuatro paredes
+    { dibujo: 'reloj', x: -7.7, z: -5.89, rot: 0, y: 1.8, ancho: 0.7, alto: 0.7, marco: false },
+    { dibujo: 'reloj', x: -7.1, z: -5.89, rot: 0, y: 2.45, ancho: 0.4, alto: 0.4, marco: false },
+    { dibujo: 'reloj', x: -6, z: -5.89, rot: 0, y: 2.45, ancho: 0.55, alto: 0.55, marco: false },
+    { dibujo: 'reloj', x: -4.6, z: -5.89, rot: 0, y: 1.6, ancho: 0.85, alto: 0.85, marco: false },
+    { dibujo: 'reloj', x: -4.4, z: -5.89, rot: 0, y: 2.5, ancho: 0.35, alto: 0.35, marco: false },
+    { dibujo: 'reloj', x: -8.3, z: -3.61, rot: 180, y: 1.7, ancho: 0.6, alto: 0.6, marco: false },
+    { dibujo: 'reloj', x: -7.5, z: -3.61, rot: 180, y: 2.3, ancho: 0.45, alto: 0.45, marco: false },
+    { dibujo: 'reloj', x: -4.7, z: -3.61, rot: 180, y: 1.9, ancho: 0.75, alto: 0.75, marco: false },
+    { dibujo: 'reloj', x: -3.9, z: -3.61, rot: 180, y: 1.2, ancho: 0.4, alto: 0.4, marco: false },
+    { dibujo: 'reloj', x: -8.89, z: -5.6, rot: 90, y: 2.4, ancho: 0.45, alto: 0.45, marco: false },
+    { dibujo: 'reloj', x: -3.11, z: -5, rot: -90, y: 2.2, ancho: 0.6, alto: 0.6, marco: false },
     { dibujo: 'barco', x: -6.8, z: 5.89, rot: 180 },
     { dibujo: 'reloj', x: -3.11, z: 0.8, rot: -90, y: 2.05, ancho: 0.5, alto: 0.5, marco: false }, // sobre la tele
     { dibujo: 'flores', x: 2.89, z: -3.2, rot: -90 },
@@ -154,6 +173,8 @@ export const PLANTA_BAJA = {
     { id: 'entrada-fondo', pos: [7.5, 3.3] },
     { id: 'escalera-abajo', pos: [0, 5.15] }, // donde arranca la escalera que sube
     { id: 'rellano-pb', pos: [7.8, 5.2] }, // donde arranca la escalera que baja al sótano
+    { id: 'p-living-relojes', pos: [-6, -3.5] },
+    { id: 'relojes', pos: [-6, -4.7] },
     // El garaje (etapa 16C): Don Ernesto solo entra para arreglar el tablero de luz (y, a veces, revisar)
     { id: 'p-living-garaje', pos: [-9, 3.2] },
     { id: 'garaje', pos: [-10.3, 3.2] },
@@ -182,6 +203,8 @@ export const PLANTA_BAJA = {
     ['entrada-centro', 'escalera-abajo'],
     ['entrada-este', 'entrada-fondo'],
     ['entrada-fondo', 'rellano-pb'],
+    ['living-norte', 'p-living-relojes'],
+    ['p-living-relojes', 'relojes'],
     ['living', 'p-living-garaje'],
     ['p-living-garaje', 'garaje'],
     ['garaje', 'tablero'],

@@ -67,6 +67,16 @@ export class Lamparas {
 
   // Cada tanto: las luces se mudan a las lámparas más cercanas a "donde" (el jugador), en su piso
   actualizar(dt, donde, piso) {
+    // La lámpara que se balancea: la luz sale de la bombita y apunta hacia donde apunta el cable
+    for (const luz of this.luces) {
+      const l = luz.userData.lampara;
+      if (!l?.pendulo) continue;
+      const a = l.pendulo.rotation.z;
+      const techo = l.y + l.largo;
+      luz.position.set(l.x + Math.sin(a) * l.largo, techo - Math.cos(a) * l.largo, l.z);
+      luz.target.position.set(l.x + Math.sin(a) * 6, techo - Math.cos(a) * 6, l.z);
+      luz.target.updateMatrixWorld();
+    }
     this.espera -= dt;
     if (this.espera > 0 && piso === this.piso) return;
     this.espera = CADA_CUANTO;

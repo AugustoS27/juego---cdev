@@ -9,14 +9,16 @@ export const PRIMER_PISO = {
   colorParedes: '#ffd6e0',
 
   habitaciones: [
-    { nombre: 'dormitorio', rects: [[-9, -6, -3, 6]], colorPiso: '#bde0fe', textura: 'madera', pared: 'flores', colorLampara: '#cdb4db' },
+    { nombre: 'dormitorio', rects: [[-9, -4.4, -3, 6]], colorPiso: '#bde0fe', textura: 'madera', pared: 'flores', colorLampara: '#cdb4db' },
+    // Etapa 16F: el vestidor, al fondo del dormitorio. Angosto, sin lámpara, con ropa colgada que se mueve al pasar
+    { nombre: 'vestidor', rects: [[-9, -6, -3, -4.4]], colorPiso: '#9c7a5b', textura: 'madera', colorParedes: '#6d597a', pared: 'rayas', lampara: false },
     { nombre: 'cuarto del hijo', rects: [[-3, -6, 3, 2]], colorPiso: '#caffbf', textura: 'madera', pared: 'estrellas', lampara: 'plafon' },
     { nombre: 'cuarto de Doña Pocha', rects: [[3, -2, 9, 2]], colorPiso: '#e9d8fd', textura: 'madera', colorParedes: '#fcefb4', pared: 'flores', colorLampara: '#ffafcc' },
     { nombre: 'baño de arriba', rects: [[3, -6, 9, -2]], colorPiso: '#a0e7e5', textura: 'ceramica', pared: 'azulejos', lampara: 'plafon' },
     { nombre: 'pasillo', rects: PASILLO_CON_HUECO, colorPiso: '#cdb4db', textura: 'madera', pared: 'rayas', lampara: 'plafon' },
   ],
 
-  paredes: PAREDES_TIPICAS,
+  paredes: [...PAREDES_TIPICAS, [-9, -4.4, -3, -4.4]], // (la última: dormitorio | vestidor)
 
   puertas: [
     { x: -3, z: 3, eje: 'z' }, // pasillo ↔ dormitorio
@@ -24,6 +26,7 @@ export const PRIMER_PISO = {
     { x: 5, z: 2, eje: 'x' }, // pasillo ↔ cuarto de la abuela
     { x: 3, z: -4, eje: 'z' }, // cuarto del hijo ↔ baño de arriba
     { x: -6, z: 6, eje: 'x' }, // dormitorio ↔ balcón
+    { x: -4.5, z: -4.4, eje: 'x' }, // dormitorio ↔ vestidor
   ],
 
   conductos: [{ desde: [7.5, -4.4], hasta: [7.5, -1] }], // baño de arriba ↔ cuarto de la abuela
@@ -36,12 +39,13 @@ export const PRIMER_PISO = {
     { tipo: 'camaDoble', x: -7.85, z: 0, rot: 90 },
     { tipo: 'mesaLuz', x: -8.6, z: 1.3 },
     { tipo: 'mesaLuz', x: -8.6, z: -1.3 },
-    { tipo: 'placard', x: -6, z: -5.5 },
     { tipo: 'comoda', x: -8, z: 5.6, rot: 180 },
     { tipo: 'alfombraRedonda', x: -5.4, z: 0 },
-    { tipo: 'lamparaPie', x: -4.2, z: -5.5 },
+    { tipo: 'lamparaPie', x: -3.6, z: 5.4 },
     { tipo: 'ventana', x: -8.87, z: 3.5, rot: 90 },
-    { tipo: 'ventana', x: -8.87, z: -3.5, rot: 90 },
+    { tipo: 'ventana', x: -8.87, z: -3.2, rot: 90 },
+    // Vestidor: el placard (escondite) al fondo; la ropa colgada está en "telas"
+    { tipo: 'placard', x: -7.7, z: -5.55 },
     // Cuarto del hijo
     { tipo: 'camaSimple', x: -2.2, z: -4.85 },
     { tipo: 'osito', x: -2.2, z: -5.45 },
@@ -92,6 +96,18 @@ export const PRIMER_PISO = {
 
   luces: [],
 
+  // Telas colgadas (ver Decoracion.crearTelas): se mueven cuando pasás cerca. No chocan ni tapan la vista.
+  // x, z: de dónde cuelgan · y: altura de arriba · rot: 0 = la tela corre a lo largo de X, 90 = de Z
+  telas: [
+    // La ropa del vestidor: cuelga de ganchos de la pared del fondo, de costado (como en un perchero largo)
+    { x: -6.2, z: -5.45, y: 1.9, ancho: 0.7, alto: 1.1, color: '#e63946', rot: 90 },
+    { x: -5.7, z: -5.45, y: 1.9, ancho: 0.7, alto: 1.35, color: '#3d405b', rot: 90 },
+    { x: -5.2, z: -5.45, y: 1.9, ancho: 0.7, alto: 0.9, color: '#f4a261', rot: 90 },
+    { x: -4.7, z: -5.45, y: 1.9, ancho: 0.7, alto: 1.4, color: '#2a9d8f', rot: 90 },
+    { x: -4.2, z: -5.45, y: 1.9, ancho: 0.7, alto: 1.2, color: '#6d597a', rot: 90 },
+    { x: -3.7, z: -5.45, y: 1.9, ancho: 0.7, alto: 1.0, color: '#e9c46a', rot: 90 },
+  ],
+
   // La abuela (etapa 12): se hamaca en su mecedora mirando la tele y, cada tanto, sale a dar una
   // vuelta por el pasillo. Nunca sale de su cuarto y del pasillo (zona), ni baja o sube de piso.
   abuela: {
@@ -116,6 +132,9 @@ export const PRIMER_PISO = {
     { id: 'baño-arriba', pos: [6, -4] },
     { id: 'p-dormitorio', pos: [-3, 3] },
     { id: 'dormitorio', pos: [-5, 2.5] },
+    { id: 'dormitorio-norte', pos: [-4.5, -3.2] },
+    { id: 'p-vestidor', pos: [-4.5, -4.4] },
+    { id: 'vestidor', pos: [-4.5, -4.95] },
   ],
 
   conexiones: [
@@ -131,5 +150,8 @@ export const PRIMER_PISO = {
     ['p-baño-arriba', 'baño-arriba'],
     ['pasillo-oeste', 'p-dormitorio'],
     ['p-dormitorio', 'dormitorio'],
+    ['dormitorio', 'dormitorio-norte'],
+    ['dormitorio-norte', 'p-vestidor'],
+    ['p-vestidor', 'vestidor'],
   ],
 };

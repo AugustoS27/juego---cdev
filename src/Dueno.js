@@ -50,8 +50,8 @@ export class Dueno extends Enemigo {
       // Habitaciones que recorre al patrullar (elige una al azar cada vez), de todos los pisos
       puntosPatrulla: [
         'caldera', 'deposito', 'bodega', 'munecas', // sótano
-        'living', 'cocina', 'comedor', 'baño', 'entrada-este', // planta baja
-        'dormitorio', 'hijo', 'baño-arriba', 'abuela', // primer piso
+        'living', 'cocina', 'comedor', 'baño', 'entrada-este', 'relojes', // planta baja
+        'dormitorio', 'hijo', 'baño-arriba', 'abuela', 'vestidor', // primer piso
         'biblioteca', 'trofeos', 'juegos', 'reves', // segundo piso
         'atico-oeste', // ático
       ],

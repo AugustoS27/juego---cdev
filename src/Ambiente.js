@@ -29,6 +29,8 @@ export class Ambiente {
     this.house = house;
     this.esperas = { crujido: 6, cañeria: 15, portazo: 80, pajaro: 3, grillo: 1, perroLejos: 30, auto: 40 };
     this.tic = 0; // reloj del tic-tac
+    this.relojesParados = 0; // > 0: los relojes están parados (segundos que faltan)
+    this.proximaParada = 40; // segundos hasta la próxima vez que se paran
     this.palabraTele = 0;
     this.latido = 0;
     this.cansancio = 0; // 0 a 1: sube corriendo, baja de a poco (la respiración agitada)
@@ -83,14 +85,21 @@ export class Ambiente {
       audio.autoQuePasa(adentro);
     }
 
-    // Tic-tac de los relojes (si hay alguno cerca, en tu piso)
+    // Tic-tac de los relojes: suenan los 3 más cercanos de tu piso (en la sala de los relojes hay un montón).
+    // Cada tanto se paran TODOS juntos unos segundos... y vuelven a arrancar (etapa 16F)
     this.tic -= dt;
-    if (this.tic <= 0) {
+    this.relojesParados -= dt;
+    if (this.relojesParados < -this.proximaParada) {
+      this.relojesParados = alAzar(4, 7);
+      this.proximaParada = alAzar(35, 70);
+    }
+    if (this.tic <= 0 && this.relojesParados <= 0) {
       this.tic = 1;
       this.tac = !this.tac;
-      for (const reloj of RELOJES) {
-        if (reloj.distanceTo(posicion) < 12 && Math.round((reloj.y - 1) / ALTURA_PISO) === piso) audio.desde(reloj, 'tictac', this.tac);
-      }
+      const cercanos = RELOJES.filter((reloj) => Math.round((reloj.y - 1) / ALTURA_PISO) === piso && reloj.distanceTo(posicion) < 12)
+        .sort((a, b) => a.distanceTo(posicion) - b.distanceTo(posicion))
+        .slice(0, 3);
+      for (const reloj of cercanos) audio.desde(reloj, 'tictac', this.tac);
     }
 
     // La tele de Doña Pocha: murmullo de voces (sin luz, se apaga)

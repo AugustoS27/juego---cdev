@@ -32,6 +32,8 @@ const CUARTOS_DICHOS = {
   'baño': 'en el baño de abajo',
   'entrada': 'en la entrada',
   'garaje': 'en el garaje',
+  'sala de los relojes': 'en la sala de los relojes, al fondo del living',
+  'vestidor': 'en el vestidor, al fondo del dormitorio',
   'dormitorio': 'en el dormitorio de los viejos',
   'cuarto del hijo': 'en el cuarto que era del hijo',
   'cuarto de Doña Pocha': 'en el cuarto de Doña Pocha (¡ojo con ella!)',

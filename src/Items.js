@@ -224,6 +224,7 @@ export const JUGUETES = [
     icono: '⚽',
     crear: crearPelota,
     ubicaciones: [
+      { lugar: 'al pie de un reloj de la sala de los relojes', piso: 0, x: -7.6, y: 0, z: -4.7 },
       { lugar: 'en la mesa con sombrilla del patio', piso: 0, x: 12.5, y: 0.78, z: -0.5 },
       { lugar: 'tirada frente a la cucha de los perros', piso: 0, x: 15.8, y: 0, z: -7.8 },
       { lugar: 'en la cama del cuarto del hijo', piso: 1, x: -2.2, y: 0.66, z: -4.3 },
@@ -237,6 +238,7 @@ export const JUGUETES = [
     icono: '🚗',
     crear: crearAutito,
     ubicaciones: [
+      { lugar: 'entre la ropa colgada del vestidor', piso: 1, x: -5.2, y: 0, z: -5.2 },
       { lugar: 'en la mesa ratona del living', piso: 0, x: -7, y: 0.4, z: 0.3, rot: 90 },
       { lugar: 'en la mesa de trabajo del garaje', piso: 0, x: -12.8, y: 0.9, z: -1.35, rot: 90 },
       { lugar: 'en el escritorio del cuarto del hijo', piso: 1, x: 0.4, y: 0.78, z: -5.6, rot: 90 },
@@ -249,6 +251,7 @@ export const JUGUETES = [
     icono: '🤖',
     crear: crearRobot,
     ubicaciones: [
+      { lugar: 'detrás de las sábanas colgadas del ático', piso: 3, x: -7.2, y: 0, z: 0.3 },
       { lugar: 'en el escritorio de la biblioteca', piso: 2, x: -8.4, y: 0.78, z: 0, rot: 90 },
       { lugar: 'arriba de la caja fuerte del cuarto secreto', piso: 2, x: -8.5, y: 0.9, z: -5.55 },
       { lugar: 'arriba del baúl del ático', piso: 3, x: -6, y: 0.64, z: -3.8 },

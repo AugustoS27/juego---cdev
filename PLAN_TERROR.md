@@ -332,7 +332,29 @@ Un commit por etapa (cuando se pida).
 
 ## Etapa 16F — Habitaciones extrañas y oscuras + sustos
 
-### Qué se hace
+> Se hace en dos partes: **16F-1 cuartos nuevos ✅** y **16F-2 sustos ⏳ (próxima)**.
+
+### 16F-1: qué se hizo ✅
+- **Sala de los relojes** (planta baja, al fondo del living): un cuarto de 6 x 2,5 m con 11 relojes de pared de
+  distintos tamaños y 3 relojes de pie. Suenan los 3 más cercanos y, cada 35 a 70 s, se paran todos juntos unos
+  segundos.
+- **Vestidor** (primer piso, al fondo del dormitorio): angosto, sin lámpara, con ropa colgada que se hamaca al
+  pasar y el placard del dormitorio (escondite) al fondo.
+- **Rincón de las sábanas** (ático, lado del garaje): 7 sábanas colgadas de sogas que se mueven al pasar; detrás
+  hay un maniquí.
+- **El taller** (garaje): la luz de tubo se cambió por una lamparita que se balancea sobre la mesa de trabajo; su
+  círculo de luz se mueve con ella.
+- Don Ernesto patrulla la sala de los relojes y el vestidor (puntos de recorrido nuevos). Un lugar de juguete nuevo
+  en cada cuarto, y Facu los nombra bien en las pistas.
+- **No se hizo el cuarto clausurado** del segundo piso: no hay lugar sin mover la escalera del ático o achicar la
+  sala de trofeos. Queda como decisión del usuario.
+
+### 16F-1: pruebas
+- Todos los tramos del recorrido de Don Ernesto se pueden caminar; llega a la sala de los relojes, al vestidor y
+  al rincón del ático. Los juguetes de los tres lugares nuevos se pueden mirar y agarrar. Las telas se hamacan al
+  pasar (hasta 0,5 rad) y se frenan solas. Dos partidas simuladas sin errores. Capturas de los cuatro lugares.
+
+### Plan original
 - **Cuartos nuevos** (dividiendo los cuartos más grandes, que hoy miden 6 x 12 m, y aprovechando el ático):
   - **Sala de los relojes** (planta baja, al fondo del living): decenas de relojes que hacen tic-tac... y a veces
     se paran todos juntos.

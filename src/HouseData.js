@@ -145,6 +145,7 @@ export const PUENTES = PISOS.flatMap((p) => (p.puentes || []).map(([x1, z1, x2, 
 export const CONDUCTOS = conPiso('conductos');
 export const CUADROS = conPiso('cuadros');
 export const GOTAS = conPiso('gotas');
+export const TELAS = conPiso('telas'); // ropa y sábanas colgadas (etapa 16F)
 
 // Color de las paredes por dentro de cada piso (si la habitación no tiene su propio colorParedes)
 export const COLORES_PAREDES = Object.fromEntries(PISOS.map((p) => [p.piso, p.colorParedes]));

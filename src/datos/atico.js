@@ -76,6 +76,19 @@ export const ATICO = {
     { tipo: 'sabanaFantasma', x: -4, z: -1.5 },
     { tipo: 'sabanaFantasma', x: 4.2, z: -4.3 },
     { tipo: 'cajaAbierta', x: -7.6, z: -4.2 },
+    // Etapa 16F: detrás de las sábanas colgadas hay otro maniquí...
+    { tipo: 'maniqui', x: -8, z: 0.4, rot: 90 },
+  ],
+
+  // El rincón de las sábanas: sábanas colgadas de sogas, que forman un laberinto (ver Decoracion.crearTelas)
+  telas: [
+    { x: -7.9, z: -0.6, y: 2.1, ancho: 1.4, alto: 1.9, color: '#f1f3f5' },
+    { x: -6.2, z: -0.6, y: 2.1, ancho: 1.4, alto: 1.9, color: '#e9ecef' },
+    { x: -7.1, z: 1.3, y: 2.1, ancho: 1.4, alto: 1.9, color: '#f8f9fa' },
+    { x: -5.5, z: 1.3, y: 2.1, ancho: 1.3, alto: 1.9, color: '#dee2e6' },
+    { x: -5.2, z: 0.3, y: 2.1, ancho: 1.5, alto: 1.9, color: '#f1f3f5', rot: 90 },
+    { x: -6.6, z: 0.4, y: 2.1, ancho: 1.2, alto: 1.9, color: '#e9ecef', rot: 90 },
+    { x: -8, z: 2.4, y: 2.1, ancho: 1.3, alto: 1.9, color: '#f8f9fa' },
   ],
 
   // Una lamparita colgando

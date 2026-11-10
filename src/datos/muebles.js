@@ -326,6 +326,16 @@ export const MUEBLES = {
       ),
     ],
   },
+  // Reloj de pie (sala de los relojes): la caja, la cara y el péndulo
+  relojDePie: {
+    partes: [
+      [0, 0, 0, 0.5, 1.95, 0.34, '#5c4033'],
+      [0, 1.95, 0, 0.58, 0.1, 0.4, '#3e2a20'],
+      [0, 1.42, 0.17, 0.36, 0.36, 0.02, '#fff8e1'],
+      [0, 0.45, 0.17, 0.3, 0.75, 0.02, '#2b1d16'],
+      [0, 0.55, 0.185, 0.12, 0.12, 0.02, '#e9c46a'],
+    ],
+  },
   maniqui: {
     partes: [
       [0, 0, 0, 0.4, 0.05, 0.4, '#343a40', 'cilindro'], // base

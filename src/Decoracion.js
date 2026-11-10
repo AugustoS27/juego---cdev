@@ -16,12 +16,13 @@ import * as THREE from 'three';
 import { materialToon } from './Materials.js';
 import { textura } from './Texturas.js';
 import { crearCuadro } from './Cuadros.js';
-import { ALTURA_PISO, HABITACIONES, PUERTAS, CUADROS, GOTAS, TECHO, pisoDeAltura } from './HouseData.js';
+import { ALTURA_PISO, HABITACIONES, PUERTAS, CUADROS, GOTAS, TELAS, TECHO, pisoDeAltura } from './HouseData.js';
 
 const GROSOR_PISO = 0.2;
 const COLOR_MARCO = '#fffaf0';
 const GRAVEDAD_GOTA = 9;
 const COLOR_FOCO_PRENDIDO = new THREE.Color('#fff3b0');
+const LARGO_PENDULO = 0.85; // metros de cable de la lámpara que se balancea
 
 export class Decoracion {
   constructor(scene, house) {
@@ -31,6 +32,8 @@ export class Decoracion {
     this.gotas = [];
     this.alCaerGota = null; // alCaerGota(posicion): Game le pone el sonido
     this.lamparas = []; // { x, y, z, piso, radio }: dónde va la luz de cada lámpara del techo (ver Lamparas.js)
+    this.pendulos = []; // las lámparas que se balancean
+    this.telas = []; // ropa y sábanas colgadas: { grupo, x, z, piso, angulo, velocidad }
     // Las bombitas y los plafones comparten material: así se pueden "apagar" todos juntos (cortes de luz)
     this.materialFoco = new THREE.MeshBasicMaterial({ color: '#fff3b0' });
     this.materialPlafon = materialToon('#fffaf0').clone();
@@ -43,6 +46,7 @@ export class Decoracion {
     this.crearTelaranas();
     this.crearGotas();
     this.crearPolvo();
+    this.crearTelas();
   }
 
   // Corte de luz (etapa 16C): las bombitas y los plafones se apagan (corriente 0) o se prenden (1)
@@ -109,6 +113,25 @@ export class Decoracion {
         this.pieza(new THREE.SphereGeometry(0.07, 10, 8), foco, x, techo - 0.78, z);
       } else if (tipo === 'plafon') {
         this.pieza(new THREE.SphereGeometry(0.3, 16, 8), this.materialPlafon, x, techo, z).scale.set(1, 0.3, 1);
+      } else if (tipo === 'balanceo') {
+        // Una lamparita que cuelga de un cable largo y se balancea (etapa 16F). No es estática: se mueve.
+        // "pendulo" gira desde el techo; Lamparas.js mueve la luz con él.
+        const pendulo = new THREE.Group();
+        pendulo.position.set(x, techo, z);
+        const colgar = (geometria, material, y) => {
+          const malla = new THREE.Mesh(geometria, typeof material === 'string' ? materialToon(material) : material);
+          malla.position.y = y;
+          pendulo.add(malla);
+        };
+        colgar(new THREE.CylinderGeometry(0.012, 0.012, LARGO_PENDULO, 6), '#222222', -LARGO_PENDULO / 2);
+        colgar(new THREE.ConeGeometry(0.22, 0.2, 14), '#52796f', -LARGO_PENDULO);
+        colgar(new THREE.SphereGeometry(0.07, 10, 8), foco, -LARGO_PENDULO - 0.13);
+        this.scene.add(pendulo);
+        this.pendulos.push(pendulo);
+        const lampara = this.lamparas.at(-1);
+        lampara.y = techo - LARGO_PENDULO - 0.15;
+        lampara.pendulo = pendulo;
+        lampara.largo = LARGO_PENDULO + 0.15;
       } else if (tipo === 'tubo') {
         this.pieza(new THREE.BoxGeometry(1.3, 0.06, 0.2), '#dee2e6', x, techo - 0.03, z);
         this.pieza(new THREE.BoxGeometry(1.2, 0.05, 0.08), foco, x, techo - 0.08, z);
@@ -205,11 +228,51 @@ export class Decoracion {
   }
 
   // ------------------------------------------------------------
+  //  TELAS COLGADAS (etapa 16F): la ropa del vestidor y las sábanas del ático.
+  //  Cada una cuelga de arriba y se hamaca cuando pasás cerca (como un péndulo que se va frenando).
+  //  No chocan ni tapan la vista de los enemigos: son para dar miedo (¿qué hay atrás?).
+  // ------------------------------------------------------------
+  crearTelas() {
+    for (const t of TELAS) {
+      const material = materialToon(t.color).clone();
+      material.side = THREE.DoubleSide; // (se ven de los dos lados)
+      const grupo = new THREE.Group(); // (gira desde arriba, de donde cuelga)
+      grupo.position.set(t.x, t.piso * ALTURA_PISO + t.y, t.z);
+      grupo.rotation.y = THREE.MathUtils.degToRad(t.rot ?? 0);
+      const tela = new THREE.Mesh(new THREE.BoxGeometry(t.ancho, t.alto, 0.03), material);
+      tela.position.y = -t.alto / 2;
+      tela.raycast = () => {}; // (la mira no la detecta: no tapa lo que hay atrás)
+      const soga = new THREE.Mesh(new THREE.BoxGeometry(t.ancho + 0.3, 0.025, 0.025), materialToon('#8d6e63'));
+      soga.raycast = () => {};
+      const colgada = new THREE.Group();
+      colgada.add(tela);
+      grupo.add(colgada, soga);
+      this.scene.add(grupo);
+      this.telas.push({ colgada, x: t.x, z: t.z, piso: t.piso, angulo: 0, velocidad: 0, lado: 1 });
+    }
+  }
+
+  // ------------------------------------------------------------
   //  CADA FRAME
   // ------------------------------------------------------------
   update(dt, camara) {
     this.tiempo += dt;
     const piso = pisoDeAltura(camara.position.y - 1.6);
+
+    // La lámpara del taller se balancea despacito
+    for (const pendulo of this.pendulos) pendulo.rotation.z = Math.sin(this.tiempo * 1.5) * 0.3;
+
+    // Telas: si pasás cerca, reciben un empujón; después se hamacan solas hasta frenarse
+    for (const t of this.telas) {
+      if (t.piso !== piso && t.angulo === 0) continue;
+      const cerca = t.piso === piso && Math.hypot(camara.position.x - t.x, camara.position.z - t.z) < 0.9;
+      if (cerca && !t.tocada) t.velocidad += 2.2 * t.lado;
+      t.tocada = cerca;
+      t.velocidad += (-9 * t.angulo - 1.6 * t.velocidad) * dt;
+      t.angulo += t.velocidad * dt;
+      if (!cerca && Math.abs(t.angulo) < 0.002 && Math.abs(t.velocidad) < 0.002) t.angulo = t.velocidad = 0;
+      t.colgada.rotation.x = t.angulo;
+    }
 
     // Gotas: caen con gravedad; al tocar el charco avisan (para el sonido) y esperan
     for (const g of this.gotas) {
